@@ -1,0 +1,576 @@
+/* =========================================================
+   LAGO 2.0 — MODERN GAME UI
+   ========================================================= */
+
+:root {
+  --v2-bg: #08090d;
+  --v2-panel: rgba(18, 20, 27, 0.82);
+  --v2-panel-solid: #12141b;
+  --v2-line: rgba(255,255,255,.09);
+  --v2-text: #ffffff;
+  --v2-muted: #8e94a3;
+  --v2-accent: #c8ff35;
+  --v2-accent-2: #a7e82b;
+  --v2-purple: #8b5cf6;
+  --v2-danger: #ff5577;
+  --v2-radius: 22px;
+}
+
+/* ---------- Modern background ---------- */
+
+.app.lago-v2-active {
+  background:
+    radial-gradient(
+      circle at 50% 20%,
+      rgba(139,92,246,.15),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 10% 85%,
+      rgba(200,255,53,.08),
+      transparent 28%
+    ),
+    var(--v2-bg);
+}
+
+/* Hide old decorative scanline */
+.app.lago-v2-active .scan {
+  display: none;
+}
+
+/* ---------- Top HUD ---------- */
+
+.app.lago-v2-active .top {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  gap: 10px;
+}
+
+.app.lago-v2-active .stat {
+  background: var(--v2-panel);
+  border: 1px solid var(--v2-line);
+  border-radius: 16px;
+  box-shadow: none;
+  clip-path: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  padding: 10px 14px;
+}
+
+.app.lago-v2-active .stat b {
+  color: var(--v2-text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.app.lago-v2-active .stat small {
+  color: var(--v2-muted);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+/* ---------- Main game ---------- */
+
+.app.lago-v2-active .center {
+  max-width: 1180px;
+  margin: 0 auto;
+  min-height: calc(100dvh - 190px);
+  padding: 20px 20px 120px;
+}
+
+.app.lago-v2-active .logo {
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 950;
+  letter-spacing: -.06em;
+  font-size: clamp(48px, 8vw, 88px);
+  text-shadow: none;
+  transform: none;
+  margin: 10px 0 0;
+}
+
+.app.lago-v2-active .sub {
+  color: var(--v2-muted);
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: .16em;
+  font-size: 10px;
+}
+
+/* ---------- Snail stage ---------- */
+
+.app.lago-v2-active .snail-wrap {
+  width: min(82vw, 500px);
+  margin-top: 5px;
+  position: relative;
+  isolation: isolate;
+}
+
+/* soft stage behind snail */
+
+.app.lago-v2-active .snail-wrap::before {
+  content: "";
+  position: absolute;
+  width: 72%;
+  height: 55%;
+  left: 14%;
+  top: 23%;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(200,255,53,.13),
+      transparent 68%
+    );
+  filter: blur(20px);
+  z-index: -1;
+}
+
+/* ---------- Living snail ---------- */
+
+.app.lago-v2-active .snail {
+  filter:
+    drop-shadow(0 20px 25px rgba(0,0,0,.35))
+    drop-shadow(0 0 25px rgba(200,255,53,.08));
+
+  animation:
+    lagoIdle
+    3.8s
+    ease-in-out
+    infinite;
+
+  transform-origin: 50% 72%;
+  transition:
+    filter .25s ease,
+    transform .12s ease;
+}
+
+/* breathing */
+
+@keyframes lagoIdle {
+  0%,100% {
+    transform:
+      translateY(0)
+      rotate(0deg)
+      scale(1);
+  }
+
+  25% {
+    transform:
+      translateY(-4px)
+      rotate(-.5deg)
+      scale(1.015);
+  }
+
+  50% {
+    transform:
+      translateY(-8px)
+      rotate(0deg)
+      scale(1.025);
+  }
+
+  75% {
+    transform:
+      translateY(-4px)
+      rotate(.5deg)
+      scale(1.015);
+  }
+}
+
+/* click reaction */
+
+.app.lago-v2-active .snail.lago-hit {
+  animation: lagoHit .32s cubic-bezier(.2,.9,.25,1);
+}
+
+@keyframes lagoHit {
+  0% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform:
+      scale(1.09)
+      rotate(-3deg)
+      translateY(-8px);
+  }
+
+  55% {
+    transform:
+      scale(.94)
+      rotate(3deg)
+      translateY(2px);
+  }
+
+  80% {
+    transform:
+      scale(1.035)
+      rotate(-1deg);
+  }
+
+  100% {
+    transform:
+      scale(1)
+      rotate(0);
+  }
+}
+
+/* ---------- Click message ---------- */
+
+.app.lago-v2-active .cringe {
+  background: rgba(18,20,27,.82);
+  border: 1px solid var(--v2-line);
+  border-radius: 999px;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  padding: 9px 15px;
+  backdrop-filter: blur(12px);
+}
+
+/* ---------- Floating reward ---------- */
+
+.app.lago-v2-active .float {
+  color: var(--v2-accent);
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 900;
+  text-shadow: 0 4px 15px rgba(0,0,0,.4);
+  font-size: 26px;
+}
+
+/* ---------- Bottom navigation ---------- */
+
+.app.lago-v2-active .bottom {
+  position: fixed;
+  z-index: 20;
+
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+
+  transform: translateX(-50%);
+
+  width: min(720px, calc(100% - 24px));
+
+  padding: 8px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+
+  background: rgba(18,20,27,.86);
+  border: 1px solid var(--v2-line);
+  border-radius: 24px;
+
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.45);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.app.lago-v2-active .bottom .btn {
+  min-height: 48px;
+
+  background: transparent;
+
+  border: 0;
+  border-radius: 16px;
+
+  box-shadow: none;
+
+  color: var(--v2-muted);
+
+  font-family: Inter, system-ui, sans-serif;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: .04em;
+
+  transition:
+    background .18s ease,
+    color .18s ease,
+    transform .12s ease;
+}
+
+.app.lago-v2-active .bottom .btn:hover {
+  background: rgba(255,255,255,.06);
+  color: #fff;
+}
+
+.app.lago-v2-active .bottom .btn:active {
+  transform: scale(.96);
+}
+
+/* Main action */
+
+.app.lago-v2-active .bottom .btn.main {
+  grid-column: auto;
+
+  min-height: 48px;
+
+  background: var(--v2-accent);
+
+  color: #08090d;
+
+  border: 0;
+
+  box-shadow:
+    0 8px 25px rgba(200,255,53,.16);
+
+  font-size: 12px;
+}
+
+/* ---------- Panels ---------- */
+
+.app.lago-v2-active .panel {
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(12px);
+}
+
+.app.lago-v2-active .sheet {
+  width: min(760px, 100%);
+  margin: 0 auto;
+
+  background: #101218;
+
+  border-top: 1px solid var(--v2-line);
+
+  border-radius: 28px 28px 0 0;
+
+  box-shadow:
+    0 -30px 80px rgba(0,0,0,.45);
+
+  padding: 22px;
+}
+
+.app.lago-v2-active .sheet h2 {
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 26px;
+  letter-spacing: -.04em;
+  text-shadow: none;
+}
+
+.app.lago-v2-active .close {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+
+  border: 1px solid var(--v2-line);
+
+  border-radius: 12px;
+
+  padding: 8px 11px;
+}
+
+/* ---------- Cards ---------- */
+
+.app.lago-v2-active .card {
+  background: rgba(255,255,255,.035);
+  border: 1px solid var(--v2-line);
+  border-radius: 17px;
+  padding: 14px;
+}
+
+.app.lago-v2-active .buy {
+  background: var(--v2-accent);
+  color: #08090d;
+
+  border: 0;
+  border-radius: 12px;
+
+  box-shadow: none;
+
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 900;
+}
+
+/* ---------- Onboarding ---------- */
+
+.lago-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    radial-gradient(
+      circle at 50% 20%,
+      rgba(139,92,246,.25),
+      transparent 40%
+    ),
+    #08090d;
+
+  opacity: 1;
+  visibility: visible;
+
+  transition:
+    opacity .35s ease,
+    visibility .35s ease;
+}
+
+.lago-onboarding.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.lago-onboarding-card {
+  width: min(460px, 100%);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.07),
+      rgba(255,255,255,.025)
+    );
+
+  border: 1px solid rgba(255,255,255,.12);
+
+  border-radius: 30px;
+
+  padding: 30px;
+
+  box-shadow:
+    0 30px 100px rgba(0,0,0,.55);
+
+  backdrop-filter: blur(25px);
+}
+
+.lago-onboarding-logo {
+  font-family: Inter, system-ui, sans-serif;
+
+  font-size: 58px;
+  line-height: 1;
+
+  font-weight: 950;
+
+  letter-spacing: -.07em;
+
+  color: #fff;
+
+  margin-bottom: 8px;
+}
+
+.lago-onboarding-title {
+  color: var(--v2-muted);
+
+  font-family: Inter, system-ui, sans-serif;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  margin-bottom: 28px;
+}
+
+.lago-onboarding-label {
+  color: #fff;
+
+  font-family: Inter, system-ui, sans-serif;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  margin: 18px 0 8px;
+}
+
+.lago-select {
+  width: 100%;
+
+  padding: 15px;
+
+  color: #fff;
+
+  background: #171921;
+
+  border: 1px solid rgba(255,255,255,.1);
+
+  border-radius: 15px;
+
+  outline: none;
+
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.lago-start {
+  width: 100%;
+
+  margin-top: 24px;
+
+  padding: 16px;
+
+  border: 0;
+  border-radius: 16px;
+
+  background: var(--v2-accent);
+
+  color: #08090d;
+
+  font-family: Inter, system-ui, sans-serif;
+
+  font-size: 14px;
+  font-weight: 950;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 12px 30px rgba(200,255,53,.14);
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease;
+}
+
+.lago-start:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 16px 38px rgba(200,255,53,.2);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 649px) {
+
+  .app.lago-v2-active .top {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px;
+  }
+
+  .app.lago-v2-active .center {
+    min-height: calc(100dvh - 170px);
+    padding-top: 5px;
+  }
+
+  .app.lago-v2-active .logo {
+    font-size: 54px;
+  }
+
+  .lago-onboarding-card {
+    padding: 24px;
+    border-radius: 25px;
+  }
+
+}
+
+@media (min-width: 900px) {
+
+  .app.lago-v2-active .center {
+    padding-top: 25px;
+  }
+
+  .app.lago-v2-active .snail-wrap {
+    width: 500px;
+  }
+
+}
