@@ -1,40 +1,787 @@
 /* =========================================================
-   LAGO 2.0 — MODERN GAME UI
+   LAGO 2.0 — GAME UI
    ========================================================= */
 
 :root {
-  --v2-bg: #08090d;
-  --v2-panel: rgba(18, 20, 27, 0.82);
-  --v2-panel-solid: #12141b;
-  --v2-line: rgba(255,255,255,.09);
-  --v2-text: #ffffff;
-  --v2-muted: #8e94a3;
-  --v2-accent: #c8ff35;
-  --v2-accent-2: #a7e82b;
-  --v2-purple: #8b5cf6;
-  --v2-danger: #ff5577;
-  --v2-radius: 22px;
+  --lago-bg: #090a0f;
+  --lago-panel: rgba(19, 21, 28, .88);
+  --lago-panel-2: #13151c;
+  --lago-border: rgba(255,255,255,.09);
+
+  --lago-text: #ffffff;
+  --lago-muted: #8e95a5;
+
+  --lago-lime: #c9ff32;
+  --lago-pink: #ff3fa9;
+  --lago-purple: #8d55ff;
+  --lago-cyan: #42e8ff;
+
+  --lago-radius: 22px;
 }
 
-/* ---------- Modern background ---------- */
 
-.app.lago-v2-active {
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+.app.lago-modern {
+
   background:
     radial-gradient(
-      circle at 50% 20%,
-      rgba(139,92,246,.15),
-      transparent 30%
+      circle at 50% 15%,
+      rgba(141,85,255,.18),
+      transparent 34%
     ),
     radial-gradient(
-      circle at 10% 85%,
-      rgba(200,255,53,.08),
+      circle at 15% 85%,
+      rgba(201,255,50,.07),
       transparent 28%
     ),
-    var(--v2-bg);
+    #090a0f;
+
 }
 
-/* Hide old decorative scanline */
-.app.lago-v2-active .scan {
+
+.app.lago-modern::before {
+
+  opacity: .035;
+
+  background-size: 32px 32px;
+
+}
+
+
+.app.lago-modern .scan {
+
+  display: none;
+
+}
+
+
+/* =========================================================
+   TOP HUD
+   ========================================================= */
+
+.app.lago-modern .top {
+
+  width: min(1120px, calc(100% - 24px));
+
+  margin: 0 auto;
+
+  padding:
+    calc(12px + env(safe-area-inset-top))
+    0
+    8px;
+
+  gap: 8px;
+
+}
+
+
+.app.lago-modern .stat {
+
+  min-height: 58px;
+
+  padding: 9px 12px;
+
+  background: var(--lago-panel);
+
+  border:
+    1px solid
+    var(--lago-border);
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 10px 35px rgba(0,0,0,.18);
+
+  clip-path: none;
+
+  backdrop-filter: blur(18px);
+
+  -webkit-backdrop-filter: blur(18px);
+
+}
+
+
+.app.lago-modern .stat b {
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size: 18px;
+
+  font-weight: 900;
+
+  color: #fff;
+
+}
+
+
+.app.lago-modern .stat small {
+
+  margin-top: 4px;
+
+  color: var(--lago-muted);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  letter-spacing: .08em;
+
+}
+
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.app.lago-modern .center {
+
+  width: min(1120px, 100%);
+
+  min-height:
+    calc(100dvh - 160px);
+
+  margin: 0 auto;
+
+  padding:
+    8px 20px
+    130px;
+
+  justify-content:
+    flex-start;
+
+}
+
+
+.app.lago-modern .logo {
+
+  margin-top: 10px;
+
+  color: #fff;
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size:
+    clamp(52px, 8vw, 92px);
+
+  font-weight: 950;
+
+  line-height: .9;
+
+  letter-spacing: -.075em;
+
+  text-shadow: none;
+
+  transform: none;
+
+}
+
+
+.app.lago-modern .sub {
+
+  margin-top: 10px;
+
+  color: var(--lago-muted);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: .18em;
+
+}
+
+
+/* =========================================================
+   SNAIL AREA
+   ========================================================= */
+
+.app.lago-modern .snail-wrap {
+
+  width:
+    min(86vw, 560px);
+
+  margin-top:
+    clamp(5px, 3vh, 28px);
+
+  aspect-ratio:
+    1.18;
+
+  position: relative;
+
+}
+
+
+.app.lago-modern .snail-wrap::before {
+
+  content: "";
+
+  position: absolute;
+
+  width: 75%;
+  height: 55%;
+
+  left: 12.5%;
+  top: 25%;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(201,255,50,.13),
+      transparent 70%
+    );
+
+  filter: blur(28px);
+
+  pointer-events: none;
+
+}
+
+
+.app.lago-modern .snail {
+
+  position: relative;
+
+  z-index: 2;
+
+  filter:
+    drop-shadow(
+      0 25px 30px rgba(0,0,0,.35)
+    )
+    drop-shadow(
+      0 0 20px rgba(255,63,169,.12)
+    );
+
+  animation:
+    lagoBreathing
+    4s
+    ease-in-out
+    infinite;
+
+  transform-origin:
+    50% 75%;
+
+}
+
+
+/* =========================================================
+   IDLE ANIMATION
+   ========================================================= */
+
+@keyframes lagoBreathing {
+
+  0%,
+  100% {
+
+    transform:
+      translateY(0)
+      rotate(0)
+      scale(1);
+
+  }
+
+  25% {
+
+    transform:
+      translateY(-4px)
+      rotate(-.5deg)
+      scale(1.012);
+
+  }
+
+  50% {
+
+    transform:
+      translateY(-8px)
+      rotate(0)
+      scale(1.025);
+
+  }
+
+  75% {
+
+    transform:
+      translateY(-4px)
+      rotate(.5deg)
+      scale(1.012);
+
+  }
+
+}
+
+
+/* =========================================================
+   CLICK ANIMATION
+   ========================================================= */
+
+.app.lago-modern .snail.lago-click {
+
+  animation:
+    lagoClick
+    .34s
+    cubic-bezier(.18,.9,.22,1);
+
+}
+
+
+@keyframes lagoClick {
+
+  0% {
+
+    transform:
+      scale(1)
+      rotate(0);
+
+  }
+
+  25% {
+
+    transform:
+      translateY(-12px)
+      scale(1.09)
+      rotate(-3deg);
+
+  }
+
+  50% {
+
+    transform:
+      translateY(2px)
+      scale(.94)
+      rotate(3deg);
+
+  }
+
+  75% {
+
+    transform:
+      scale(1.035)
+      rotate(-1deg);
+
+  }
+
+  100% {
+
+    transform:
+      scale(1)
+      rotate(0);
+
+  }
+
+}
+
+
+/* =========================================================
+   CLICK MESSAGE
+   ========================================================= */
+
+.app.lago-modern .cringe {
+
+  margin-top: 0;
+
+  padding:
+    9px 15px;
+
+  min-height: 36px;
+
+  color: #fff;
+
+  background:
+    rgba(19,21,28,.82);
+
+  border:
+    1px solid
+    var(--lago-border);
+
+  border-radius: 999px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.25);
+
+  transform: none;
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size: 12px;
+
+  font-weight: 800;
+
+  backdrop-filter:
+    blur(15px);
+
+}
+
+
+/* =========================================================
+   FLOATING NUMBERS
+   ========================================================= */
+
+.app.lago-modern .float {
+
+  color:
+    var(--lago-lime);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size: 25px;
+
+  font-weight: 950;
+
+  text-shadow:
+    0 5px 15px rgba(0,0,0,.5);
+
+}
+
+
+/* =========================================================
+   BOTTOM NAVIGATION
+   ========================================================= */
+
+.app.lago-modern .bottom {
+
+  position: fixed;
+
+  z-index: 50;
+
+  left: 50%;
+
+  bottom:
+    max(
+      12px,
+      env(safe-area-inset-bottom)
+    );
+
+  transform:
+    translateX(-50%);
+
+  width:
+    min(
+      760px,
+      calc(100% - 24px)
+    );
+
+  padding: 8px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 7px;
+
+  background:
+    rgba(19,21,28,.9);
+
+  border:
+    1px solid
+    var(--lago-border);
+
+  border-radius:
+    24px;
+
+  box-shadow:
+    0 20px 70px
+    rgba(0,0,0,.5);
+
+  backdrop-filter:
+    blur(22px);
+
+  -webkit-backdrop-filter:
+    blur(22px);
+
+}
+
+
+.app.lago-modern .bottom .btn {
+
+  min-height: 50px;
+
+  padding: 8px;
+
+  background:
+    transparent;
+
+  border: 0;
+
+  border-radius:
+    16px;
+
+  box-shadow: none;
+
+  color:
+    var(--lago-muted);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size:
+    10px;
+
+  font-weight: 900;
+
+  letter-spacing:
+    .04em;
+
+}
+
+
+.app.lago-modern .bottom .btn:hover {
+
+  background:
+    rgba(255,255,255,.05);
+
+  color:
+    #fff;
+
+}
+
+
+.app.lago-modern .bottom .btn:active {
+
+  transform:
+    scale(.96);
+
+}
+
+
+/* MAIN ACTION */
+
+.app.lago-modern .bottom .btn.main {
+
+  grid-column:
+    1 / -1;
+
+  min-height:
+    58px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--lago-pink),
+      var(--lago-purple)
+    );
+
+  border:
+    1px solid
+    rgba(255,255,255,.2);
+
+  color:
+    #fff;
+
+  font-size:
+    15px;
+
+  box-shadow:
+    0 10px 30px
+    rgba(141,85,255,.22);
+
+}
+
+
+/* =========================================================
+   PANELS
+   ========================================================= */
+
+.app.lago-modern .panel {
+
+  background:
+    rgba(0,0,0,.78);
+
+  backdrop-filter:
+    blur(12px);
+
+}
+
+
+.app.lago-modern .sheet {
+
+  width:
+    min(780px,100%);
+
+  margin:
+    0 auto;
+
+  padding:
+    22px;
+
+  background:
+    #11131a;
+
+  border-top:
+    1px solid
+    var(--lago-border);
+
+  border-radius:
+    28px 28px 0 0;
+
+  box-shadow:
+    0 -30px 90px
+    rgba(0,0,0,.5);
+
+}
+
+
+.app.lago-modern .sheet h2 {
+
+  color: #fff;
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+  font-size:
+    27px;
+
+  letter-spacing:
+    -.04em;
+
+  text-shadow: none;
+
+}
+
+
+.app.lago-modern .close {
+
+  background:
+    rgba(255,255,255,.08);
+
+  border:
+    1px solid
+    var(--lago-border);
+
+  border-radius:
+    12px;
+
+}
+
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+.app.lago-modern .card {
+
+  padding: 15px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  border:
+    1px solid
+    var(--lago-border);
+
+  border-radius:
+    17px;
+
+}
+
+
+.app.lago-modern .buy {
+
+  background:
+    var(--lago-lime);
+
+  color:
+    #08090d;
+
+  border:
+    0;
+
+  border-radius:
+    12px;
+
+  box-shadow: none;
+
+}
+
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width: 800px) {
+
+  .app.lago-modern .center {
+
+    min-height:
+      calc(100dvh - 150px);
+
+  }
+
+  .app.lago-modern .snail-wrap {
+
+    width:
+      min(48vw, 560px);
+
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 649px) {
+
+  .app.lago-modern .top {
+
+    width:
+      calc(100% - 16px);
+
+  }
+
+  .app.lago-modern .center {
+
+    padding-left: 12px;
+    padding-right: 12px;
+
+  }
+
+  .app.lago-modern .logo {
+
+    font-size:
+      56px;
+
+  }
+
+  .app.lago-modern .snail-wrap {
+
+    width:
+      min(88vw, 430px);
+
+  }
+
+}.app.lago-v2-active .scan {
   display: none;
 }
 
