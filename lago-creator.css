@@ -1,0 +1,748 @@
+/* =========================================================
+   LAGO CREATOR
+   ========================================================= */
+
+.lago-creator-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+
+  display: none;
+  align-items: flex-end;
+
+  background:
+    rgba(0, 0, 0, .78);
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.lago-creator-overlay.show {
+  display: flex;
+}
+
+.lago-creator {
+  width: 100%;
+  max-width: 1100px;
+  height: min(900px, 94dvh);
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      145deg,
+      #11131a,
+      #0b0c11
+    );
+
+  border:
+    1px solid
+    rgba(255,255,255,.1);
+
+  border-bottom: 0;
+
+  border-radius:
+    30px 30px 0 0;
+
+  box-shadow:
+    0 -30px 100px
+    rgba(0,0,0,.65);
+
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+}
+
+
+/* =========================================================
+   LEFT PREVIEW
+   ========================================================= */
+
+.lago-creator-preview {
+
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(201,255,50,.13),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 30% 80%,
+      rgba(141,85,255,.13),
+      transparent 30%
+    );
+
+  border-right:
+    1px solid
+    rgba(255,255,255,.07);
+
+}
+
+
+.lago-creator-preview-title {
+
+  position: absolute;
+
+  top: 24px;
+  left: 28px;
+
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: .14em;
+
+  opacity: .7;
+
+}
+
+
+.lago-creator-stage {
+
+  position: relative;
+
+  width: min(38vw, 430px);
+  aspect-ratio: 1.18;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+}
+
+
+.lago-creator-base {
+
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+  user-select: none;
+  pointer-events: none;
+
+  filter:
+    drop-shadow(
+      0 25px 30px
+      rgba(0,0,0,.4)
+    );
+
+  animation:
+    lagoCreatorBreath
+    4s
+    ease-in-out
+    infinite;
+
+}
+
+
+@keyframes lagoCreatorBreath {
+
+  0%,
+  100% {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  50% {
+    transform:
+      translateY(-8px)
+      scale(1.025);
+  }
+
+}
+
+
+/* =========================================================
+   LAYER SYSTEM
+   ========================================================= */
+
+.lago-layer {
+
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+  pointer-events: none;
+
+  user-select: none;
+
+  transition:
+    opacity .18s ease,
+    transform .18s ease;
+
+}
+
+
+.lago-layer.hidden {
+  opacity: 0;
+}
+
+
+.lago-creator-name {
+
+  margin-top: 18px;
+
+  color: #fff;
+
+  font-size: 25px;
+  font-weight: 950;
+
+  letter-spacing: -.04em;
+
+}
+
+
+.lago-creator-rarity {
+
+  margin-top: 6px;
+
+  font-size: 10px;
+
+  font-weight: 900;
+
+  letter-spacing: .12em;
+
+  color:
+    #c9ff32;
+
+}
+
+
+/* =========================================================
+   RIGHT PANEL
+   ========================================================= */
+
+.lago-creator-controls {
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+}
+
+
+.lago-creator-header {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    20px 22px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.07);
+
+}
+
+
+.lago-creator-header h2 {
+
+  margin: 0;
+
+  color: #fff;
+
+  font-size: 26px;
+
+  font-weight: 950;
+
+  letter-spacing: -.05em;
+
+}
+
+
+.lago-creator-close {
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 13px;
+
+  background:
+    rgba(255,255,255,.06);
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  color: #fff;
+
+  font-size: 18px;
+
+}
+
+
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
+
+.lago-creator-tabs {
+
+  display: flex;
+
+  gap: 7px;
+
+  padding:
+    12px 16px;
+
+  overflow-x: auto;
+
+  scrollbar-width: none;
+
+}
+
+
+.lago-creator-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+
+.lago-creator-tab {
+
+  flex: 0 0 auto;
+
+  padding:
+    10px 13px;
+
+  border-radius:
+    12px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  border:
+    1px solid
+    rgba(255,255,255,.07);
+
+  color:
+    #8e95a5;
+
+  font-size:
+    9px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .04em;
+
+}
+
+
+.lago-creator-tab.active {
+
+  background:
+    #c9ff32;
+
+  color:
+    #08090d;
+
+  border-color:
+    #c9ff32;
+
+}
+
+
+/* =========================================================
+   ITEMS
+   ========================================================= */
+
+.lago-creator-items {
+
+  flex: 1;
+
+  overflow-y: auto;
+
+  padding:
+    6px 16px 20px;
+
+}
+
+
+.lago-creator-grid {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap:
+    9px;
+
+}
+
+
+.lago-item {
+
+  position: relative;
+
+  min-height:
+    110px;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    7px;
+
+  padding:
+    9px;
+
+  border-radius:
+    16px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  border:
+    1px solid
+    rgba(255,255,255,.07);
+
+  color:
+    #fff;
+
+  cursor:
+    pointer;
+
+  transition:
+    transform .15s ease,
+    border-color .15s ease,
+    background .15s ease;
+
+}
+
+
+.lago-item:hover {
+
+  transform:
+    translateY(-2px);
+
+  background:
+    rgba(255,255,255,.06);
+
+}
+
+
+.lago-item.selected {
+
+  border-color:
+    #c9ff32;
+
+  background:
+    rgba(201,255,50,.08);
+
+  box-shadow:
+    0 0 0 1px
+    rgba(201,255,50,.08);
+
+}
+
+
+.lago-item-preview {
+
+  width: 62px;
+  height: 62px;
+
+  object-fit: contain;
+
+}
+
+
+.lago-item-name {
+
+  max-width:
+    100%;
+
+  overflow:
+    hidden;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+
+  font-size:
+    9px;
+
+  font-weight:
+    900;
+
+}
+
+
+.lago-item-rarity {
+
+  font-size:
+    7px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .08em;
+
+  opacity:
+    .65;
+
+}
+
+
+/* =========================================================
+   RARITIES
+   ========================================================= */
+
+.rarity-common {
+  --rarity: #aeb4c0;
+}
+
+.rarity-rare {
+  --rarity: #4aa8ff;
+}
+
+.rarity-epic {
+  --rarity: #a45cff;
+}
+
+.rarity-legendary {
+  --rarity: #ffb52e;
+}
+
+.rarity-mythic {
+  --rarity: #ff4fbc;
+}
+
+.rarity-secret {
+  --rarity: #c9ff32;
+}
+
+
+.lago-item[class*="rarity-"] {
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--rarity),
+      transparent 72%
+    );
+
+}
+
+
+.lago-item.selected[class*="rarity-"] {
+
+  border-color:
+    var(--rarity);
+
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.lago-creator-footer {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    9px;
+
+  padding:
+    12px 16px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.07);
+
+}
+
+
+.lago-creator-action {
+
+  min-height:
+    50px;
+
+  border-radius:
+    15px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.09);
+
+  background:
+    rgba(255,255,255,.05);
+
+  color:
+    #fff;
+
+  font-size:
+    11px;
+
+  font-weight:
+    950;
+
+}
+
+
+.lago-creator-action.primary {
+
+  background:
+    #c9ff32;
+
+  color:
+    #08090d;
+
+  border-color:
+    #c9ff32;
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 720px) {
+
+  .lago-creator {
+
+    height:
+      96dvh;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    border-radius:
+      26px 26px 0 0;
+
+  }
+
+
+  .lago-creator-preview {
+
+    flex:
+      0 0 42%;
+
+    min-height:
+      260px;
+
+    border-right:
+      0;
+
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.07);
+
+    padding:
+      15px;
+
+  }
+
+
+  .lago-creator-preview-title {
+
+    top:
+      15px;
+
+    left:
+      18px;
+
+  }
+
+
+  .lago-creator-stage {
+
+    width:
+      min(65vw, 330px);
+
+  }
+
+
+  .lago-creator-name {
+
+    margin-top:
+      5px;
+
+    font-size:
+      21px;
+
+  }
+
+
+  .lago-creator-controls {
+
+    flex:
+      1;
+
+    min-height:
+      0;
+
+  }
+
+
+  .lago-creator-grid {
+
+    grid-template-columns:
+      repeat(3, 1fr);
+
+  }
+
+}
+
+
+@media (max-width: 390px) {
+
+  .lago-creator-grid {
+
+    grid-template-columns:
+      repeat(2, 1fr);
+
+  }
+
+}
