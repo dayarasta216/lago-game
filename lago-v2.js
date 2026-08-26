@@ -1,40 +1,967 @@
 /* =========================================================
    LAGO 2.0
-   International onboarding + living snail + language
+   International + Living Snail
    ========================================================= */
 
-(function () {
+(() => {
 
   "use strict";
 
-  /* -------------------------------------------------------
-     LANGUAGE SYSTEM
-  ------------------------------------------------------- */
 
-  const LANGUAGES = {
+  /* =======================================================
+     TRANSLATIONS
+     ======================================================= */
+
+  const LANG = {
+
     en: {
-      name: "English",
-      country: "United States",
-      welcome: "WELCOME TO LAGO",
-      subtitle: "THE ULTIMATE BRAINROT SNAIL",
-      countryLabel: "Country",
-      languageLabel: "Language",
+      country: "Country",
+      language: "Language",
       start: "START PLAYING",
+
+      energy: "MEM ENERGY",
+      power: "CLICK POWER",
+      auto: "PER SECOND",
+      shield: "SHIELD",
+
       play: "PLAY",
       create: "CREATE",
       collection: "COLLECTION",
       shop: "SHOP",
       profile: "PROFILE",
-      energy: "MEM ENERGY",
-      power: "CLICK POWER",
-      auto: "PER SECOND",
-      shield: "SHIELD",
+
       tap: "TAP TO BRAINROT"
     },
 
     ru: {
-      name: "Русский",
-      country: "Россия",
+      country: "Страна",
+      language: "Язык",
+      start: "НАЧАТЬ ИГРУ",
+
+      energy: "МЕМ-ЭНЕРГИЯ",
+      power: "СИЛА КЛИКА",
+      auto: "В СЕКУНДУ",
+      shield: "ЗАЩИТА",
+
+      play: "ИГРАТЬ",
+      create: "СОЗДАТЬ",
+      collection: "КОЛЛЕКЦИЯ",
+      shop: "МАГАЗИН",
+      profile: "ПРОФИЛЬ",
+
+      tap: "КЛИКАЙ ПО LAGO"
+    },
+
+    de: {
+      country: "Land",
+      language: "Sprache",
+      start: "STARTEN",
+
+      energy: "MEM ENERGY",
+      power: "KLICKKRAFT",
+      auto: "PRO SEKUNDE",
+      shield: "SCHUTZ",
+
+      play: "SPIELEN",
+      create: "ERSTELLEN",
+      collection: "SAMMLUNG",
+      shop: "SHOP",
+      profile: "PROFIL",
+
+      tap: "TAP TO BRAINROT"
+    },
+
+    es: {
+      country: "País",
+      language: "Idioma",
+      start: "EMPEZAR",
+
+      energy: "MEM ENERGY",
+      power: "PODER DE CLIC",
+      auto: "POR SEGUNDO",
+      shield: "PROTECCIÓN",
+
+      play: "JUGAR",
+      create: "CREAR",
+      collection: "COLECCIÓN",
+      shop: "TIENDA",
+      profile: "PERFIL",
+
+      tap: "TOCA PARA BRAINROT"
+    },
+
+    fr: {
+      country: "Pays",
+      language: "Langue",
+      start: "COMMENCER",
+
+      energy: "MEM ENERGY",
+      power: "PUISSANCE",
+      auto: "PAR SECONDE",
+      shield: "PROTECTION",
+
+      play: "JOUER",
+      create: "CRÉER",
+      collection: "COLLECTION",
+      shop: "BOUTIQUE",
+      profile: "PROFIL",
+
+      tap: "TAP POUR BRAINROT"
+    },
+
+    pt: {
+      country: "País",
+      language: "Idioma",
+      start: "COMEÇAR",
+
+      energy: "MEM ENERGY",
+      power: "PODER DO CLIQUE",
+      auto: "POR SEGUNDO",
+      shield: "PROTEÇÃO",
+
+      play: "JOGAR",
+      create: "CRIAR",
+      collection: "COLEÇÃO",
+      shop: "LOJA",
+      profile: "PERFIL",
+
+      tap: "TOQUE PARA BRAINROT"
+    },
+
+    ja: {
+      country: "国",
+      language: "言語",
+      start: "ゲーム開始",
+
+      energy: "MEM ENERGY",
+      power: "クリックパワー",
+      auto: "毎秒",
+      shield: "シールド",
+
+      play: "プレイ",
+      create: "作成",
+      collection: "コレクション",
+      shop: "ショップ",
+      profile: "プロフィール",
+
+      tap: "タップしてBRAINROT"
+    },
+
+    ko: {
+      country: "국가",
+      language: "언어",
+      start: "게임 시작",
+
+      energy: "MEM ENERGY",
+      power: "클릭 파워",
+      auto: "초당",
+      shield: "보호",
+
+      play: "플레이",
+      create: "만들기",
+      collection: "컬렉션",
+      shop: "상점",
+      profile: "프로필",
+
+      tap: "탭하여 BRAINROT"
+    }
+
+  };
+
+
+  /* =======================================================
+     COUNTRIES
+     ======================================================= */
+
+  const COUNTRIES = [
+
+    ["US", "🇺🇸", "United States", "en"],
+    ["GB", "🇬🇧", "United Kingdom", "en"],
+    ["CA", "🇨🇦", "Canada", "en"],
+    ["AU", "🇦🇺", "Australia", "en"],
+
+    ["DE", "🇩🇪", "Germany", "de"],
+
+    ["FR", "🇫🇷", "France", "fr"],
+
+    ["ES", "🇪🇸", "Spain", "es"],
+
+    ["BR", "🇧🇷", "Brazil", "pt"],
+    ["PT", "🇵🇹", "Portugal", "pt"],
+
+    ["JP", "🇯🇵", "Japan", "ja"],
+
+    ["KR", "🇰🇷", "South Korea", "ko"],
+
+    ["RU", "🇷🇺", "Russia", "ru"],
+
+    ["NL", "🇳🇱", "Netherlands", "en"],
+    ["SE", "🇸🇪", "Sweden", "en"],
+    ["NO", "🇳🇴", "Norway", "en"],
+    ["CH", "🇨🇭", "Switzerland", "en"],
+
+    ["OTHER", "🌎", "Other", "en"]
+
+  ];
+
+
+  /* =======================================================
+     STORAGE
+     ======================================================= */
+
+  const STORAGE =
+    "lago_preferences_v2";
+
+
+  function getPreferences() {
+
+    try {
+
+      return JSON.parse(
+        localStorage.getItem(STORAGE)
+      ) || {};
+
+    } catch {
+
+      return {};
+
+    }
+
+  }
+
+
+  function savePreferences(data) {
+
+    localStorage.setItem(
+      STORAGE,
+      JSON.stringify(data)
+    );
+
+  }
+
+
+  /* =======================================================
+     BROWSER LANGUAGE
+     ======================================================= */
+
+  function detectLanguage() {
+
+    const code =
+      (
+        navigator.language ||
+        "en"
+      )
+      .split("-")[0]
+      .toLowerCase();
+
+
+    return LANG[code]
+      ? code
+      : "en";
+
+  }
+
+
+  /* =======================================================
+     APPLY LANGUAGE
+     ======================================================= */
+
+  function applyLanguage(code) {
+
+    const t =
+      LANG[code] ||
+      LANG.en;
+
+
+    document.documentElement.lang =
+      code;
+
+
+    const stats =
+      document.querySelectorAll(
+        ".stat small"
+      );
+
+
+    if (stats[0])
+      stats[0].textContent =
+        "💎 " + t.energy;
+
+    if (stats[1])
+      stats[1].textContent =
+        "⚡ " + t.power;
+
+    if (stats[2])
+      stats[2].textContent =
+        "🤖 " + t.auto;
+
+    if (stats[3])
+      stats[3].textContent =
+        "🛡️ " + t.shield;
+
+
+    const main =
+      document.querySelector(
+        ".bottom .btn.main"
+      );
+
+
+    if (main) {
+
+      main.textContent =
+        "🐌 " + t.tap;
+
+    }
+
+
+    document
+      .querySelectorAll(
+        "[data-lago-text]"
+      )
+      .forEach(el => {
+
+        const key =
+          el.dataset.lagoText;
+
+        if (t[key]) {
+
+          el.textContent =
+            t[key];
+
+        }
+
+      });
+
+  }
+
+
+  /* =======================================================
+     ONBOARDING
+     ======================================================= */
+
+  function createOnboarding() {
+
+    const prefs =
+      getPreferences();
+
+
+    if (prefs.completed) {
+
+      applyLanguage(
+        prefs.language || "en"
+      );
+
+      return;
+
+    }
+
+
+    const overlay =
+      document.createElement("div");
+
+
+    overlay.id =
+      "lagoWelcome";
+
+
+    overlay.style.cssText = `
+
+      position:fixed;
+      inset:0;
+      z-index:99999;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      padding:20px;
+
+      background:
+        radial-gradient(
+          circle at 50% 20%,
+          rgba(141,85,255,.30),
+          transparent 40%
+        ),
+        #090a0f;
+
+    `;
+
+
+    const countryOptions =
+      COUNTRIES
+        .map(c => `
+
+          <option
+            value="${c[0]}"
+            data-language="${c[3]}"
+          >
+            ${c[1]} ${c[2]}
+          </option>
+
+        `)
+        .join("");
+
+
+    const languageOptions =
+      Object.keys(LANG)
+        .map(code => `
+
+          <option value="${code}">
+            ${code === "en"
+              ? "🇺🇸 English"
+              : code === "ru"
+                ? "🇷🇺 Русский"
+                : code === "de"
+                  ? "🇩🇪 Deutsch"
+                  : code === "es"
+                    ? "🇪🇸 Español"
+                    : code === "fr"
+                      ? "🇫🇷 Français"
+                      : code === "pt"
+                        ? "🇧🇷 Português"
+                        : code === "ja"
+                          ? "🇯🇵 日本語"
+                          : "🇰🇷 한국어"
+            }
+          </option>
+
+        `)
+        .join("");
+
+
+    overlay.innerHTML = `
+
+      <div style="
+
+        width:min(460px,100%);
+
+        padding:30px;
+
+        border-radius:30px;
+
+        background:
+          rgba(19,21,28,.92);
+
+        border:
+          1px solid
+          rgba(255,255,255,.10);
+
+        box-shadow:
+          0 30px 100px
+          rgba(0,0,0,.55);
+
+        backdrop-filter:
+          blur(25px);
+
+        font-family:
+          Inter,
+          system-ui,
+          sans-serif;
+
+      ">
+
+        <div style="
+          font-size:60px;
+          font-weight:950;
+          letter-spacing:-.07em;
+          line-height:1;
+        ">
+          LAGO
+        </div>
+
+        <div style="
+          margin-top:8px;
+          color:#8e95a5;
+          font-size:12px;
+          font-weight:800;
+          letter-spacing:.12em;
+        ">
+          THE ULTIMATE BRAINROT SNAIL
+        </div>
+
+
+        <label style="
+          display:block;
+          margin-top:28px;
+          margin-bottom:8px;
+          font-size:11px;
+          font-weight:900;
+          color:#fff;
+        ">
+          COUNTRY
+        </label>
+
+
+        <select
+          id="lagoCountry"
+          style="
+            width:100%;
+            padding:15px;
+
+            border-radius:15px;
+
+            background:#171921;
+
+            border:
+              1px solid
+              rgba(255,255,255,.10);
+
+            color:#fff;
+
+            outline:none;
+          "
+        >
+          ${countryOptions}
+        </select>
+
+
+        <label style="
+          display:block;
+          margin-top:18px;
+          margin-bottom:8px;
+          font-size:11px;
+          font-weight:900;
+          color:#fff;
+        ">
+          LANGUAGE
+        </label>
+
+
+        <select
+          id="lagoLanguage"
+          style="
+            width:100%;
+            padding:15px;
+
+            border-radius:15px;
+
+            background:#171921;
+
+            border:
+              1px solid
+              rgba(255,255,255,.10);
+
+            color:#fff;
+
+            outline:none;
+          "
+        >
+          ${languageOptions}
+        </select>
+
+
+        <button
+          id="lagoStart"
+          style="
+            width:100%;
+
+            margin-top:24px;
+
+            padding:16px;
+
+            border:0;
+
+            border-radius:16px;
+
+            background:#c9ff32;
+
+            color:#090a0f;
+
+            font-size:14px;
+
+            font-weight:950;
+
+            cursor:pointer;
+          "
+        >
+          START PLAYING
+        </button>
+
+      </div>
+
+    `;
+
+
+    document.body.appendChild(
+      overlay
+    );
+
+
+    const country =
+      document.querySelector(
+        "#lagoCountry"
+      );
+
+
+    const language =
+      document.querySelector(
+        "#lagoLanguage"
+      );
+
+
+    const browserLang =
+      detectLanguage();
+
+
+    language.value =
+      browserLang;
+
+
+    country.value =
+      COUNTRIES.find(
+        c => c[3] === browserLang
+      )?.[0] || "US";
+
+
+    country.addEventListener(
+      "change",
+      () => {
+
+        const selected =
+          country.selectedOptions[0];
+
+
+        const code =
+          selected.dataset.language;
+
+
+        if (LANG[code]) {
+
+          language.value =
+            code;
+
+        }
+
+      }
+    );
+
+
+    document
+      .querySelector("#lagoStart")
+      .addEventListener(
+        "click",
+        () => {
+
+          const data = {
+
+            completed: true,
+
+            country:
+              country.value,
+
+            language:
+              language.value
+
+          };
+
+
+          savePreferences(
+            data
+          );
+
+
+          applyLanguage(
+            language.value
+          );
+
+
+          overlay.animate(
+            [
+              {
+                opacity:1
+              },
+              {
+                opacity:0
+              }
+            ],
+            {
+              duration:350
+            }
+          );
+
+
+          setTimeout(
+            () => overlay.remove(),
+            350
+          );
+
+        }
+      );
+
+  }
+
+
+  /* =======================================================
+     LIVING LAGO
+     ======================================================= */
+
+  function setupSnail() {
+
+    const snail =
+      document.querySelector(
+        "#snail"
+      );
+
+
+    if (!snail)
+      return;
+
+
+    let timer;
+
+
+    function idle() {
+
+      if (
+        document.hidden ||
+        snail.classList.contains(
+          "lago-click"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      const animations = [
+
+        [
+
+          {
+            transform:
+              "translateY(0) rotate(0)"
+
+          },
+
+          {
+
+            transform:
+              "translateY(-12px) rotate(-2deg)"
+
+          },
+
+          {
+
+            transform:
+              "translateY(0) rotate(0)"
+
+          }
+
+        ],
+
+        [
+
+          {
+
+            transform:
+              "scale(1)"
+
+          },
+
+          {
+
+            transform:
+              "scale(1.035)"
+
+          },
+
+          {
+
+            transform:
+              "scale(1)"
+
+          }
+
+        ],
+
+        [
+
+          {
+
+            transform:
+              "rotate(0)"
+
+          },
+
+          {
+
+            transform:
+              "rotate(2deg)"
+
+          },
+
+          {
+
+            transform:
+              "rotate(-2deg)"
+
+          },
+
+          {
+
+            transform:
+              "rotate(0)"
+
+          }
+
+        ]
+
+      ];
+
+
+      const frames =
+        animations[
+          Math.floor(
+            Math.random() *
+            animations.length
+          )
+        ];
+
+
+      snail.animate(
+        frames,
+        {
+
+          duration:
+            600 +
+            Math.random() * 500,
+
+          easing:
+            "cubic-bezier(.2,.8,.2,1)"
+
+        }
+      );
+
+    }
+
+
+    function schedule() {
+
+      clearTimeout(timer);
+
+
+      timer =
+        setTimeout(
+          () => {
+
+            idle();
+
+            schedule();
+
+          },
+
+          3500 +
+          Math.random() * 4500
+
+        );
+
+    }
+
+
+    schedule();
+
+  }
+
+
+  /* =======================================================
+     CLICK REACTION
+     ======================================================= */
+
+  function setupClick() {
+
+    const snail =
+      document.querySelector(
+        "#snail"
+      );
+
+
+    if (!snail)
+      return;
+
+
+    snail.addEventListener(
+      "click",
+      () => {
+
+        snail.classList.remove(
+          "lago-click"
+        );
+
+
+        void snail.offsetWidth;
+
+
+        snail.classList.add(
+          "lago-click"
+        );
+
+
+        setTimeout(
+          () => {
+
+            snail.classList.remove(
+              "lago-click"
+            );
+
+          },
+
+          350
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     ACTIVATE
+     ======================================================= */
+
+  function init() {
+
+    const app =
+      document.querySelector(
+        ".app"
+      );
+
+
+    if (!app)
+      return;
+
+
+    app.classList.add(
+      "lago-modern"
+    );
+
+
+    createOnboarding();
+
+    setupSnail();
+
+    setupClick();
+
+  }
+
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
+    );
+
+  } else {
+
+    init();
+
+  }
+
+})();      country: "Россия",
       welcome: "ДОБРО ПОЖАЛОВАТЬ В LAGO",
       subtitle: "УЛИТКА ULTIMATE BRAINROT",
       countryLabel: "Страна",
