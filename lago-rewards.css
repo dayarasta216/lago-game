@@ -1,0 +1,291 @@
+#lagoRewards {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  padding: 18px;
+
+  background: rgba(3,4,6,.82);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+#lagoRewards.active {
+  display: flex;
+}
+
+.lago-reward-card {
+  position: relative;
+
+  width: min(410px,100%);
+
+  padding: 26px 20px 20px;
+
+  border-radius: 28px;
+
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      rgba(201,255,50,.10),
+      transparent 35%
+    ),
+    linear-gradient(
+      145deg,
+      #17191e,
+      #090a0d
+    );
+
+  border:
+    1px solid
+    rgba(255,255,255,.10);
+
+  box-shadow:
+    0 35px 100px
+    rgba(0,0,0,.7);
+
+  text-align: center;
+
+  animation:
+    lagoRewardIn
+    .45s
+    cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes lagoRewardIn {
+  from {
+    opacity: 0;
+    transform:
+      translateY(25px)
+      scale(.94);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+.lago-reward-close {
+  position: absolute;
+
+  top: 12px;
+  right: 12px;
+
+  width: 34px;
+  height: 34px;
+
+  border-radius: 50%;
+
+  border: 0;
+
+  background:
+    rgba(255,255,255,.06);
+
+  color: rgba(255,255,255,.7);
+
+  cursor: pointer;
+}
+
+.lago-reward-label {
+  color: #c9ff32;
+
+  font-size: 9px;
+
+  font-weight: 1000;
+
+  letter-spacing: .18em;
+}
+
+.lago-reward-title {
+  margin-top: 8px;
+
+  color: white;
+
+  font-size: 29px;
+
+  font-weight: 1000;
+
+  letter-spacing: -.06em;
+}
+
+.lago-reward-subtitle {
+  margin-top: 8px;
+
+  color:
+    rgba(255,255,255,.42);
+
+  font-size: 11px;
+
+  line-height: 1.5;
+}
+
+.lago-reward-item {
+  margin: 22px auto;
+
+  width: 180px;
+  height: 180px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(201,255,50,.15),
+      rgba(201,255,50,.025) 65%,
+      transparent 70%
+    );
+
+  animation:
+    lagoRewardFloat
+    3s
+    ease-in-out
+    infinite;
+}
+
+@keyframes lagoRewardFloat {
+  0%,100% {
+    transform: translateY(3px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.lago-reward-emoji {
+  font-size: 105px;
+
+  filter:
+    drop-shadow(
+      0 20px 25px
+      rgba(0,0,0,.45)
+    );
+}
+
+.lago-reward-name {
+  color: white;
+
+  font-size: 18px;
+
+  font-weight: 1000;
+}
+
+.lago-reward-rarity {
+  margin-top: 5px;
+
+  font-size: 9px;
+
+  font-weight: 1000;
+
+  letter-spacing: .14em;
+}
+
+.lago-reward-button {
+  width: 100%;
+
+  min-height: 55px;
+
+  margin-top: 20px;
+
+  border: 0;
+
+  border-radius: 17px;
+
+  background: #c9ff32;
+
+  color: #090a0b;
+
+  font-size: 11px;
+
+  font-weight: 1000;
+
+  letter-spacing: .07em;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   DAILY REWARD BUTTON
+   ========================================================= */
+
+.lago-daily-button {
+  position: fixed;
+
+  right: 16px;
+
+  top:
+    calc(
+      85px +
+      env(safe-area-inset-top)
+    );
+
+  z-index: 5000;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 9px 12px;
+
+  border-radius: 999px;
+
+  border:
+    1px solid
+    rgba(201,255,50,.25);
+
+  background:
+    rgba(15,17,20,.85);
+
+  color: #c9ff32;
+
+  font-size: 9px;
+
+  font-weight: 1000;
+
+  box-shadow:
+    0 8px 25px
+    rgba(0,0,0,.25);
+
+  cursor: pointer;
+}
+
+.lago-daily-button span {
+  font-size: 15px;
+}
+
+.lago-daily-button.ready {
+  animation:
+    lagoDailyPulse
+    2s
+    ease-in-out
+    infinite;
+}
+
+@keyframes lagoDailyPulse {
+  0%,100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
+}
