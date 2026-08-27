@@ -422,5 +422,32 @@
     create();
 
   }
+  /*
+   * LAGO HOME START SCREEN
+   */
 
+  function startHome() {
+
+    setTimeout(() => {
+
+      if (
+        window.LAGO_HOME &&
+        typeof
+          window.LAGO_HOME.show ===
+          "function"
+      ) {
+
+        window.LAGO_HOME.show();
+
+      }
+
+    }, 800);
+
+  }
+
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    startHome
+  );
 })();
