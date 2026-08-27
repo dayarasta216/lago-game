@@ -1,0 +1,379 @@
+/* =========================================================
+   LAGO COLLECTION
+   ========================================================= */
+
+#lagoCollection {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+
+  display: none;
+
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      rgba(201,255,50,.07),
+      transparent 30%
+    ),
+    #07080b;
+
+  color: #fff;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+#lagoCollection.active {
+  display: flex;
+}
+
+.lago-collection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    18px
+    14px;
+}
+
+.lago-collection-back {
+  width: 42px;
+  height: 42px;
+
+  border-radius: 14px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  background:
+    rgba(255,255,255,.05);
+
+  color: #fff;
+
+  font-size: 18px;
+
+  cursor: pointer;
+}
+
+.lago-collection-title {
+  font-size: 20px;
+
+  font-weight: 1000;
+
+  letter-spacing: -.05em;
+}
+
+.lago-collection-counter {
+  padding: 8px 11px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(201,255,50,.08);
+
+  border:
+    1px solid
+    rgba(201,255,50,.25);
+
+  color: #c9ff32;
+
+  font-size: 9px;
+
+  font-weight: 1000;
+}
+
+.lago-collection-content {
+  flex: 1;
+
+  overflow-y: auto;
+
+  padding:
+    4px 16px
+    calc(25px + env(safe-area-inset-bottom));
+}
+
+.lago-collection-hero {
+  margin-bottom: 18px;
+
+  padding: 20px;
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.018)
+    );
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  text-align: center;
+}
+
+.lago-collection-hero-title {
+  color:
+    rgba(255,255,255,.45);
+
+  font-size: 9px;
+
+  font-weight: 900;
+
+  letter-spacing: .14em;
+}
+
+.lago-collection-current {
+  margin-top: 12px;
+
+  font-size: 70px;
+
+  line-height: 1;
+
+  animation:
+    lagoCollectionFloat
+    3s
+    ease-in-out
+    infinite;
+}
+
+@keyframes lagoCollectionFloat {
+  0%,100% {
+    transform: translateY(3px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.lago-collection-current-name {
+  margin-top: 9px;
+
+  font-size: 17px;
+
+  font-weight: 1000;
+}
+
+.lago-collection-current-rarity {
+  margin-top: 5px;
+
+  color: #c9ff32;
+
+  font-size: 9px;
+
+  font-weight: 1000;
+
+  letter-spacing: .12em;
+}
+
+.lago-collection-section {
+  margin-top: 18px;
+}
+
+.lago-collection-section-title {
+  margin-bottom: 10px;
+
+  color:
+    rgba(255,255,255,.40);
+
+  font-size: 9px;
+
+  font-weight: 1000;
+
+  letter-spacing: .14em;
+}
+
+.lago-skin-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 9px;
+}
+
+.lago-skin {
+  position: relative;
+
+  min-height: 155px;
+
+  padding: 13px;
+
+  border-radius: 18px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  border:
+    1px solid
+    rgba(255,255,255,.075);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    transform .15s ease,
+    border-color .15s ease,
+    background .15s ease;
+}
+
+.lago-skin:hover {
+  transform: translateY(-2px);
+
+  background:
+    rgba(255,255,255,.055);
+}
+
+.lago-skin.selected {
+  border-color:
+    #c9ff32;
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(201,255,50,.10);
+}
+
+.lago-skin.locked {
+  opacity: .55;
+}
+
+.lago-skin-visual {
+  height: 85px;
+
+  display: grid;
+
+  place-items: center;
+
+  font-size: 58px;
+
+  filter:
+    drop-shadow(
+      0 12px 15px
+      rgba(0,0,0,.30)
+    );
+}
+
+.lago-skin-name {
+  margin-top: 6px;
+
+  color: white;
+
+  font-size: 11px;
+
+  font-weight: 950;
+}
+
+.lago-skin-rarity {
+  margin-top: 4px;
+
+  font-size: 7px;
+
+  font-weight: 1000;
+
+  letter-spacing: .10em;
+}
+
+.lago-rarity-common {
+  color: #aab2ba;
+}
+
+.lago-rarity-rare {
+  color: #55aaff;
+}
+
+.lago-rarity-epic {
+  color: #bd68ff;
+}
+
+.lago-rarity-legendary {
+  color: #ffb32e;
+}
+
+.lago-rarity-mythic {
+  color: #ff4d9a;
+}
+
+.lago-skin-lock {
+  position: absolute;
+
+  top: 10px;
+  right: 10px;
+
+  width: 26px;
+  height: 26px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(0,0,0,.35);
+
+  font-size: 12px;
+}
+
+.lago-skin-check {
+  position: absolute;
+
+  top: 10px;
+  right: 10px;
+
+  width: 25px;
+  height: 25px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    #c9ff32;
+
+  color: #090a0b;
+
+  font-size: 12px;
+
+  font-weight: 1000;
+}
+
+.lago-collection-empty {
+  padding: 30px 15px;
+
+  text-align: center;
+
+  color:
+    rgba(255,255,255,.35);
+
+  font-size: 11px;
+
+  line-height: 1.5;
+}
+
+@media (min-width: 700px) {
+
+  .lago-collection-content {
+    width: min(560px,100%);
+    margin: 0 auto;
+  }
+
+  .lago-skin-grid {
+    grid-template-columns:
+      repeat(3,1fr);
+  }
+
+}
