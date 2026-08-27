@@ -1,0 +1,506 @@
+/* =========================================================
+   LAGO HOME 2.0
+   International game hub
+   ========================================================= */
+
+#lagoHome2 {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+
+  display: none;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% 28%,
+      rgba(201,255,50,.09),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 15% 90%,
+      rgba(160,70,255,.10),
+      transparent 30%
+    ),
+    #07080b;
+
+  color: #fff;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  user-select: none;
+}
+
+#lagoHome2.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.lago-home-noise {
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  opacity: .035;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.lago-home-header {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    calc(16px + env(safe-area-inset-top))
+    18px
+    8px;
+
+  z-index: 5;
+}
+
+.lago-home-brand {
+  font-size: 25px;
+
+  line-height: 1;
+
+  font-weight: 1000;
+
+  letter-spacing: -.07em;
+
+  color: #c9ff32;
+}
+
+.lago-home-profile {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 7px 10px 7px 7px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.10);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  backdrop-filter:
+    blur(15px);
+}
+
+.lago-home-avatar {
+  width: 27px;
+  height: 27px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #c9ff32,
+      #73c900
+    );
+
+  color: #090a0b;
+
+  font-size: 13px;
+
+  font-weight: 1000;
+}
+
+.lago-home-level {
+  color:
+    rgba(255,255,255,.70);
+
+  font-size: 9px;
+
+  font-weight: 900;
+
+  letter-spacing: .08em;
+}
+
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+.lago-home-stats {
+  position: relative;
+
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 8px;
+
+  padding:
+    8px 16px 0;
+
+  z-index: 5;
+}
+
+.lago-home-stat {
+  padding: 11px 13px;
+
+  border-radius: 16px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.075);
+
+  background:
+    rgba(255,255,255,.035);
+
+  backdrop-filter:
+    blur(15px);
+}
+
+.lago-home-stat-label {
+  color:
+    rgba(255,255,255,.35);
+
+  font-size: 8px;
+
+  font-weight: 900;
+
+  letter-spacing: .12em;
+}
+
+.lago-home-stat-value {
+  margin-top: 4px;
+
+  font-size: 18px;
+
+  line-height: 1;
+
+  font-weight: 1000;
+
+  letter-spacing: -.04em;
+}
+
+.lago-home-stat-value.green {
+  color: #c9ff32;
+}
+
+
+/* =========================================================
+   CHARACTER AREA
+   ========================================================= */
+
+.lago-home-character {
+  position: relative;
+
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+.lago-home-glow {
+  position: absolute;
+
+  width: 250px;
+  height: 250px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(201,255,50,.13),
+      transparent 68%
+    );
+
+  filter:
+    blur(8px);
+
+  animation:
+    lagoHomeGlow
+    4s
+    ease-in-out
+    infinite;
+}
+
+@keyframes lagoHomeGlow {
+  0%,100% {
+    transform: scale(.92);
+    opacity: .65;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.lago-home-snail {
+  position: relative;
+
+  width:
+    min(58vw, 260px);
+
+  height:
+    min(58vw, 260px);
+
+  display: grid;
+
+  place-items: center;
+
+  z-index: 2;
+
+  animation:
+    lagoHomeFloat
+    4.5s
+    ease-in-out
+    infinite;
+}
+
+@keyframes lagoHomeFloat {
+  0%,100% {
+    transform:
+      translateY(4px);
+  }
+
+  50% {
+    transform:
+      translateY(-8px);
+  }
+}
+
+.lago-home-snail img,
+.lago-home-snail canvas,
+.lago-home-snail svg {
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+}
+
+.lago-home-snail-placeholder {
+  width: 170px;
+  height: 170px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 38% 30%,
+      #c9ff32,
+      #6c9b19 55%,
+      #26330e
+    );
+
+  font-size: 78px;
+
+  filter:
+    drop-shadow(
+      0 25px 40px
+      rgba(0,0,0,.45)
+    );
+}
+
+
+/* =========================================================
+   PLAY BUTTON
+   ========================================================= */
+
+.lago-home-play {
+  position: absolute;
+
+  left: 50%;
+
+  bottom: 18px;
+
+  transform:
+    translateX(-50%);
+
+  width:
+    min(300px, calc(100vw - 40px));
+
+  min-height: 58px;
+
+  border: 0;
+
+  border-radius: 18px;
+
+  background:
+    #c9ff32;
+
+  color:
+    #080a08;
+
+  font-size: 13px;
+
+  font-weight: 1000;
+
+  letter-spacing: .08em;
+
+  box-shadow:
+    0 15px 45px
+    rgba(201,255,50,.13);
+
+  cursor: pointer;
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease;
+}
+
+.lago-home-play:hover {
+  transform:
+    translateX(-50%)
+    translateY(-2px);
+
+  box-shadow:
+    0 20px 55px
+    rgba(201,255,50,.20);
+}
+
+.lago-home-play:active {
+  transform:
+    translateX(-50%)
+    scale(.97);
+}
+
+
+/* =========================================================
+   BOTTOM NAVIGATION
+   ========================================================= */
+
+.lago-home-nav {
+  position: relative;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 4px;
+
+  padding:
+    8px 10px
+    calc(10px + env(safe-area-inset-bottom));
+
+  background:
+    rgba(7,8,11,.88);
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.07);
+
+  backdrop-filter:
+    blur(20px);
+
+  z-index: 10;
+}
+
+.lago-home-nav-button {
+  min-height: 54px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  border: 0;
+
+  border-radius: 14px;
+
+  background:
+    transparent;
+
+  color:
+    rgba(255,255,255,.38);
+
+  font-size: 8px;
+
+  font-weight: 900;
+
+  letter-spacing: .04em;
+
+  cursor: pointer;
+
+  transition:
+    background .15s ease,
+    color .15s ease;
+}
+
+.lago-home-nav-button span {
+  font-size: 19px;
+}
+
+.lago-home-nav-button.active {
+  color: #c9ff32;
+
+  background:
+    rgba(201,255,50,.07);
+}
+
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width: 700px) {
+
+  #lagoHome2 {
+    align-items: center;
+  }
+
+  .lago-home-header,
+  .lago-home-stats,
+  .lago-home-character,
+  .lago-home-nav {
+    width: min(560px, 100%);
+  }
+
+  .lago-home-header {
+    padding-top: 24px;
+  }
+
+  .lago-home-character {
+    min-height: 450px;
+  }
+
+  .lago-home-snail {
+    width: 300px;
+    height: 300px;
+  }
+
+}
