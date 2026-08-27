@@ -266,17 +266,20 @@
 
 
             if (
-              page === "collection"
-            ) {
+  page === "collection"
+) {
 
-              alert(
-                "COLLECTION is coming next."
-              );
+  if (
+    window.LAGO_COLLECTION
+  ) {
 
-              return;
+    window.LAGO_COLLECTION.show();
 
-            }
+  }
 
+  return;
+
+}
 
             if (
               page === "shop"
