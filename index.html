@@ -345,14 +345,65 @@ function beep(freq=440,duration=.06,type="square"){
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
 function fmt(n){ return Math.floor(n).toLocaleString("ru-RU"); }
+ function getTapGameSnapshot(){
+  return {
+    energy: Math.floor(state.energy),
+    power: state.power,
+    auto: state.auto,
+    shield: state.shield,
+    days: state.days,
+    totalClicks: state.totalClicks,
+    steals: state.steals,
+    memesCreated: state.memesCreated,
+    upgrades: {
+      ...state.upgrades
+    },
+    speech:
+      document.getElementById("cringe")
+        ?.textContent
+        ?.trim() || ""
+  };
+}
 function render(){
-  $("energy").textContent=fmt(state.energy);
-  $("power").textContent=fmt(state.power);
-  $("auto").textContent=fmt(state.auto);
-  $("shield").textContent=Math.min(90,state.shield*10)+"%";
-  $("days").textContent=`🧠 Дней без тупости: ${state.days}`;
+
+  $("energy").textContent =
+    fmt(state.energy);
+
+  $("power").textContent =
+    fmt(state.power);
+
+  $("auto").textContent =
+    fmt(state.auto);
+
+  $("shield").textContent =
+    Math.min(
+      90,
+      state.shield * 10
+    ) + "%";
+
+  $("days").textContent =
+    `🧠 Дней без тупости: ${state.days}`;
+
   renderUpgrades();
   renderMemes();
+
+  /*
+   * Publish Tap Lago state.
+   *
+   * Other UI modules must listen
+   * to this event instead of reading
+   * hidden legacy DOM elements.
+   */
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:tap-game-state",
+      {
+        detail:
+          getTapGameSnapshot()
+      }
+    )
+  );
+
 }
 function toast(msg){
   $("toast").textContent=msg;$("toast").classList.add("on");
@@ -475,7 +526,79 @@ function saveMeme(){
 }
 $("saveMeme").onclick=saveMeme;
 $("createBtn").onclick=()=>openPanel("createPanel");
+/*
+ * =========================================================
+ * TAP LAGO PUBLIC GAME API
+ * R0.3
+ *
+ * This is the first step toward turning the old clicker
+ * into Mini-Game #001 instead of using it as the whole app.
+ *
+ * UI modules must call this API.
+ * They must NOT simulate clicks on hidden legacy buttons.
+ * =========================================================
+ */
 
+window.LAGO_TAP_GAME = {
+
+  id: "tap-lago",
+
+  name: "Tap Lago",
+
+  tap() {
+
+    clickLago();
+
+    save();
+
+    return getTapGameSnapshot();
+
+  },
+
+
+  steal() {
+
+    steal();
+
+    save();
+
+    return getTapGameSnapshot();
+
+  },
+
+
+  openUpgrades() {
+
+    openPanel(
+      "upgradePanel"
+    );
+
+  },
+
+
+  openCreator() {
+
+    openPanel(
+      "createPanel"
+    );
+
+  },
+
+
+  share() {
+
+    telegramShare();
+
+  },
+
+
+  getState() {
+
+    return getTapGameSnapshot();
+
+  }
+
+};
 function renderMemes(){
   if(!state.memes.length){
     $("memeList").innerHTML=`<div class="hint" style="grid-column:1/-1;padding:20px">Пока пусто. Создай первый абсолютно бесполезный мем.</div>`;
