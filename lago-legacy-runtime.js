@@ -40,7 +40,7 @@ const defaultState = {
 let state = loadState();
 let audioCtx = null;
 let toastTimer = null;
-let tutorialStep = 0;
+
 
 /* ---------- Хранилище ---------- */
 function loadState(){
