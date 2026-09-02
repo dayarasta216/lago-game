@@ -443,18 +443,24 @@
                   .selectSkin
               ) {
 
-                window.LAGO
-                  .selectSkin(id);
+window.LAGO
+  .selectSkin(id);
 
-              }
+}
 
 
-              render();
+render();
 
-            
+            }
+          );
+
+        }
+      );
+
+  }
+
 
   function show() {
-
     create();
 
     render();
