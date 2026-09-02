@@ -136,8 +136,11 @@ function render(){
   $("days").textContent =
     `🧠 Дней без тупости: ${state.days}`;
 
-  renderUpgrades();
-  renderMemes();
+  window.LAGO_TAP_GAME
+  ?.renderUpgrades
+  ?.();
+
+renderMemes();
 
   /*
    * Publish Tap Lago state.
