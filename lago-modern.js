@@ -974,3 +974,22 @@ function bind() {
   }
 
 }
+if (
+  document.readyState === "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    createUI,
+    {
+      once: true
+    }
+  );
+
+} else {
+
+  createUI();
+
+}
+
+})();
