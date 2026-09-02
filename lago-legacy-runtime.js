@@ -165,57 +165,75 @@ function openPanel(id){$(id).classList.add("show")}
 function closePanel(id){$(id).classList.remove("show")}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closePanel(b.dataset.close));
 
-/* ---------- Клик ---------- */
-function clickLago(ev){
-  const gain=state.power + state.memes.reduce((s,m)=>s+(m.clickBonus||0),0);
-  state.energy += gain;
-  state.totalClicks++;
-  $("snail").classList.remove("bonk"); void $("snail").offsetWidth; $("snail").classList.add("bonk");
-  $("cringe").textContent=PHRASES[Math.floor(Math.random()*PHRASES.length)];
-  beep(180+Math.random()*420,.045);
-  spawnFloat("+"+gain+" МЭ",ev);
-  checkAchievements();
-  render();
-}
-function spawnFloat(text,ev){
-  const wrap=$("snailWrap"), r=wrap.getBoundingClientRect();
-  const x=ev?.clientX ? ev.clientX-r.left : r.width/2;
-  const y=ev?.clientY ? ev.clientY-r.top : r.height/2;
-  const f=document.createElement("div");f.className="float";f.textContent=text;
-  f.style.left=x+"px";f.style.top=y+"px";wrap.appendChild(f);
-  setTimeout(()=>f.remove(),800);
-}
-$("clickBtn").addEventListener("click",clickLago);
-$("snail").addEventListener("pointerdown",e=>{e.preventDefault();clickLago(e)});
+/* =========================================================
+   TAP LAGO GAMEPLAY
 
-/* ---------- Автоклик ---------- */
-setInterval(()=>{
-  if(state.auto>0){
-    const gain=state.auto + state.memes.reduce((s,m)=>s+(m.autoBonus||0),0);
-    state.energy += gain;
-    checkAchievements();render();
-  }
-},1000);
+   Tap / Steal / Auto gameplay was extracted to:
 
-/* ---------- Кража ---------- */
-function steal(){
-  if(state.energy<5){toast("Сначала собери хотя бы 5 МЭ 😭");beep(90,.1);return}
-  const success=Math.random() < (0.40 + Math.min(.20,state.shield*.02));
-  const amount=Math.max(1,Math.floor(5+Math.random()*Math.max(10,state.energy*.18)));
-  if(success){
-    state.energy += amount; state.steals++;
-    toast(`👾 ОГРАБИЛ! +${amount} МЭ`);
-    beep(740,.08);beep(920,.08);
-  }else{
-    const loss=Math.max(1,Math.floor(amount*(1-state.shield*.1)));
-    state.energy=Math.max(0,state.energy-loss);
-    toast(`🚓 СПАЛИЛИ! -${loss} МЭ`);
-    beep(120,.14);
+   lago-tap-game.js
+
+   Legacy runtime temporarily keeps only shared
+   UI helpers until the old interface is removed.
+   ========================================================= */
+
+
+function spawnFloat(text, ev) {
+
+  const wrap =
+    $("snailWrap");
+
+  if (!wrap) {
+    return;
   }
-  if(state.energy<=0) gameOver();
-  checkAchievements();render();
+
+
+  const r =
+    wrap.getBoundingClientRect();
+
+
+  const x =
+    ev?.clientX
+      ? ev.clientX - r.left
+      : r.width / 2;
+
+
+  const y =
+    ev?.clientY
+      ? ev.clientY - r.top
+      : r.height / 2;
+
+
+  const f =
+    document.createElement(
+      "div"
+    );
+
+
+  f.className =
+    "float";
+
+
+  f.textContent =
+    text;
+
+
+  f.style.left =
+    x + "px";
+
+
+  f.style.top =
+    y + "px";
+
+
+  wrap.appendChild(f);
+
+
+  setTimeout(
+    () => f.remove(),
+    800
+  );
+
 }
-$("stealBtn").onclick=steal;
 
 /* ---------- Апгрейды ---------- */
 const upgrades=[
