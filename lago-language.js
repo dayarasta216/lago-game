@@ -1,292 +1,145 @@
 (() => {
   "use strict";
 
-  /* =========================================================
-     LAGO INTERNATIONAL LANGUAGE SYSTEM
-     English / Русский
-     ========================================================= */
+  /*
+   * LAGO LANGUAGE CORE
+   * R0.1
+   *
+   * One language system.
+   * One selector.
+   * No duplicated onboarding.
+   */
 
   const STORAGE_KEY = "lago_language_v1";
 
-  const LANGUAGES = {
-    en: {
-      name: "English",
-      flag: "🇬🇧"
-    },
-
-    ru: {
-      name: "Русский",
-      flag: "🇷🇺"
-    }
-  };
-
-  let language =
-    localStorage.getItem(STORAGE_KEY) || null;
-
-
-  /* =========================================================
-     TRANSLATIONS
-     ========================================================= */
-
-  const T = {
-
-    "💎 МЭ": "💎 MEM",
-
-    "⚡ КЛИК": "⚡ CLICK",
-
-    "🤖 / СЕК": "🤖 / SEC",
-
-    "🛡️ ЗАЩИТА": "🛡️ SHIELD",
-
-    "ULTIMATE BRAINROT SNAIL™":
-      "ULTIMATE BRAINROT SNAIL™",
-
-    "Я устааал...":
-      "I'm tired...",
-
-    "Ты тупой?":
-      "Are you stupid?",
-
-    "Пук! 💨":
-      "Fart! 💨",
-
-    "Ой, всё!":
-      "Oh, whatever!",
-
-    "Зачем?":
-      "Why?",
-
-    "Скучно...":
-      "Boring...",
-
-    "Ещё!":
-      "Again!",
-
-    "Кто я?":
-      "Who am I?",
-
-    "Я улитка":
-      "I'm a snail",
-
-    "Лаго тупит":
-      "Lago is lagging",
-
-    "Загружаюсь...":
-      "Loading...",
-
-    "🧠 Дней без тупости: 0":
-      "🧠 Days without brainrot: 0",
-
-    "🍔 КЛИК!":
-      "🍔 TAP!",
-
-    "👾 ОГРАБИТЬ":
-      "👾 STEAL",
-
-    "⬆ АПГРЕЙД":
-      "⬆ UPGRADE",
-
-    "🎨 СОЗДАТЬ МЕМ":
-      "🎨 CREATE MEME",
-
-    "📦 МЕМЫ":
-      "📦 MEMES",
-
-    "🔗 ПОДЕЛИТЬСЯ":
-      "🔗 SHARE",
-
-    "🟣 SOLANA":
-      "🟣 SOLANA",
-
-    "⬆ КРИНЖ-МАГАЗИН":
-      "⬆ BRAINROT SHOP",
-
-    "📦 МОИ МЕМЫ":
-      "📦 MY MEMES",
-
-    "🎨 МЕМ-ЛАБОРАТОРИЯ":
-      "🎨 MEME LAB",
-
-    "Название мема, например ПУК-УЛЬТРА":
-      "Meme name, e.g. FART-ULTRA",
-
-    "Или нарисуй пальцем:":
-      "Or draw with your finger:",
-
-    "🧽 СТЕРЕТЬ":
-      "🧽 CLEAR",
-
-    "💾 СОЗДАТЬ":
-      "💾 CREATE",
-
-    "Случайный бонус: +1–5 к клику или +1–3 автоклика/сек.":
-      "Random bonus: +1–5 per tap or +1–3 auto taps/sec.",
-
-    "Игра работает без кошелька. Подключение нужно для привязки Solana-адреса и записи рекорда через Memo-транзакцию.":
-      "The game works without a wallet. Connect one to link your Solana address and record your score through a Memo transaction.",
-
-    "🔌 ПОДКЛЮЧИТЬ PHANTOM":
-      "🔌 CONNECT PHANTOM",
-
-    "⛓️ ЗАПИСАТЬ РЕКОРД В SOLANA":
-      "⛓️ SAVE SCORE ON SOLANA",
-
-    "Внимание: on-chain запись — настоящая транзакция и требует небольшой комиссии сети.":
-      "Warning: on-chain recording is a real transaction and requires a small network fee.",
-
-    "Лаго тупит":
-      "Lago is lagging",
-
-    "Кликай по Лаго и собирай Мем-Энергию. Чем больше кликов — тем больше кринжа.":
-      "Tap Lago and collect MEM Energy. The more you tap, the more brainrot you create.",
-
-    "ПОНЯЛ. ТЫК.":
-      "GOT IT. TAP.",
-
-    "Лаго перестал существовать. Мем-Энергия достигла нуля. Это было тупо.":
-      "Lago stopped existing. MEM Energy reached zero. That was stupid.",
-
-    "🐌 ВОЗРОДИТЬ ЛАГО":
-      "🐌 REVIVE LAGO",
-
-    "УСИЛЕНИЕ КЛИКА":
-      "TAP POWER",
-
-    "АВТОКЛИКЕР":
-      "AUTO CLICKER",
-
-    "ЗАЩИТА":
-      "SHIELD",
-
-    "+1 МЭ за каждый клик":
-      "+1 MEM per tap",
-
-    "+1 МЭ каждую секунду":
-      "+1 MEM every second",
-
-    "-10% потерь при краже":
-      "-10% losses when stolen",
-
-    "Пока пусто. Создай первый абсолютно бесполезный мем.":
-      "Nothing here yet. Create your first completely useless meme.",
-
-    "МЕМ ЛАГО":
-      "LAGO MEME",
-
-    "Phantom не найден. Открой игру в браузере Phantom.":
-      "Phantom not found. Open the game in the Phantom browser.",
-
-    "SOLANA КОШЕЛЁК ПОДКЛЮЧЁН 🟣":
-      "SOLANA WALLET CONNECTED 🟣",
-
-    "Подключение отменено":
-      "Connection cancelled",
-
-    "Кошелёк пока не подключён.":
-      "Wallet not connected yet.",
-
-    "СПАЛИЛИ!":
-      "CAUGHT!",
-
-    "ЗАЩИТА":
-      "SHIELD"
-
-  };
-
-
-  const RU = {
-
+  const LANGUAGES = [
+    { code: "en", flag: "🇬🇧", name: "English", native: "English" },
+    { code: "ru", flag: "🇷🇺", name: "Russian", native: "Русский" },
+    { code: "de", flag: "🇩🇪", name: "German", native: "Deutsch" },
+    { code: "fr", flag: "🇫🇷", name: "French", native: "Français" },
+    { code: "es", flag: "🇪🇸", name: "Spanish", native: "Español" },
+    { code: "it", flag: "🇮🇹", name: "Italian", native: "Italiano" },
+    { code: "pt", flag: "🇵🇹", name: "Portuguese", native: "Português" },
+    { code: "nl", flag: "🇳🇱", name: "Dutch", native: "Nederlands" },
+    { code: "pl", flag: "🇵🇱", name: "Polish", native: "Polski" },
+    { code: "uk", flag: "🇺🇦", name: "Ukrainian", native: "Українська" },
+    { code: "cs", flag: "🇨🇿", name: "Czech", native: "Čeština" },
+    { code: "sk", flag: "🇸🇰", name: "Slovak", native: "Slovenčina" },
+    { code: "hu", flag: "🇭🇺", name: "Hungarian", native: "Magyar" },
+    { code: "ro", flag: "🇷🇴", name: "Romanian", native: "Română" },
+    { code: "bg", flag: "🇧🇬", name: "Bulgarian", native: "Български" },
+    { code: "sr", flag: "🇷🇸", name: "Serbian", native: "Српски" },
+    { code: "hr", flag: "🇭🇷", name: "Croatian", native: "Hrvatski" },
+    { code: "sl", flag: "🇸🇮", name: "Slovenian", native: "Slovenščina" },
+    { code: "el", flag: "🇬🇷", name: "Greek", native: "Ελληνικά" },
+    { code: "tr", flag: "🇹🇷", name: "Turkish", native: "Türkçe" },
+    { code: "sv", flag: "🇸🇪", name: "Swedish", native: "Svenska" },
+    { code: "no", flag: "🇳🇴", name: "Norwegian", native: "Norsk" },
+    { code: "da", flag: "🇩🇰", name: "Danish", native: "Dansk" },
+    { code: "fi", flag: "🇫🇮", name: "Finnish", native: "Suomi" },
+    { code: "et", flag: "🇪🇪", name: "Estonian", native: "Eesti" },
+    { code: "lv", flag: "🇱🇻", name: "Latvian", native: "Latviešu" },
+    { code: "lt", flag: "🇱🇹", name: "Lithuanian", native: "Lietuvių" },
+    { code: "is", flag: "🇮🇸", name: "Icelandic", native: "Íslenska" },
+
+    { code: "zh", flag: "🇨🇳", name: "Chinese", native: "中文" },
+    { code: "ja", flag: "🇯🇵", name: "Japanese", native: "日本語" },
+    { code: "ko", flag: "🇰🇷", name: "Korean", native: "한국어" },
+    { code: "vi", flag: "🇻🇳", name: "Vietnamese", native: "Tiếng Việt" },
+    { code: "th", flag: "🇹🇭", name: "Thai", native: "ไทย" },
+    { code: "id", flag: "🇮🇩", name: "Indonesian", native: "Bahasa Indonesia" },
+    { code: "ms", flag: "🇲🇾", name: "Malay", native: "Bahasa Melayu" },
+    { code: "fil", flag: "🇵🇭", name: "Filipino", native: "Filipino" },
+
+    { code: "hi", flag: "🇮🇳", name: "Hindi", native: "हिन्दी" },
+    { code: "bn", flag: "🇧🇩", name: "Bengali", native: "বাংলা" },
+    { code: "ur", flag: "🇵🇰", name: "Urdu", native: "اردو" },
+    { code: "ta", flag: "🇮🇳", name: "Tamil", native: "தமிழ்" },
+    { code: "te", flag: "🇮🇳", name: "Telugu", native: "తెలుగు" },
+    { code: "mr", flag: "🇮🇳", name: "Marathi", native: "मराठी" },
+    { code: "gu", flag: "🇮🇳", name: "Gujarati", native: "ગુજરાતી" },
+
+    { code: "ar", flag: "🇸🇦", name: "Arabic", native: "العربية" },
+    { code: "he", flag: "🇮🇱", name: "Hebrew", native: "עברית" },
+    { code: "fa", flag: "🇮🇷", name: "Persian", native: "فارسی" },
+
+    { code: "sw", flag: "🇰🇪", name: "Swahili", native: "Kiswahili" },
+    { code: "af", flag: "🇿🇦", name: "Afrikaans", native: "Afrikaans" },
+
+    { code: "ka", flag: "🇬🇪", name: "Georgian", native: "ქართული" },
+    { code: "hy", flag: "🇦🇲", name: "Armenian", native: "Հայերեն" },
+    { code: "az", flag: "🇦🇿", name: "Azerbaijani", native: "Azərbaycan dili" },
+    { code: "kk", flag: "🇰🇿", name: "Kazakh", native: "Қазақша" },
+    { code: "uz", flag: "🇺🇿", name: "Uzbek", native: "O‘zbekcha" },
+
+    { code: "mn", flag: "🇲🇳", name: "Mongolian", native: "Монгол" },
+    { code: "ne", flag: "🇳🇵", name: "Nepali", native: "नेपाली" },
+
+    { code: "sq", flag: "🇦🇱", name: "Albanian", native: "Shqip" },
+    { code: "mk", flag: "🇲🇰", name: "Macedonian", native: "Македонски" },
+    { code: "bs", flag: "🇧🇦", name: "Bosnian", native: "Bosanski" },
+
+    { code: "ca", flag: "🇪🇸", name: "Catalan", native: "Català" },
+    { code: "eu", flag: "🇪🇸", name: "Basque", native: "Euskara" },
+    { code: "gl", flag: "🇪🇸", name: "Galician", native: "Galego" },
+
+    { code: "pt-BR", flag: "🇧🇷", name: "Portuguese Brazil", native: "Português Brasil" },
+    { code: "es-MX", flag: "🇲🇽", name: "Spanish Mexico", native: "Español México" }
+  ];
+
+  /*
+   * At this stage only English and Russian
+   * have proper interface translation dictionaries.
+   *
+   * Every other selected locale is preserved,
+   * but interface copy falls back to English.
+   */
+
+  const EN_TO_RU = {
     "💎 MEM": "💎 МЭ",
     "⚡ CLICK": "⚡ КЛИК",
     "🤖 / SEC": "🤖 / СЕК",
     "🛡️ SHIELD": "🛡️ ЗАЩИТА",
 
-    "I'm tired...":
-      "Я устааал...",
+    "I'm tired...": "Я устааал...",
+    "Are you stupid?": "Ты тупой?",
+    "Fart! 💨": "Пук! 💨",
+    "Oh, whatever!": "Ой, всё!",
+    "Why?": "Зачем?",
+    "Boring...": "Скучно...",
+    "Again!": "Ещё!",
+    "Who am I?": "Кто я?",
+    "I'm a snail": "Я улитка",
+    "Lago is lagging": "Лаго тупит",
+    "Loading...": "Загружаюсь...",
 
-    "Are you stupid?":
-      "Ты тупой?",
+    "🍔 TAP!": "🍔 КЛИК!",
+    "👾 STEAL": "👾 ОГРАБИТЬ",
+    "⬆ UPGRADE": "⬆ АПГРЕЙД",
+    "🎨 CREATE MEME": "🎨 СОЗДАТЬ МЕМ",
+    "📦 MEMES": "📦 МЕМЫ",
+    "🔗 SHARE": "🔗 ПОДЕЛИТЬСЯ",
 
-    "Fart! 💨":
-      "Пук! 💨",
+    "⬆ BRAINROT SHOP": "⬆ КРИНЖ-МАГАЗИН",
+    "📦 MY MEMES": "📦 МОИ МЕМЫ",
+    "🎨 MEME LAB": "🎨 МЕМ-ЛАБОРАТОРИЯ",
 
-    "Oh, whatever!":
-      "Ой, всё!",
+    "CLEAR": "СТЕРЕТЬ",
+    "💾 CREATE": "💾 СОЗДАТЬ",
 
-    "Why?":
-      "Зачем?",
+    "🔌 CONNECT PHANTOM": "🔌 ПОДКЛЮЧИТЬ PHANTOM",
+    "⛓️ SAVE SCORE ON SOLANA": "⛓️ ЗАПИСАТЬ РЕКОРД В SOLANA",
 
-    "Boring...":
-      "Скучно...",
+    "GOT IT. TAP.": "ПОНЯЛ. ТЫК.",
+    "🐌 REVIVE LAGO": "🐌 ВОЗРОДИТЬ ЛАГО",
 
-    "Again!":
-      "Ещё!",
+    "TAP POWER": "УСИЛЕНИЕ КЛИКА",
+    "AUTO CLICKER": "АВТОКЛИКЕР",
+    "SHIELD": "ЗАЩИТА",
 
-    "Who am I?":
-      "Кто я?",
-
-    "I'm a snail":
-      "Я улитка",
-
-    "Lago is lagging":
-      "Лаго тупит",
-
-    "Loading...":
-      "Загружаюсь...",
-
-    "🍔 TAP!":
-      "🍔 КЛИК!",
-
-    "👾 STEAL":
-      "👾 ОГРАБИТЬ",
-
-    "⬆ UPGRADE":
-      "⬆ АПГРЕЙД",
-
-    "🎨 CREATE MEME":
-      "🎨 СОЗДАТЬ МЕМ",
-
-    "📦 MEMES":
-      "📦 МЕМЫ",
-
-    "🔗 SHARE":
-      "🔗 ПОДЕЛИТЬСЯ",
-
-    "⬆ BRAINROT SHOP":
-      "⬆ КРИНЖ-МАГАЗИН",
-
-    "📦 MY MEMES":
-      "📦 МОИ МЕМЫ",
-
-    "🎨 MEME LAB":
-      "🎨 МЕМ-ЛАБОРАТОРИЯ",
-
-    "CLEAR":
-      "СТЕРЕТЬ",
-
-    "💾 CREATE":
-      "💾 СОЗДАТЬ",
-
-    "🔌 CONNECT PHANTOM":
-      "🔌 ПОДКЛЮЧИТЬ PHANTOM",
-
-    "⛓️ SAVE SCORE ON SOLANA":
-      "⛓️ ЗАПИСАТЬ РЕКОРД В SOLANA",
-
-    "GOT IT. TAP.":
-      "ПОНЯЛ. ТЫК.",
-
-    "🐌 REVIVE LAGO":
-      "🐌 ВОЗРОДИТЬ ЛАГО",
-
-    "TAP POWER":
-      "УСИЛЕНИЕ КЛИКА",
-
-    "AUTO CLICKER":
-      "АВТОКЛИКЕР",
-
-    "TAP POWER":
-      "УСИЛЕНИЕ КЛИКА",
+    "+1 MEM per tap": "+1 МЭ за каждый клик",
+    "+1 MEM every second": "+1 МЭ каждую секунду",
+    "-10% losses when stolen": "-10% потерь при краже",
 
     "Nothing here yet. Create your first completely useless meme.":
       "Пока пусто. Создай первый абсолютно бесполезный мем.",
@@ -298,814 +151,1068 @@
       "Подключение отменено",
 
     "SOLANA WALLET CONNECTED 🟣":
-      "SOLANA КОШЕЛЁК ПОДКЛЮЧЁН 🟣"
+      "SOLANA КОШЕЛЁК ПОДКЛЮЧЁН 🟣",
 
+    "The game works without a wallet. Connect one to link your Solana address and record your score through a Memo transaction.":
+      "Игра работает без кошелька. Подключение нужно для привязки Solana-адреса и записи рекорда через Memo-транзакцию.",
+
+    "Warning: on-chain recording is a real transaction and requires a small network fee.":
+      "Внимание: on-chain запись — настоящая транзакция и требует небольшой комиссии сети.",
+
+    "Tap Lago and collect MEM Energy. The more you tap, the more brainrot you create.":
+      "Кликай по Лаго и собирай Мем-Энергию. Чем больше кликов — тем больше кринжа.",
+
+    "Lago stopped existing. MEM Energy reached zero. That was stupid.":
+      "Лаго перестал существовать. Мем-Энергия достигла нуля. Это было тупо."
   };
 
+  const RU_TO_EN = Object.fromEntries(
+    Object.entries(EN_TO_RU).map(([en, ru]) => [ru, en])
+  );
 
-  /* =========================================================
-     TRANSLATE TEXT
-     ========================================================= */
+  let language = normalizeLanguage(
+    localStorage.getItem(STORAGE_KEY)
+  );
 
-  function translateText(text) {
+  let observer = null;
+  let translating = false;
 
-    if (!text)
-      return text;
-
-    const clean =
-      text.trim();
-
-    if (!clean)
-      return text;
-
-    if (language === "en") {
-
-      if (T[clean])
-        return T[clean];
-
-      const match =
-        clean.match(
-          /^🧠 Дней без тупости: (\d+)$/
-        );
-
-      if (match) {
-
-        return `🧠 Days without brainrot: ${match[1]}`;
-
-      }
-
-      return text;
-
+  function normalizeLanguage(value) {
+    if (!value) {
+      return null;
     }
 
+    const exact = LANGUAGES.find(item => item.code === value);
 
-    if (language === "ru") {
+    if (exact) {
+      return exact.code;
+    }
 
-      if (RU[clean])
-        return RU[clean];
+    const base = String(value).split("-")[0];
 
-      const match =
-        clean.match(
-          /^🧠 Days without brainrot: (\d+)$/
-        );
+    const fallback = LANGUAGES.find(item => item.code === base);
 
-      if (match) {
+    return fallback ? fallback.code : null;
+  }
 
-        return `🧠 Дней без тупости: ${match[1]}`;
+  function getLanguageMeta(code = language) {
+    return (
+      LANGUAGES.find(item => item.code === code) ||
+      LANGUAGES[0]
+    );
+  }
 
+  function getTranslationLanguage() {
+    return language === "ru" ? "ru" : "en";
+  }
+
+  function translateText(text) {
+    if (typeof text !== "string") {
+      return text;
+    }
+
+    const clean = text.trim();
+
+    if (!clean) {
+      return text;
+    }
+
+    const target = getTranslationLanguage();
+
+    if (target === "ru") {
+      if (EN_TO_RU[clean]) {
+        return preserveWhitespace(text, EN_TO_RU[clean]);
       }
 
+      const brainrot =
+        clean.match(/^🧠 Days without brainrot:\s*(\d+)$/);
+
+      if (brainrot) {
+        return preserveWhitespace(
+          text,
+          `🧠 Дней без тупости: ${brainrot[1]}`
+        );
+      }
+
+      return text;
+    }
+
+    if (RU_TO_EN[clean]) {
+      return preserveWhitespace(text, RU_TO_EN[clean]);
+    }
+
+    const brainrot =
+      clean.match(/^🧠 Дней без тупости:\s*(\d+)$/);
+
+    if (brainrot) {
+      return preserveWhitespace(
+        text,
+        `🧠 Days without brainrot: ${brainrot[1]}`
+      );
     }
 
     return text;
-
   }
 
+  function preserveWhitespace(original, translated) {
+    const start = original.match(/^\s*/)?.[0] || "";
+    const end = original.match(/\s*$/)?.[0] || "";
 
-  /* =========================================================
-     TRANSLATE DOM
-     ========================================================= */
-
-  function translateDOM() {
-
-    document
-      .querySelectorAll(
-        "body *"
-      )
-      .forEach(
-        element => {
-
-          if (
-            element.children.length === 0 &&
-            element.childNodes.length
-          ) {
-
-            const text =
-              element.textContent;
-
-            const translated =
-              translateText(text);
-
-            if (
-              translated !== text
-            ) {
-
-              element.textContent =
-                translated;
-
-            }
-
-          }
-
-        }
-      );
-
-
-    document
-      .querySelectorAll(
-        "[placeholder]"
-      )
-      .forEach(
-        element => {
-
-          const value =
-            element.getAttribute(
-              "placeholder"
-            );
-
-          const translated =
-            translateText(value);
-
-          if (
-            translated !== value
-          ) {
-
-            element.setAttribute(
-              "placeholder",
-              translated
-            );
-
-          }
-
-        }
-      );
-
-
-    document.documentElement.lang =
-      language || "en";
-
+    return `${start}${translated}${end}`;
   }
 
+  function translateElement(element) {
+    if (!(element instanceof Element)) {
+      return;
+    }
 
-  /* =========================================================
-     LANGUAGE BUTTON
-     ========================================================= */
+    if (
+      element.closest(
+        "#lagoLanguagePanel, #lagoOnboarding"
+      )
+    ) {
+      return;
+    }
+
+    if (
+      element.children.length === 0 &&
+      element.childNodes.length === 1 &&
+      element.firstChild?.nodeType === Node.TEXT_NODE
+    ) {
+      const current = element.textContent;
+      const translated = translateText(current);
+
+      if (translated !== current) {
+        element.textContent = translated;
+      }
+    }
+
+    if (element.hasAttribute("placeholder")) {
+      const current =
+        element.getAttribute("placeholder") || "";
+
+      const translated = translateText(current);
+
+      if (translated !== current) {
+        element.setAttribute(
+          "placeholder",
+          translated
+        );
+      }
+    }
+
+    if (element.hasAttribute("title")) {
+      const current =
+        element.getAttribute("title") || "";
+
+      const translated = translateText(current);
+
+      if (translated !== current) {
+        element.setAttribute(
+          "title",
+          translated
+        );
+      }
+    }
+  }
+
+  function translateDOM(root = document.body) {
+    if (!root || translating) {
+      return;
+    }
+
+    translating = true;
+
+    try {
+      if (root instanceof Element) {
+        translateElement(root);
+      }
+
+      root
+        .querySelectorAll?.("*")
+        .forEach(translateElement);
+
+      document.documentElement.lang =
+        language || "en";
+
+      document.documentElement.dir =
+        ["ar", "he", "fa", "ur"].includes(language)
+          ? "rtl"
+          : "ltr";
+    } finally {
+      translating = false;
+    }
+  }
+
+  function updateButton() {
+    const button =
+      document.querySelector(
+        "#lagoLanguageButton"
+      );
+
+    if (!button) {
+      return;
+    }
+
+    const meta = getLanguageMeta();
+
+    button.textContent =
+      `${meta.flag} ${meta.code.toUpperCase()}`;
+  }
 
   function createLanguageButton() {
-
     if (
       document.querySelector(
         "#lagoLanguageButton"
       )
-    )
+    ) {
+      updateButton();
       return;
-
+    }
 
     const button =
-      document.createElement(
-        "button"
-      );
-
+      document.createElement("button");
 
     button.id =
       "lagoLanguageButton";
 
+    button.type =
+      "button";
 
-    button.innerHTML =
-      "🌐 EN";
-
+    button.setAttribute(
+      "aria-label",
+      "Change language"
+    );
 
     button.addEventListener(
       "click",
-      openLanguagePanel
+      open
     );
 
+    document.body.appendChild(button);
 
-    document.body.appendChild(
-      button
-    );
-
+    updateButton();
   }
 
-
-  /* =========================================================
-     LANGUAGE PANEL
-     ========================================================= */
-
-  function openLanguagePanel() {
-
-    let panel =
-      document.querySelector(
-        "#lagoLanguagePanel"
-      );
-
-
-    if (!panel) {
-
-      panel =
-        document.createElement(
-          "div"
-        );
-
-
-      panel.id =
-        "lagoLanguagePanel";
-
-
-      panel.innerHTML = `
-
-        <div
-          class="lago-language-card"
-        >
-
-          <div
-            class="lago-language-logo"
-          >
-            LAGO
-          </div>
-
-          <div
-            class="lago-language-title"
-          >
-            CHOOSE LANGUAGE
-          </div>
-
-          <div
-            class="lago-language-subtitle"
-          >
-            Select your language
-          </div>
-
-
-          <button
-            class="lago-language-option"
-            data-lang="en"
-          >
-            🇬🇧
-            <span>
-              English
-            </span>
-          </button>
-
-
-          <button
-            class="lago-language-option"
-            data-lang="ru"
-          >
-            🇷🇺
-            <span>
-              Русский
-            </span>
-          </button>
-
-
-        </div>
-
-      `;
-
-
-      document.body.appendChild(
-        panel
-      );
-
-
-      panel
-        .querySelectorAll(
-          "[data-lang]"
-        )
-        .forEach(
-          button => {
-
-            button.addEventListener(
-              "click",
-              () => {
-
-                setLanguage(
-                  button.dataset.lang
-                );
-
-                panel.remove();
-
-              }
-            );
-
-          }
-        );
-
-    }
-
-
-    panel.classList.add(
-      "show"
-    );
-
-  }
-
-
-  /* =========================================================
-     FIRST VISIT
-     ========================================================= */
-
-  function firstVisit() {
-
+  function injectStyles() {
     if (
-      !localStorage.getItem(
-        STORAGE_KEY
+      document.querySelector(
+        "#lagoLanguageStyles"
       )
     ) {
-
-      setTimeout(
-        openLanguagePanel,
-        350
-      );
-
+      return;
     }
 
+    const style =
+      document.createElement("style");
+
+    style.id =
+      "lagoLanguageStyles";
+
+    style.textContent = `
+      #lagoLanguageButton {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        right: 10px;
+        z-index: 5000;
+
+        min-width: 62px;
+        height: 38px;
+        padding: 0 12px;
+
+        border: 1px solid rgba(202,255,0,.6);
+        border-radius: 999px;
+
+        background: rgba(10,10,14,.88);
+        color: #fff;
+
+        font: 800 11px/1
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+
+        cursor: pointer;
+
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+
+        box-shadow:
+          0 8px 28px rgba(0,0,0,.28);
+
+        transition:
+          transform .16s ease,
+          border-color .16s ease,
+          background .16s ease;
+      }
+
+      #lagoLanguageButton:hover {
+        transform: translateY(-1px);
+        border-color: #caff00;
+        background: rgba(20,20,25,.96);
+      }
+
+      #lagoLanguagePanel {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding:
+          calc(16px + env(safe-area-inset-top))
+          16px
+          calc(16px + env(safe-area-inset-bottom));
+
+        background:
+          radial-gradient(
+            circle at 50% 12%,
+            rgba(202,255,0,.08),
+            transparent 34%
+          ),
+          rgba(4,5,7,.96);
+
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+
+        animation:
+          lagoLanguageOverlayIn
+          .22s ease-out;
+      }
+
+      @keyframes lagoLanguageOverlayIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .lago-language-card {
+        width: min(980px, 100%);
+        max-height: min(860px, 92dvh);
+
+        display: flex;
+        flex-direction: column;
+
+        overflow: hidden;
+
+        border:
+          1px solid rgba(255,255,255,.10);
+
+        border-radius: 28px;
+
+        background:
+          linear-gradient(
+            155deg,
+            rgba(24,25,30,.98),
+            rgba(9,10,13,.99)
+          );
+
+        box-shadow:
+          0 42px 120px
+          rgba(0,0,0,.65);
+
+        color: #fff;
+
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      .lago-language-header {
+        display: grid;
+        grid-template-columns:
+          1fr auto;
+
+        gap: 16px;
+
+        align-items: start;
+
+        padding:
+          28px 28px 18px;
+      }
+
+      .lago-language-brand {
+        color: #caff00;
+
+        font-size:
+          clamp(34px, 6vw, 58px);
+
+        line-height: .9;
+
+        font-weight: 1000;
+
+        letter-spacing: -.07em;
+      }
+
+      .lago-language-title {
+        margin-top: 16px;
+
+        font-size:
+          clamp(20px, 3vw, 30px);
+
+        line-height: 1;
+
+        font-weight: 900;
+
+        letter-spacing: -.04em;
+      }
+
+      .lago-language-subtitle {
+        margin-top: 8px;
+
+        color:
+          rgba(255,255,255,.46);
+
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .lago-language-close {
+        width: 42px;
+        height: 42px;
+
+        display: grid;
+        place-items: center;
+
+        border:
+          1px solid
+          rgba(255,255,255,.10);
+
+        border-radius: 50%;
+
+        background:
+          rgba(255,255,255,.04);
+
+        color: #fff;
+
+        font-size: 18px;
+
+        cursor: pointer;
+      }
+
+      .lago-language-search-wrap {
+        padding: 0 28px 18px;
+      }
+
+      #lagoLanguageSearch {
+        width: 100%;
+        height: 52px;
+
+        padding: 0 18px;
+
+        border:
+          1px solid
+          rgba(255,255,255,.10);
+
+        border-radius: 16px;
+
+        outline: none;
+
+        background:
+          rgba(255,255,255,.04);
+
+        color: #fff;
+
+        font:
+          700 13px/1
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      #lagoLanguageSearch:focus {
+        border-color:
+          rgba(202,255,0,.72);
+
+        box-shadow:
+          0 0 0 3px
+          rgba(202,255,0,.06);
+      }
+
+      #lagoLanguageSearch::placeholder {
+        color:
+          rgba(255,255,255,.28);
+      }
+
+      .lago-language-grid-wrap {
+        min-height: 0;
+        overflow-y: auto;
+
+        padding:
+          0 28px 28px;
+
+        overscroll-behavior: contain;
+      }
+
+      .lago-language-grid {
+        display: grid;
+
+        grid-template-columns:
+          repeat(4, minmax(0, 1fr));
+
+        gap: 9px;
+      }
+
+      .lago-language-option {
+        min-width: 0;
+        min-height: 68px;
+
+        display: flex;
+        align-items: center;
+
+        gap: 11px;
+
+        padding: 10px 13px;
+
+        border:
+          1px solid
+          rgba(255,255,255,.08);
+
+        border-radius: 16px;
+
+        background:
+          rgba(255,255,255,.035);
+
+        color: #fff;
+
+        text-align: left;
+
+        cursor: pointer;
+
+        transition:
+          transform .14s ease,
+          border-color .14s ease,
+          background .14s ease;
+      }
+
+      .lago-language-option:hover {
+        transform: translateY(-1px);
+
+        background:
+          rgba(255,255,255,.065);
+
+        border-color:
+          rgba(202,255,0,.45);
+      }
+
+      .lago-language-option.selected {
+        border-color: #caff00;
+
+        background:
+          rgba(202,255,0,.08);
+
+        box-shadow:
+          inset 0 0 0 1px
+          rgba(202,255,0,.08);
+      }
+
+      .lago-language-flag {
+        flex: 0 0 auto;
+
+        font-size: 24px;
+      }
+
+      .lago-language-copy {
+        min-width: 0;
+
+        display: flex;
+        flex-direction: column;
+
+        gap: 3px;
+      }
+
+      .lago-language-native {
+        overflow: hidden;
+
+        color: #fff;
+
+        font-size: 12px;
+        font-weight: 850;
+
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .lago-language-english {
+        overflow: hidden;
+
+        color:
+          rgba(255,255,255,.36);
+
+        font-size: 9px;
+        font-weight: 650;
+
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .lago-language-empty {
+        grid-column: 1 / -1;
+
+        padding: 36px 20px;
+
+        color:
+          rgba(255,255,255,.42);
+
+        text-align: center;
+
+        font-size: 12px;
+      }
+
+      @media (max-width: 820px) {
+        .lago-language-grid {
+          grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        #lagoLanguagePanel {
+          padding:
+            env(safe-area-inset-top)
+            0
+            env(safe-area-inset-bottom);
+        }
+
+        .lago-language-card {
+          width: 100%;
+          max-height: 100dvh;
+          height: 100dvh;
+
+          border-radius: 0;
+          border-left: 0;
+          border-right: 0;
+        }
+
+        .lago-language-header {
+          padding: 24px 18px 16px;
+        }
+
+        .lago-language-search-wrap {
+          padding:
+            0 18px 14px;
+        }
+
+        .lago-language-grid-wrap {
+          padding:
+            0 18px 24px;
+        }
+
+        .lago-language-grid {
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+        }
+
+        .lago-language-option {
+          min-height: 64px;
+          padding: 9px 10px;
+        }
+
+        .lago-language-native {
+          font-size: 11px;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
   }
 
+  function renderLanguageGrid(panel, query = "") {
+    const grid =
+      panel.querySelector(
+        "#lagoLanguageGrid"
+      );
 
-  /* =========================================================
-     SET LANGUAGE
-     ========================================================= */
-
-  function setLanguage(
-    lang
-  ) {
-
-    if (
-      !LANGUAGES[lang]
-    )
+    if (!grid) {
       return;
+    }
 
+    const normalizedQuery =
+      query
+        .trim()
+        .toLocaleLowerCase();
+
+    const filtered =
+      LANGUAGES.filter(item => {
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        const haystack = [
+          item.code,
+          item.name,
+          item.native
+        ]
+          .join(" ")
+          .toLocaleLowerCase();
+
+        return haystack.includes(
+          normalizedQuery
+        );
+      });
+
+    if (!filtered.length) {
+      grid.innerHTML = `
+        <div class="lago-language-empty">
+          No language found.
+        </div>
+      `;
+
+      return;
+    }
+
+    grid.innerHTML =
+      filtered
+        .map(item => `
+          <button
+            type="button"
+            class="
+              lago-language-option
+              ${
+                item.code === language
+                  ? "selected"
+                  : ""
+              }
+            "
+            data-language-code="${escapeHtml(
+              item.code
+            )}"
+          >
+            <span class="lago-language-flag">
+              ${item.flag}
+            </span>
+
+            <span class="lago-language-copy">
+              <span class="lago-language-native">
+                ${escapeHtml(item.native)}
+              </span>
+
+              <span class="lago-language-english">
+                ${escapeHtml(item.name)}
+              </span>
+            </span>
+          </button>
+        `)
+        .join("");
+
+    grid
+      .querySelectorAll(
+        "[data-language-code]"
+      )
+      .forEach(button => {
+        button.addEventListener(
+          "click",
+          () => {
+            setLanguage(
+              button.dataset.languageCode
+            );
+
+            close();
+          }
+        );
+      });
+  }
+
+  function open(options = {}) {
+    close();
+
+    const panel =
+      document.createElement("div");
+
+    panel.id =
+      "lagoLanguagePanel";
+
+    const closable =
+      options.closable !== false;
+
+    panel.innerHTML = `
+      <div
+        class="lago-language-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose language"
+      >
+        <div class="lago-language-header">
+          <div>
+            <div class="lago-language-brand">
+              LAGO
+            </div>
+
+            <div class="lago-language-title">
+              CHOOSE YOUR LANGUAGE
+            </div>
+
+            <div class="lago-language-subtitle">
+              Pick your language.
+              You can change it later.
+            </div>
+          </div>
+
+          ${
+            closable
+              ? `
+                <button
+                  type="button"
+                  class="lago-language-close"
+                  id="lagoLanguageClose"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              `
+              : ""
+          }
+        </div>
+
+        <div class="lago-language-search-wrap">
+          <input
+            id="lagoLanguageSearch"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Search language..."
+            aria-label="Search language"
+          >
+        </div>
+
+        <div class="lago-language-grid-wrap">
+          <div
+            class="lago-language-grid"
+            id="lagoLanguageGrid"
+          ></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    renderLanguageGrid(panel);
+
+    const search =
+      panel.querySelector(
+        "#lagoLanguageSearch"
+      );
+
+    search?.addEventListener(
+      "input",
+      () => {
+        renderLanguageGrid(
+          panel,
+          search.value
+        );
+      }
+    );
+
+    panel
+      .querySelector(
+        "#lagoLanguageClose"
+      )
+      ?.addEventListener(
+        "click",
+        close
+      );
+
+    if (closable) {
+      panel.addEventListener(
+        "click",
+        event => {
+          if (event.target === panel) {
+            close();
+          }
+        }
+      );
+    }
+
+    setTimeout(
+      () => search?.focus(),
+      30
+    );
+
+    return panel;
+  }
+
+  function close() {
+    document
+      .querySelector(
+        "#lagoLanguagePanel"
+      )
+      ?.remove();
+  }
+
+  function setLanguage(code) {
+    const normalized =
+      normalizeLanguage(code);
+
+    if (!normalized) {
+      return false;
+    }
 
     language =
-      lang;
-
+      normalized;
 
     localStorage.setItem(
       STORAGE_KEY,
       language
     );
 
-
     document.documentElement.lang =
       language;
 
+    document.documentElement.dir =
+      ["ar", "he", "fa", "ur"].includes(language)
+        ? "rtl"
+        : "ltr";
+
+    /*
+     * Keep the unified game state informed.
+     */
+    try {
+      window.LAGO?.setLanguage?.(
+        language
+      );
+    } catch (error) {
+      console.warn(
+        "[LAGO LANGUAGE] Could not sync game state:",
+        error
+      );
+    }
 
     translateDOM();
-
-
     updateButton();
 
-
-    /*
-      Force existing game UI
-      to render again.
-    */
-
-    try {
-
-      if (
-        typeof render ===
-        "function"
-      ) {
-
-        render();
-
-      }
-
-    } catch (e) {}
-
-
-    /*
-      Re-translate after render.
-    */
-
-    setTimeout(
-      translateDOM,
-      30
+    document.dispatchEvent(
+      new CustomEvent(
+        "lago:language",
+        {
+          detail: {
+            language,
+            locale:
+              getLanguageMeta(language)
+          }
+        }
+      )
     );
 
-    setTimeout(
-      translateDOM,
-      250
+    return true;
+  }
+
+  function hasSavedLanguage() {
+    return Boolean(
+      normalizeLanguage(
+        localStorage.getItem(
+          STORAGE_KEY
+        )
+      )
     );
-
   }
-
-
-  /* =========================================================
-     BUTTON UPDATE
-     ========================================================= */
-
-  function updateButton() {
-
-    const button =
-      document.querySelector(
-        "#lagoLanguageButton"
-      );
-
-
-    if (!button)
-      return;
-
-
-    button.innerHTML =
-      language === "en"
-        ? "🌐 EN"
-        : "🌐 RU";
-
-  }
-
-
-  /* =========================================================
-     STYLE
-     ========================================================= */
-
-  function injectStyles() {
-
-    const style =
-      document.createElement(
-        "style"
-      );
-
-
-    style.textContent = `
-
-      #lagoLanguageButton {
-
-        position: fixed;
-
-        top:
-          calc(
-            10px +
-            env(
-              safe-area-inset-top
-            )
-          );
-
-        right:
-          10px;
-
-        z-index:
-          5000;
-
-        min-width:
-          54px;
-
-        height:
-          36px;
-
-        padding:
-          0 10px;
-
-        border-radius:
-          999px;
-
-        background:
-          rgba(10,5,12,.88);
-
-        border:
-          1px solid
-          rgba(204,255,0,.75);
-
-        color:
-          #ccff00;
-
-        font-family:
-          system-ui,
-          sans-serif;
-
-        font-size:
-          11px;
-
-        font-weight:
-          900;
-
-        backdrop-filter:
-          blur(12px);
-
-        box-shadow:
-          0 5px 20px
-          rgba(0,0,0,.3);
-
-      }
-
-
-      #lagoLanguagePanel {
-
-        position:
-          fixed;
-
-        inset:
-          0;
-
-        z-index:
-          9000;
-
-        display:
-          none;
-
-        align-items:
-          center;
-
-        justify-content:
-          center;
-
-        padding:
-          20px;
-
-        background:
-          rgba(0,0,0,.78);
-
-        backdrop-filter:
-          blur(18px);
-
-      }
-
-
-      #lagoLanguagePanel.show {
-
-        display:
-          flex;
-
-      }
-
-
-      .lago-language-card {
-
-        width:
-          min(390px, 92vw);
-
-        padding:
-          28px 22px;
-
-        border-radius:
-          26px;
-
-        background:
-          linear-gradient(
-            145deg,
-            #190a1d,
-            #0b0710
-          );
-
-        border:
-          2px solid
-          #ccff00;
-
-        box-shadow:
-          8px 8px 0
-          #9900ff,
-          0 30px 80px
-          rgba(0,0,0,.65);
-
-        text-align:
-          center;
-
-      }
-
-
-      .lago-language-logo {
-
-        color:
-          #ff44aa;
-
-        font-size:
-          48px;
-
-        font-weight:
-          1000;
-
-        letter-spacing:
-          4px;
-
-        text-shadow:
-          4px 4px 0
-          #9900ff;
-
-      }
-
-
-      .lago-language-title {
-
-        margin-top:
-          12px;
-
-        color:
-          #ccff00;
-
-        font-size:
-          18px;
-
-        font-weight:
-          1000;
-
-      }
-
-
-      .lago-language-subtitle {
-
-        margin:
-          6px 0 20px;
-
-        color:
-          #bca9bc;
-
-        font-family:
-          monospace;
-
-        font-size:
-          11px;
-
-      }
-
-
-      .lago-language-option {
-
-        width:
-          100%;
-
-        min-height:
-          60px;
-
-        display:
-          flex;
-
-        align-items:
-          center;
-
-        gap:
-          14px;
-
-        margin-top:
-          10px;
-
-        padding:
-          0 18px;
-
-        border-radius:
-          15px;
-
-        background:
-          #230b2a;
-
-        border:
-          2px solid
-          rgba(255,68,170,.55);
-
-        color:
-          #fff;
-
-        font-size:
-          16px;
-
-        font-weight:
-          900;
-
-        text-align:
-          left;
-
-      }
-
-
-      .lago-language-option:hover {
-
-        border-color:
-          #ccff00;
-
-        background:
-          #30103a;
-
-      }
-
-
-      .lago-language-option:first-letter {
-
-        font-size:
-          25px;
-
-      }
-
-    `;
-
-
-    document.head.appendChild(
-      style
-    );
-
-  }
-
-
-  /* =========================================================
-     OBSERVE DYNAMIC GAME TEXT
-     ========================================================= */
 
   function observeDOM() {
+    observer?.disconnect();
 
-    const observer =
+    observer =
       new MutationObserver(
         mutations => {
-
-          let changed =
-            false;
-
-
-          for (
-            const mutation
-            of mutations
-          ) {
-
-            if (
-              mutation.type ===
-              "childList" ||
-              mutation.type ===
-              "characterData"
-            ) {
-
-              changed =
-                true;
-
-              break;
-
-            }
-
+          if (translating) {
+            return;
           }
 
-
-          if (changed) {
-
-            translateDOM();
-
+          for (const mutation of mutations) {
+            mutation
+              .addedNodes
+              .forEach(node => {
+                if (
+                  node.nodeType ===
+                  Node.ELEMENT_NODE
+                ) {
+                  translateDOM(node);
+                }
+              });
           }
-
         }
       );
-
 
     observer.observe(
       document.body,
       {
         subtree: true,
-        childList: true,
-        characterData: true
+        childList: true
       }
     );
-
   }
 
-
-  /* =========================================================
-     INIT
-     ========================================================= */
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
   function init() {
-
     injectStyles();
 
     createLanguageButton();
 
     /*
-      English is the international
-      default.
-    */
-
+     * Important:
+     * Do NOT open the first-visit selector here.
+     * Onboarding owns the first launch.
+     *
+     * This removes the duplicate language screen.
+     */
     if (!language) {
-
       language = "en";
-
     }
 
-
     translateDOM();
-
     updateButton();
-
     observeDOM();
-
-    firstVisit();
-
   }
 
+  window.LAGO_LANGUAGE = {
+    set: setLanguage,
+
+    get() {
+      return language;
+    },
+
+    getMeta() {
+      return getLanguageMeta();
+    },
+
+    getLanguages() {
+      return LANGUAGES.map(
+        item => ({ ...item })
+      );
+    },
+
+    hasSavedLanguage,
+
+    open,
+
+    close,
+
+    translateDOM
+  };
 
   if (
     document.readyState ===
     "loading"
   ) {
-
     document.addEventListener(
       "DOMContentLoaded",
-      init
+      init,
+      { once: true }
     );
-
   } else {
-
     init();
-
   }
-
-
-  window.LAGO_LANGUAGE = {
-
-    set:
-      setLanguage,
-
-    get:
-      () => language,
-
-    open:
-      openLanguagePanel
-
-  };
-
 })();
