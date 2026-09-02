@@ -8,29 +8,42 @@
   }
 
 
-  function clickOld(id) {
+  let tapState = null;
 
-    const el = $(id);
 
-    if (el) {
+function readTapState() {
 
-      el.click();
+  try {
+
+    if (
+      window.LAGO_TAP_GAME &&
+      typeof window.LAGO_TAP_GAME.getState === "function"
+    ) {
+
+      return window.LAGO_TAP_GAME.getState();
 
     }
 
-  }
+  } catch (error) {
 
-
-  function getNumber(id) {
-
-    const el = $(id);
-
-    if (!el) return "0";
-
-    return el.textContent || "0";
+    console.warn(
+      "[LAGO MODERN] Could not read Tap Lago state:",
+      error
+    );
 
   }
 
+
+  return tapState || {
+    energy: 0,
+    power: 1,
+    auto: 0,
+    shield: 0,
+    days: 0,
+    speech: ""
+  };
+
+}
 
   function createUI() {
 
@@ -553,27 +566,19 @@
 
 
     /*
-     * Move speech text.
-     */
+ * Read the initial Tap Lago state
+ * through the public game API.
+ */
 
-    const oldSpeech =
-      $("cringe");
-
-
-    const modernSpeech =
-      $("modernSpeech");
+tapState =
+  readTapState();
 
 
-    if (
-      oldSpeech &&
-      modernSpeech
-    ) {
+bind();
 
-      modernSpeech.textContent =
-        oldSpeech.textContent;
-
-    }
-
+update(
+  tapState
+);
 
     bind();
 
@@ -582,438 +587,390 @@
   }
 
 
-  function bind() {
+function bind() {
 
-    /*
-     * Main TAP.
-     */
+  /*
+   * Main TAP.
+   */
 
-    $("modernPlay")
-      ?.addEventListener(
-        "click",
-        () => {
+  $("modernPlay")
+    ?.addEventListener(
+      "click",
+      () => {
 
-          clickOld(
-            "clickBtn"
-          );
+        window.LAGO_TAP_GAME
+          ?.tap
+          ?.();
 
-        }
-      );
+      }
+    );
 
 
-    /*
-     * Daily.
-     */
+  /*
+   * Daily.
+   */
 
-    $("lagoModernDaily")
-      ?.addEventListener(
-        "click",
-        () => {
+  $("lagoModernDaily")
+    ?.addEventListener(
+      "click",
+      () => {
 
-          if (
-            window.LAGO_REWARDS
-          ) {
+        window.LAGO_REWARDS
+          ?.claim
+          ?.();
 
-            window.LAGO_REWARDS
-              .claim();
+      }
+    );
+
+
+  /*
+   * Side actions.
+   */
+
+  document
+    .querySelectorAll(
+      "[data-action]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const action =
+              button.dataset.action;
+
+
+            if (
+              action ===
+              "upgrade"
+            ) {
+
+              window.LAGO_TAP_GAME
+                ?.openUpgrades
+                ?.();
+
+              return;
+
+            }
+
+
+            if (
+              action ===
+              "steal"
+            ) {
+
+              window.LAGO_TAP_GAME
+                ?.steal
+                ?.();
+
+              return;
+
+            }
+
+
+            if (
+              action ===
+              "create"
+            ) {
+
+              window.LAGO_TAP_GAME
+                ?.openCreator
+                ?.();
+
+              return;
+
+            }
+
+
+            if (
+              action ===
+              "collection"
+            ) {
+
+              window.LAGO_COLLECTION
+                ?.show
+                ?.();
+
+            }
 
           }
+        );
 
-        }
-      );
-
-
-    /*
-     * Side actions.
-     */
-
-    document
-      .querySelectorAll(
-        "[data-action]"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              const action =
-                button.dataset.action;
+      }
+    );
 
 
-              if (
-                action ===
-                "upgrade"
-              ) {
+  /*
+   * Navigation.
+   */
 
-                clickOld(
-                  "upgradeBtn"
-                );
+  document
+    .querySelectorAll(
+      "[data-page]"
+    )
+    .forEach(
+      button => {
 
-              }
+        button.addEventListener(
+          "click",
+          () => {
 
-
-              if (
-                action ===
-                "steal"
-              ) {
-
-                clickOld(
-                  "stealBtn"
-                );
-
-              }
-
-
-              if (
-                action ===
-                "create"
-              ) {
-
-                clickOld(
-                  "createBtn"
-                );
-
-              }
-
-
-              if (
-                action ===
-                "collection"
-              ) {
-
-                if (
-                  window.LAGO_COLLECTION
-                ) {
-
-                  window.LAGO_COLLECTION
-                    .show();
-
-                }
-
-              }
-
-            }
-          );
-
-        }
-      );
-
-
-    /*
-     * Navigation.
-     */
-
-    document
-      .querySelectorAll(
-        "[data-page]"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              navigate(
-                button.dataset.page
-              );
-
-            }
-          );
-
-        }
-      );
-
-
-    /*
-     * Existing game state.
-     */
-
-    [
-      "clickBtn",
-      "upgradeBtn",
-      "stealBtn"
-    ]
-      .forEach(
-        id => {
-
-          $(id)
-            ?.addEventListener(
-              "click",
-              () => {
-
-                setTimeout(
-                  update,
-                  20
-                );
-
-              }
+            navigate(
+              button.dataset.page
             );
 
-        }
-      );
+          }
+        );
 
-
-    /*
-     * New bridge state.
-     */
-
-    document.addEventListener(
-      "lago:state",
-      update
+      }
     );
 
 
-    /*
-     * Keep UI synced.
-     */
-
-    setInterval(
-      update,
-      400
-    );
-
-  }
-
-
-  function navigate(
-    page
-  ) {
-
-    /*
-     * Highlight buttons.
-     */
-
-    document
-      .querySelectorAll(
-        "[data-page]"
-      )
-      .forEach(
-        button => {
-
-          button.classList.toggle(
-            "active",
-            button.dataset.page ===
-            page
-          );
-
-        }
-      );
-
-
-    if (
-      page === "play"
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      page === "create"
-    ) {
-
-      clickOld(
-        "createBtn"
-      );
-
-      return;
-
-    }
-
-
-    if (
-      page === "collection"
-    ) {
-
-      if (
-        window.LAGO_COLLECTION
-      ) {
-
-        window.LAGO_COLLECTION
-          .show();
-
-      }
-
-      return;
-
-    }
-
-
-    if (
-      page === "shop"
-    ) {
-
-      clickOld(
-        "upgradeBtn"
-      );
-
-      return;
-
-    }
-
-  }
-
-
-  function update() {
-
-    const energy =
-      getNumber("energy");
-
-    const power =
-      getNumber("power");
-
-    const auto =
-      getNumber("auto");
-
-
-    $("modernEnergy")
-      ?.replaceChildren(
-        energy
-      );
-
-
-    $("modernPower")
-      ?.replaceChildren(
-        power
-      );
-
-
-    $("modernAuto")
-      ?.replaceChildren(
-        auto
-      );
-
-
-    /*
-     * Days / brainrot.
-     */
-
-    const days =
-      $("days");
-
-
-    if (days) {
-
-      const match =
-        days.textContent
-          .match(
-            /\d+/
-          );
-
-
-      if (match) {
-
-        $("modernDays")
-          .textContent =
-          match[0];
-
-      }
-
-    }
-
-
-    /*
-     * Level.
-     */
-
-    let level = 1;
-
-
-    if (
-      window.LAGO &&
-      window.LAGO.getState
-    ) {
-
-      const s =
-        window.LAGO
-          .getState();
-
-
-      level =
-        s.level || 1;
-
-
-      $("modernXP")
-        ?.replaceChildren(
-          `${s.xp || 0} XP`
-        );
-
-
-      const xp =
-        s.xp || 0;
-
-
-      const percent =
-        Math.min(
-          100,
-          xp % 100
-        );
-
-
-      const bar =
-        $("modernProgress");
-
-
-      if (bar) {
-
-        bar.style.width =
-          `${percent}%`;
-
-      }
-
-    }
-
-
-    $("modernLevel")
-      ?.replaceChildren(
-        level
-      );
-
-
-    /*
-     * Speech.
-     */
-
-    const oldSpeech =
-      $("cringe");
-
-
-    if (
-      oldSpeech &&
-      $("modernSpeech")
-    ) {
-
-      $("modernSpeech")
-        .textContent =
-        oldSpeech.textContent
-          .trim()
-          .toUpperCase();
-
-    }
-
-  }
-
+  /*
+   * Tap Lago publishes its own
+   * state after every render.
+   */
 
   document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    "lago:tap-game-state",
+    event => {
 
-      /*
-       * Give existing scripts
-       * time to initialise.
-       */
+      tapState = {
+        ...(tapState || {}),
+        ...(event.detail || {})
+      };
 
-      setTimeout(
-        createUI,
-        350
+      update(
+        tapState
       );
 
     }
   );
 
 
-})();
+  /*
+   * Account-level XP / level state.
+   */
+
+  document.addEventListener(
+    "lago:state",
+    () => {
+
+      update();
+
+    }
+  );
+
+}
+
+
+  function navigate(
+  page
+) {
+
+  document
+    .querySelectorAll(
+      "[data-page]"
+    )
+    .forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.page ===
+          page
+        );
+
+      }
+    );
+
+
+  if (
+    page === "play"
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    page === "create"
+  ) {
+
+    window.LAGO_TAP_GAME
+      ?.openCreator
+      ?.();
+
+    return;
+
+  }
+
+
+  if (
+    page === "collection"
+  ) {
+
+    window.LAGO_COLLECTION
+      ?.show
+      ?.();
+
+    return;
+
+  }
+
+
+  if (
+    page === "shop"
+  ) {
+
+    window.LAGO_TAP_GAME
+      ?.openUpgrades
+      ?.();
+
+  }
+
+}
+
+  function update(
+  nextTapState = null
+) {
+
+  if (
+    nextTapState &&
+    typeof nextTapState === "object"
+  ) {
+
+    tapState = {
+      ...(tapState || {}),
+      ...nextTapState
+    };
+
+  }
+
+
+  const game =
+    tapState ||
+    readTapState();
+
+
+  tapState =
+    game;
+
+
+  $("modernEnergy")
+    ?.replaceChildren(
+      String(
+        game.energy ?? 0
+      )
+    );
+
+
+  $("modernPower")
+    ?.replaceChildren(
+      String(
+        game.power ?? 1
+      )
+    );
+
+
+  $("modernAuto")
+    ?.replaceChildren(
+      String(
+        game.auto ?? 0
+      )
+    );
+
+
+  $("modernDays")
+    ?.replaceChildren(
+      String(
+        game.days ?? 0
+      )
+    );
+
+
+  /*
+   * Account-level progress.
+   */
+
+  let level = 1;
+  let xp = 0;
+
+
+  try {
+
+    const account =
+      window.LAGO
+        ?.getState
+        ?.();
+
+
+    if (account) {
+
+      level =
+        account.level || 1;
+
+      xp =
+        account.xp || 0;
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "[LAGO MODERN] Could not read account state:",
+      error
+    );
+
+  }
+
+
+  $("modernLevel")
+    ?.replaceChildren(
+      String(level)
+    );
+
+
+  $("modernXP")
+    ?.replaceChildren(
+      `${xp} XP`
+    );
+
+
+  const bar =
+    $("modernProgress");
+
+
+  if (bar) {
+
+    bar.style.width =
+      `${Math.min(
+        100,
+        xp % 100
+      )}%`;
+
+  }
+
+
+  /*
+   * Speech comes from Tap Lago state,
+   * not from the legacy #cringe node.
+   */
+
+  if (
+    game.speech &&
+    $("modernSpeech")
+  ) {
+
+    $("modernSpeech")
+      .textContent =
+      String(game.speech)
+        .trim()
+        .toUpperCase();
+
+  }
+
+}
