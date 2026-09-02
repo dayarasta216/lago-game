@@ -291,11 +291,16 @@ $("createBtn").onclick=()=>openPanel("createPanel");
  * =========================================================
  */
 
-window.LAGO_TAP_GAME = {
+/*
+ * =========================================================
+ * LEGACY RUNTIME ADAPTER
+ * Temporary compatibility layer.
+ *
+ * New modules must NOT access legacy DOM directly.
+ * =========================================================
+ */
 
-  id: "tap-lago",
-
-  name: "Tap Lago",
+window.LAGO_LEGACY_RUNTIME = {
 
   tap() {
 
@@ -307,6 +312,50 @@ window.LAGO_TAP_GAME = {
 
   },
 
+
+  steal() {
+
+    steal();
+
+    save();
+
+    return getTapGameSnapshot();
+
+  },
+
+
+  openUpgrades() {
+
+    openPanel(
+      "upgradePanel"
+    );
+
+  },
+
+
+  openCreator() {
+
+    openPanel(
+      "createPanel"
+    );
+
+  },
+
+
+  share() {
+
+    telegramShare();
+
+  },
+
+
+  getTapState() {
+
+    return getTapGameSnapshot();
+
+  }
+
+};
 
   steal() {
 
