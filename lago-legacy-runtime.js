@@ -320,49 +320,19 @@ $("createBtn").onclick=()=>openPanel("createPanel");
 
 window.LAGO_LEGACY_RUNTIME = {
 
-  tap() {
+  /*
+   * Temporary mutable state access.
+   *
+   * This exists only while the old
+   * runtime is being dismantled.
+   *
+   * Later state moves into the
+   * unified Account / Game Core.
+   */
 
-    clickLago();
+  getState() {
 
-    save();
-
-    return getTapGameSnapshot();
-
-  },
-
-
-  steal() {
-
-    steal();
-
-    save();
-
-    return getTapGameSnapshot();
-
-  },
-
-
-  openUpgrades() {
-
-    openPanel(
-      "upgradePanel"
-    );
-
-  },
-
-
-  openCreator() {
-
-    openPanel(
-      "createPanel"
-    );
-
-  },
-
-
-  share() {
-
-    telegramShare();
+    return state;
 
   },
 
@@ -371,20 +341,138 @@ window.LAGO_LEGACY_RUNTIME = {
 
     return getTapGameSnapshot();
 
-  }
+  },
 
-};
 
-  steal() {
+  getPhrases() {
 
-    steal();
-
-    save();
-
-    return getTapGameSnapshot();
+    return [
+      ...PHRASES
+    ];
 
   },
 
+
+  /*
+   * Shared persistence.
+   */
+
+  save() {
+
+    save();
+
+  },
+
+
+  /*
+   * Temporary legacy renderer.
+   */
+
+  render() {
+
+    render();
+
+  },
+
+
+  /*
+   * Feedback helpers.
+   */
+
+  toast(message) {
+
+    toast(message);
+
+  },
+
+
+  beep(
+    frequency,
+    duration,
+    type
+  ) {
+
+    beep(
+      frequency,
+      duration,
+      type
+    );
+
+  },
+
+
+  setSpeech(text) {
+
+    const speech =
+      $("cringe");
+
+
+    if (speech) {
+
+      speech.textContent =
+        text;
+
+    }
+
+  },
+
+
+  animateSnail() {
+
+    const snail =
+      $("snail");
+
+
+    if (!snail) {
+      return;
+    }
+
+
+    snail.classList.remove(
+      "bonk"
+    );
+
+
+    void snail.offsetWidth;
+
+
+    snail.classList.add(
+      "bonk"
+    );
+
+  },
+
+
+  spawnFloat(
+    text,
+    event
+  ) {
+
+    spawnFloat(
+      text,
+      event
+    );
+
+  },
+
+
+  checkAchievements() {
+
+    checkAchievements();
+
+  },
+
+
+  gameOver() {
+
+    gameOver();
+
+  },
+
+
+  /*
+   * Temporary legacy panels.
+   */
 
   openUpgrades() {
 
@@ -408,7 +496,9 @@ window.LAGO_LEGACY_RUNTIME = {
 
     telegramShare();
 
-  },
+  }
+
+};
 
 
   getState() {
