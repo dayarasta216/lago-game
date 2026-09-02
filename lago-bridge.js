@@ -304,11 +304,11 @@ function sync() {
   );
 
 
-  /*
-   * Make state available
-   * to the Home UI.
-   */
+/*
+ * Publish the initial state
+ * to active Lago modules.
+ */
 
-  sync();
+sync();
 
 })();
