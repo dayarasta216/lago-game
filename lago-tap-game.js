@@ -6,12 +6,13 @@
    * TAP LAGO
    * Mini-Game #001
    *
-   * Gameplay owner:
+   * Owns:
    * - tap
    * - steal
    * - auto income
+   * - upgrades
    *
-   * R0.3C3
+   * R0.3C3B
    * =========================================================
    */
 
@@ -35,6 +36,66 @@
     runtime.getPhrases();
 
 
+  /*
+   * =========================================================
+   * UPGRADES
+   *
+   * Original economy preserved 1:1.
+   * =========================================================
+   */
+
+  const UPGRADES = [
+
+    {
+      key: "click",
+      icon: "🚀",
+      name: "УСИЛЕНИЕ КЛИКА",
+      desc: "+1 МЭ за каждый клик",
+      base: 25,
+      max: 50,
+
+      apply(current) {
+
+        current.power++;
+
+      }
+    },
+
+
+    {
+      key: "auto",
+      icon: "🤖",
+      name: "АВТОКЛИКЕР",
+      desc: "+1 МЭ каждую секунду",
+      base: 80,
+      max: 50,
+
+      apply(current) {
+
+        current.auto++;
+
+      }
+    },
+
+
+    {
+      key: "shield",
+      icon: "🛡️",
+      name: "ЗАЩИТА",
+      desc: "-10% потерь при краже",
+      base: 120,
+      max: 9,
+
+      apply(current) {
+
+        current.shield++;
+
+      }
+    }
+
+  ];
+
+
   let autoTimer =
     null;
 
@@ -45,6 +106,26 @@
 
   }
 
+
+  function formatNumber(value) {
+
+    return Math.floor(
+      Number(value) || 0
+    ).toLocaleString(
+      "ru-RU"
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * MEME BONUSES
+   *
+   * Temporary compatibility with
+   * the old meme system.
+   * =========================================================
+   */
 
   function memeClickBonus() {
 
@@ -385,7 +466,283 @@
 
   /*
    * =========================================================
-   * STATE
+   * UPGRADES
+   * =========================================================
+   */
+
+  function getUpgrade(key) {
+
+    return (
+      UPGRADES.find(
+        item =>
+          item.key === key
+      ) ||
+      null
+    );
+
+  }
+
+
+  function upgradeCost(
+    upgrade
+  ) {
+
+    const current =
+      state();
+
+
+    const level =
+      current.upgrades
+        ?.[upgrade.key] ||
+      0;
+
+
+    return Math.floor(
+      upgrade.base *
+      Math.pow(
+        1.65,
+        level
+      )
+    );
+
+  }
+
+
+  function buyUpgrade(key) {
+
+    const current =
+      state();
+
+
+    const upgrade =
+      getUpgrade(key);
+
+
+    if (!upgrade) {
+
+      console.warn(
+        `[TAP LAGO] Unknown upgrade: ${key}`
+      );
+
+      return false;
+
+    }
+
+
+    const level =
+      current.upgrades
+        ?.[upgrade.key] ||
+      0;
+
+
+    if (
+      level >=
+      upgrade.max
+    ) {
+
+      runtime.toast(
+        "MAXIMUM КРИНЖ"
+      );
+
+      return false;
+
+    }
+
+
+    const cost =
+      upgradeCost(
+        upgrade
+      );
+
+
+    if (
+      current.energy <
+      cost
+    ) {
+
+      runtime.toast(
+        "Не хватает МЭ 😭"
+      );
+
+
+      runtime.beep(
+        90,
+        0.1
+      );
+
+
+      return false;
+
+    }
+
+
+    current.energy -=
+      cost;
+
+
+    current.upgrades[
+      upgrade.key
+    ] =
+      level + 1;
+
+
+    upgrade.apply(
+      current
+    );
+
+
+    runtime.beep(
+      600,
+      0.06
+    );
+
+
+    runtime.toast(
+      "АПГРЕЙД! ⬆"
+    );
+
+
+    runtime.render();
+
+
+    runtime.save();
+
+
+    return true;
+
+  }
+
+
+  function renderUpgrades() {
+
+    const list =
+      document.getElementById(
+        "upgradeList"
+      );
+
+
+    if (!list) {
+
+      return;
+
+    }
+
+
+    const current =
+      state();
+
+
+    list.innerHTML =
+      UPGRADES
+        .map(
+          upgrade => {
+
+            const level =
+              current.upgrades
+                ?.[upgrade.key] ||
+              0;
+
+
+            const cost =
+              upgradeCost(
+                upgrade
+              );
+
+
+            const maxed =
+              level >=
+              upgrade.max;
+
+
+            return `
+              <div class="card">
+
+                <div>
+
+                  <div
+                    style="font-size:20px"
+                  >
+                    ${upgrade.icon}
+                    <b>
+                      ${upgrade.name}
+                    </b>
+                  </div>
+
+                  <div class="desc">
+                    ${upgrade.desc}
+
+                    <br>
+
+                    Уровень:
+                    ${level}/${upgrade.max}
+                  </div>
+
+                </div>
+
+                <button
+                  class="buy"
+                  data-up="${upgrade.key}"
+                  ${
+                    maxed
+                      ? "disabled"
+                      : ""
+                  }
+                >
+                  ${
+                    maxed
+                      ? "MAX"
+                      : "💎 " +
+                        formatNumber(
+                          cost
+                        )
+                  }
+                </button>
+
+              </div>
+            `;
+
+          }
+        )
+        .join("");
+
+
+    list
+      .querySelectorAll(
+        "[data-up]"
+      )
+      .forEach(
+        button => {
+
+          button.onclick =
+            () => {
+
+              buyUpgrade(
+                button.dataset.up
+              );
+
+            };
+
+        }
+      );
+
+  }
+
+
+  function openUpgrades() {
+
+    renderUpgrades();
+
+
+    runtime.showPanel(
+      "upgradePanel"
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * PUBLIC STATE
    * =========================================================
    */
 
@@ -399,9 +756,6 @@
   /*
    * =========================================================
    * LEGACY CONTROL COMPATIBILITY
-   *
-   * Old buttons still work while
-   * the old markup exists.
    * =========================================================
    */
 
@@ -450,12 +804,26 @@
 
     }
 
+
+    const upgradeButton =
+      document.getElementById(
+        "upgradeBtn"
+      );
+
+
+    if (upgradeButton) {
+
+      upgradeButton.onclick =
+        openUpgrades;
+
+    }
+
   }
 
 
   /*
    * =========================================================
-   * PUBLIC GAME MODULE
+   * PUBLIC MINI-GAME API
    * =========================================================
    */
 
@@ -474,7 +842,7 @@
 
 
     version:
-      2,
+      3,
 
 
     tap,
@@ -492,11 +860,13 @@
     stopAuto,
 
 
-    openUpgrades() {
+    buyUpgrade,
 
-      runtime.openUpgrades();
 
-    },
+    renderUpgrades,
+
+
+    openUpgrades,
 
 
     openCreator() {
@@ -520,7 +890,7 @@
 
 
   /*
-   * Start Mini-Game #001.
+   * Initialize Mini-Game #001.
    */
 
   bindLegacyControls();
@@ -529,126 +899,12 @@
   startAuto();
 
 
-  /*
-   * Publish one clean state
-   * after module startup.
-   */
-
   runtime.render();
 
 
-  document.dispatchEvent(
-    new CustomEvent(
-      "lago:game-ready",
-      {
-        detail: {
-
-          id:
-            game.id,
-
-          name:
-            game.name,
-
-          category:
-            game.category,
-
-          version:
-            game.version
-
-        }
-      }
-    )
-  );
-
-})();
-    id:
-      "tap-lago",
-
-    name:
-      "Tap Lago",
-
-    category:
-      "clicker",
-
-    version:
-      1,
-
-
-    /*
-     * Main gameplay action.
-     */
-
-    tap() {
-
-      return runtime.tap();
-
-    },
-
-
-    /*
-     * Risk / steal mechanic.
-     */
-
-    steal() {
-
-      return runtime.steal();
-
-    },
-
-
-    /*
-     * Temporary legacy panels.
-     *
-     * These will later become
-     * proper Portal/Game UI.
-     */
-
-    openUpgrades() {
-
-      runtime.openUpgrades();
-
-    },
-
-
-    openCreator() {
-
-      runtime.openCreator();
-
-    },
-
-
-    share() {
-
-      runtime.share();
-
-    },
-
-
-    /*
-     * Read-only public snapshot.
-     */
-
-    getState() {
-
-      return runtime.getTapState();
-
-    }
-
-  };
-
-
   /*
-   * Public Mini-Game API.
-   */
-
-  window.LAGO_TAP_GAME =
-    game;
-
-
-  /*
-   * This event will later allow
-   * the Lago Game Portal to discover
-   * games automatically.
+   * Announce game to future
+   * Lago Game Portal registry.
    */
 
   document.dispatchEvent(
