@@ -34,7 +34,7 @@ const defaultState = {
   achievements: {},
   telegramUser: null,
   wallet: null,
-  tutorialDone: false
+ 
 };
 
 let state = loadState();
@@ -591,23 +591,7 @@ $("onchainScore").onclick=writeScoreOnChain;
 $("shareBtn").onclick=telegramShare;
 
 /* ---------- Туториал ---------- */
-const tutorial=[
-  ["🐌","Лаго тупит","Кликай по улитке и собирай Мем-Энергию. Каждый клик делает Лаго ещё бесполезнее."],
-  ["⬆️","Прокачай кринж","Покупай силу клика, автокликер и защиту. Да, это абсолютно серьёзная экономика."],
-  ["🎨","Создай свой мем","Рисуй пальцем или загружай картинку. Мем получит случайный бонус и попадёт в инвентарь."]
-];
-function renderTutorial(){
-  const t=tutorial[tutorialStep];
-  $("tutorialEmoji").textContent=t[0];$("tutorialTitle").textContent=t[1];$("tutorialText").textContent=t[2];
-  $("tutorialProgress").style.width=((tutorialStep+1)/tutorial.length*100)+"%";
-  $("tutorialNext").textContent=tutorialStep===tutorial.length-1?"ПОГНАЛИ ТУПИТЬ":"ДАЛЬШЕ";
-}
-$("tutorialNext").onclick=()=>{
-  beep(520,.06);
-  if(tutorialStep<tutorial.length-1){tutorialStep++;renderTutorial()}
-  else{state.tutorialDone=true;save();closePanel("tutorialPanel");toast("ЛАГО ЗАПУЩЕН 🐌")}
-};
-if(state.tutorialDone) closePanel("tutorialPanel"); else renderTutorial();
+
 
 /* ---------- Случайные вспышки/кринж ---------- */
 setInterval(()=>{
