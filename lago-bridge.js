@@ -188,19 +188,20 @@
 
   }
 
+function sync() {
 
-  function sync() {
-
-    document.dispatchEvent(
-      new CustomEvent(
-        "lago:state",
-        {
-          detail: {
-            ...state
-          }
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:state",
+      {
+        detail: {
+          ...state
         }
-      )
-    );
+      }
+    )
+  );
+
+}
 
 
     if (
