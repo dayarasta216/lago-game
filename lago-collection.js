@@ -451,156 +451,13 @@
 
               render();
 
-              updateHomeSkin();
-
-            }
-          );
-
-        }
-      );
-
-  }
-
-
-  function rarityClass(
-    rarity
-  ) {
-
-    return (
-      "lago-rarity-" +
-      rarity.toLowerCase()
-    );
-
-  }
-
-
-  function showLocked() {
-
-    const message =
-      document.createElement(
-        "div"
-      );
-
-    message.textContent =
-      "Keep playing to unlock this Lago.";
-
-
-    message.style.position =
-      "fixed";
-
-    message.style.left =
-      "50%";
-
-    message.style.bottom =
-      "100px";
-
-    message.style.transform =
-      "translateX(-50%)";
-
-
-    message.style.zIndex =
-      "999999";
-
-
-    message.style.padding =
-      "12px 16px";
-
-
-    message.style.borderRadius =
-      "999px";
-
-
-    message.style.background =
-      "#17191e";
-
-
-    message.style.border =
-      "1px solid rgba(201,255,50,.35)";
-
-
-    message.style.color =
-      "#c9ff32";
-
-
-    message.style.fontSize =
-      "10px";
-
-
-    message.style.fontWeight =
-      "900";
-
-
-    document.body.appendChild(
-      message
-    );
-
-
-    setTimeout(
-      () =>
-        message.remove(),
-      1800
-    );
-
-  }
-
-
-  function updateHomeSkin() {
-
-    const currentState =
-      state();
-
-
-    const selected =
-      currentState.selectedSkin ||
-      "default";
-
-
-    const skin =
-      SKINS.find(
-        s =>
-          s.id === selected
-      ) ||
-      SKINS[0];
-
-
-    const home =
-      document.querySelector(
-        "#lagoHomeSnail"
-      );
-
-
-    if (!home)
-      return;
-
-
-    /*
-     * For now we use emoji
-     * as the skin renderer.
-     *
-     * Later this becomes the
-     * real Lago SVG / artwork.
-     */
-
-    home.innerHTML = `
-
-      <div
-        class="lago-home-snail-placeholder"
-      >
-        ${skin.emoji}
-      </div>
-
-    `;
-
-  }
-
+            
 
   function show() {
 
     create();
 
     render();
-
-    updateHomeSkin();
 
 
     const page =
@@ -634,25 +491,20 @@
    * to notify us about changes.
    */
 
-  document.addEventListener(
-    "lago:state",
-    () => {
+ document.addEventListener(
+  "lago:state",
+  () => {
 
-      render();
+    render();
 
-      updateHomeSkin();
+  }
+);
 
-    }
-  );
-
-
-  window.LAGO_COLLECTION = {
-    show,
-    hide,
-    render,
-    updateHomeSkin,
-    skins: SKINS
-  };
-
+ window.LAGO_COLLECTION = {
+  show,
+  hide,
+  render,
+  skins: SKINS
+};
 
 })();
