@@ -1,4 +1,4 @@
-<script>
+
 "use strict";
 
 
@@ -239,8 +239,6 @@ function spawnFloat(text, ev) {
 }
 
 
-$("upgradeBtn").onclick=()=>openPanel("upgradePanel");
-
 /* ---------- Создание мемов ---------- */
 const canvas=$("draw"),ctx=canvas.getContext("2d");
 ctx.fillStyle="#170b19";ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -311,13 +309,6 @@ window.LAGO_LEGACY_RUNTIME = {
   getState() {
 
     return state;
-
-  },
-
-
-  getTapState() {
-
-    return getTapGameSnapshot();
 
   },
 
@@ -607,4 +598,4 @@ setInterval(()=>{
 },2500);
 
 render();
-</script>
+
