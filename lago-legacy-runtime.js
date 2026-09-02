@@ -238,32 +238,7 @@ function spawnFloat(text, ev) {
 
 }
 
-/* ---------- Апгрейды ---------- */
-const upgrades=[
-  {key:"click",icon:"🚀",name:"УСИЛЕНИЕ КЛИКА",desc:"+1 МЭ за каждый клик",base:25,max:50,
-   buy:()=>state.power++},
-  {key:"auto",icon:"🤖",name:"АВТОКЛИКЕР",desc:"+1 МЭ каждую секунду",base:80,max:50,
-   buy:()=>state.auto++},
-  {key:"shield",icon:"🛡️",name:"ЗАЩИТА",desc:"-10% потерь при краже",base:120,max:9,
-   buy:()=>state.shield++}
-];
-function upgradeCost(u){return Math.floor(u.base*Math.pow(1.65,state.upgrades[u.key]))}
-function renderUpgrades(){
-  $("upgradeList").innerHTML=upgrades.map(u=>{
-    const lvl=state.upgrades[u.key],cost=upgradeCost(u),maxed=lvl>=u.max;
-    return `<div class="card">
-      <div><div style="font-size:20px">${u.icon} <b>${u.name}</b></div>
-      <div class="desc">${u.desc}<br>Уровень: ${lvl}/${u.max}</div></div>
-      <button class="buy" data-up="${u.key}" ${maxed?"disabled":""}>${maxed?"MAX":"💎 "+fmt(cost)}</button>
-    </div>`
-  }).join("");
-  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>{
-    const u=upgrades.find(x=>x.key===b.dataset.up),cost=upgradeCost(u);
-    if(state.upgrades[u.key]>=u.max){toast("MAXIMUM КРИНЖ");return}
-    if(state.energy<cost){toast("Не хватает МЭ 😭");beep(90,.1);return}
-    state.energy-=cost;state.upgrades[u.key]++;u.buy();beep(600,.06);toast("АПГРЕЙД! ⬆");render();save();
-  });
-}
+
 $("upgradeBtn").onclick=()=>openPanel("upgradePanel");
 
 /* ---------- Создание мемов ---------- */
@@ -477,14 +452,13 @@ window.LAGO_LEGACY_RUNTIME = {
    * Temporary legacy panels.
    */
 
-  openUpgrades() {
+  showPanel(id) {
 
-    openPanel(
-      "upgradePanel"
-    );
+  openPanel(
+    id
+  );
 
-  },
-
+},
 
   openCreator() {
 
