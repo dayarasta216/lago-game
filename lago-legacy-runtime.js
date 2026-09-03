@@ -469,13 +469,7 @@ window.LAGO_LEGACY_RUNTIME = {
 };
 
 
-  getState() {
-
-    return getTapGameSnapshot();
-
-  }
-
-};
+ 
 function renderMemes(){
   if(!state.memes.length){
     $("memeList").innerHTML=`<div class="hint" style="grid-column:1/-1;padding:20px">Пока пусто. Создай первый абсолютно бесполезный мем.</div>`;
