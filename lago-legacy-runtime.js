@@ -487,7 +487,7 @@ $("memesBtn").onclick=()=>openPanel("memesPanel");
 
 /* ---------- Достижения ---------- */
 const achievements=[
-  ["energy100","💎 ПЕРВАЯ СОТНЯ","Собрать 100 МЭ",()=>state.energy>=100],
+  ["energy100","💎 ПЕРВАЯ СОТНЯ","Собрать 100 DUM",()=>state.energy>=100],
   ["click1000","👆 ПАЛЕЦ-БОГ","Сделать 1000 кликов",()=>state.totalClicks>=1000],
   ["meme5","🎨 МЕМ-МАГНАТ","Создать 5 мемов",()=>state.memesCreated>=5],
   ["steal10","👾 КРИПТО-ВОРО","Успешно ограбить 10 раз",()=>state.steals>=10],
