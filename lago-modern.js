@@ -86,71 +86,78 @@ function readTapState() {
         </div>
 
 
-        <nav
-          class="lago-main-nav"
-        >
+        <nav class="lago-main-nav">
 
-          <button
-            class="lago-nav-btn active"
-            data-page="play"
-          >
-            PLAY
-          </button>
+  <button
+    class="lago-nav-btn active"
+    data-page="play"
+  >
+    PLAY
+  </button>
 
-          <button
-            class="lago-nav-btn"
-            data-page="create"
-          >
-            CREATE
-          </button>
+  <button
+    class="lago-nav-btn"
+    data-page="games"
+  >
+    GAMES
+  </button>
 
-          <button
-            class="lago-nav-btn"
-            data-page="collection"
-          >
-            COLLECTION
-          </button>
+  <button
+    class="lago-nav-btn"
+    data-page="create"
+  >
+    CREATE
+  </button>
 
-          <button
-            class="lago-nav-btn"
-            data-page="shop"
-          >
-            SHOP
-          </button>
+  <button
+    class="lago-nav-btn"
+    data-page="collection"
+  >
+    COLLECTION
+  </button>
 
-        </nav>
+  <button
+    class="lago-nav-btn"
+    data-page="shop"
+  >
+    SHOP
+  </button>
+
+</nav>
 
 
-        <div
-          class="lago-profile"
-        >
+       <button
+  class="lago-profile"
+  id="lagoProfileButton"
+  type="button"
+>
 
-          <div
-            class="lago-profile-icon"
-          >
-            🐌
-          </div>
+  <div
+    class="lago-profile-icon"
+    id="lagoHeaderAvatar"
+  >
+    🐌
+  </div>
 
-          <div
-            class="lago-profile-text"
-          >
+  <div class="lago-profile-text">
 
-            <div
-              class="lago-profile-level"
-            >
-              LEVEL
-            </div>
+    <div
+      class="lago-profile-level"
+      id="lagoHeaderName"
+    >
+      LAGO PLAYER
+    </div>
 
-            <div
-              class="lago-profile-value"
-              id="modernLevel"
-            >
-              1
-            </div>
+    <div class="lago-profile-value">
+      LEVEL
+      <span id="modernLevel">
+        1
+      </span>
+    </div>
 
-          </div>
+  </div>
 
-        </div>
+</button>
 
       </header>
 
@@ -351,13 +358,6 @@ function readTapState() {
           class="lago-center"
         >
 
-          <button
-            id="lagoModernDaily"
-          >
-            🎁 DAILY DROP
-          </button>
-
-
           <div
             class="lago-center-title"
           >
@@ -494,45 +494,49 @@ function readTapState() {
 
       <!-- BOTTOM -->
 
-      <nav
-        class="lago-bottom"
-      >
+      <nav class="lago-bottom">
 
-        <button
-          class="lago-bottom-btn active"
-          data-page="play"
-        >
-          🏠<br>
-          PLAY
-        </button>
+  <button
+    class="lago-bottom-btn active"
+    data-page="play"
+  >
+    🏠<br>
+    PLAY
+  </button>
 
-        <button
-          class="lago-bottom-btn"
-          data-page="create"
-        >
-          🎨<br>
-          CREATE
-        </button>
+  <button
+    class="lago-bottom-btn"
+    data-page="games"
+  >
+    🎮<br>
+    GAMES
+  </button>
 
-        <button
-          class="lago-bottom-btn"
-          data-page="collection"
-        >
-          🧩<br>
-          COLLECTION
-        </button>
+  <button
+    class="lago-bottom-btn"
+    data-page="create"
+  >
+    🎨<br>
+    CREATE
+  </button>
 
-        <button
-          class="lago-bottom-btn"
-          data-page="shop"
-        >
-          🛒<br>
-          SHOP
-        </button>
+  <button
+    class="lago-bottom-btn"
+    data-page="collection"
+  >
+    🧩<br>
+    COLLECTION
+  </button>
 
-      </nav>
+  <button
+    class="lago-bottom-btn"
+    data-page="shop"
+  >
+    🛒<br>
+    SHOP
+  </button>
 
-    `;
+</nav>
 
 
     document.body.appendChild(
@@ -607,19 +611,6 @@ function bind() {
   /*
    * Daily.
    */
-
-  $("lagoModernDaily")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        window.LAGO_REWARDS
-          ?.claim
-          ?.();
-
-      }
-    );
-
 
   /*
    * Side actions.
