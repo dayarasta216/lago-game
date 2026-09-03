@@ -381,19 +381,4 @@
   }
 
 })();
-  let selectedCountry =
-    profile?.country || "";
-
-  let selectedLanguage =
-    profile?.language || "";
-
-  let step = 1;
-
-
-  } else {
-
-    init();
-
-  }
-
-})();
+ 
