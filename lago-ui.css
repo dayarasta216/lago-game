@@ -157,3 +157,153 @@
   }
 
 }
+/* =========================================================
+   F2 OVERLAY VECTOR COMPONENTS
+   ========================================================= */
+
+.lago-vector-button {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 9px;
+
+}
+
+
+.lago-vector-button
+.lago-icon-slot {
+
+  width: 17px;
+  height: 17px;
+
+}
+
+
+.lago-overlay-close {
+
+  display: grid;
+
+  place-items: center;
+
+}
+
+
+.lago-overlay-close
+.lago-icon {
+
+  width: 19px;
+  height: 19px;
+
+}
+
+
+.lago-profile-action {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 9px;
+
+}
+
+
+.lago-profile-section-title {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+}
+
+
+.lago-profile-section-title
+.lago-icon-slot {
+
+  width: 17px;
+  height: 17px;
+
+}
+
+
+.lago-profile-stat-label {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+}
+
+
+.lago-profile-stat-label
+.lago-icon-slot {
+
+  width: 13px;
+  height: 13px;
+
+}
+
+
+.lago-profile-avatar-fallback {
+
+  width: 55px;
+  height: 55px;
+
+}
+
+
+.lago-game-card-icon
+.lago-icon {
+
+  width: 1em;
+  height: 1em;
+
+}
+
+
+#lagoLanguageButton {
+
+  display: inline-flex !important;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+}
+
+
+#lagoLanguageButton
+.lago-icon-slot {
+
+  width: 15px;
+  height: 15px;
+
+}
+
+
+.lago-language-button-flag {
+
+  line-height: 1;
+
+}
+
+
+.lago-language-button-code {
+
+  font-size: 10px;
+
+  letter-spacing: .05em;
+
+}
