@@ -761,7 +761,16 @@ function bind() {
   );
 
 }
+document.addEventListener(
+  "lago:language",
+  () => {
 
+    update(
+      tapState
+    );
+
+  }
+);
 
   function navigate(
   page
@@ -957,17 +966,32 @@ function bind() {
    */
 
   if (
-    game.speech &&
-    $("modernSpeech")
-  ) {
+  game.speech &&
+  $("modernSpeech")
+) {
 
-    $("modernSpeech")
-      .textContent =
-      String(game.speech)
-        .trim()
-        .toUpperCase();
+  const originalSpeech =
+    String(
+      game.speech
+    ).trim();
 
-  }
+
+  const translatedSpeech =
+    window.LAGO_LANGUAGE
+      ?.translate
+      ?(
+        originalSpeech
+      ) ??
+    originalSpeech;
+
+
+  $("modernSpeech")
+    .textContent =
+    String(
+      translatedSpeech
+    )
+      .trim()
+      .toUpperCase();
 
 }
 if (
