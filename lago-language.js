@@ -164,6 +164,143 @@
 
     "Lago stopped existing. MEM Energy reached zero. That was stupid.":
       "Лаго перестал существовать. Мем-Энергия достигла нуля. Это было тупо."
+    "BRAINROT SNAIL":
+  "БРЕЙНРОТ-УЛИТКА",
+
+"PLAY":
+  "ИГРАТЬ",
+
+"GAMES":
+  "ИГРЫ",
+
+"CREATE":
+  "СОЗДАТЬ",
+
+"COLLECTION":
+  "КОЛЛЕКЦИЯ",
+
+"SHOP":
+  "МАГАЗИН",
+
+"LEVEL":
+  "УРОВЕНЬ",
+
+"MEM ENERGY":
+  "МЕМ-ЭНЕРГИЯ",
+
+"CLICK POWER":
+  "СИЛА КЛИКА",
+
+"PER SECOND":
+  "В СЕКУНДУ",
+
+"BRAINROT":
+  "БРЕЙНРОТ",
+
+"NEXT LEVEL":
+  "СЛЕДУЮЩИЙ УРОВЕНЬ",
+
+"UPGRADE":
+  "АПГРЕЙД",
+
+"Make Lago stupider":
+  "Сделать Лаго ещё тупее",
+
+"STEAL":
+  "ОГРАБИТЬ",
+
+"Do something illegal":
+  "Сделать что-нибудь незаконное",
+
+"THE DUMBEST SNAIL ON THE INTERNET":
+  "САМАЯ ТУПАЯ УЛИТКА В ИНТЕРНЕТЕ",
+
+"YOUR LAGO":
+  "ТВОЙ ЛАГО",
+
+"Name it whatever you want. Nobody knows what Lago is.":
+  "Назови его как хочешь. Всё равно никто не знает, что такое Лаго.",
+
+"PROFILE":
+  "ПРОФИЛЬ",
+
+"LAGO PLAYER":
+  "ИГРОК LAGO",
+
+"UPLOAD AVATAR":
+  "ЗАГРУЗИТЬ АВАТАР",
+
+"SAVE PROFILE":
+  "СОХРАНИТЬ ПРОФИЛЬ",
+
+"Player name":
+  "Имя персонажа",
+
+"DAILY REWARD":
+  "ЕЖЕДНЕВНАЯ НАГРАДА",
+
+"CLAIM DAILY REWARD":
+  "ЗАБРАТЬ НАГРАДУ",
+
+"CLAIMED TODAY":
+  "СЕГОДНЯ УЖЕ ПОЛУЧЕНО",
+
+"ACCOUNT & WALLET":
+  "АККАУНТ И КОШЕЛЁК",
+
+"NOT CONNECTED":
+  "НЕ ПОДКЛЮЧЁН",
+
+"CONNECT WALLET":
+  "ПОДКЛЮЧИТЬ КОШЕЛЁК",
+
+"SIGN IN WITH WALLET":
+  "ВОЙТИ ЧЕРЕЗ КОШЕЛЁК",
+
+"SETTINGS":
+  "НАСТРОЙКИ",
+
+"CHANGE LANGUAGE":
+  "ИЗМЕНИТЬ ЯЗЫК",
+
+"AVAILABLE NOW":
+  "ДОСТУПНО",
+
+"COMING SOON":
+  "СКОРО",
+
+"Earn MEM and XP across Lago mini-games.":
+  "Зарабатывай MEM и XP в мини-играх Lago.",
+
+"TAP LAGO":
+  "ТЫКАТЬ LAGO",
+
+"KNIFE CHALLENGE":
+  "ИСПЫТАНИЕ НОЖОМ",
+
+"SLOWEST RACE":
+  "САМАЯ МЕДЛЕННАЯ ГОНКА",
+
+"BRAIN LOADING":
+  "ЗАГРУЗКА МОЗГА",
+
+"DAILY DROP":
+  "ЕЖЕДНЕВНЫЙ ДРОП",
+
+"NEW LAGO":
+  "НОВЫЙ LAGO",
+
+"You unlocked a new skin!":
+  "Ты разблокировал новый скин!",
+
+"FULL COLLECTION":
+  "ПОЛНАЯ КОЛЛЕКЦИЯ",
+
+"You own every available skin.":
+  "У тебя уже есть все доступные скины.",
+
+"AWESOME":
+  "ОТЛИЧНО"
   };
 
   const RU_TO_EN = Object.fromEntries(
