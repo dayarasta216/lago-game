@@ -96,7 +96,7 @@
    */
 
   const EN_TO_RU = {
-    "💎 MEM": "💎 МЭ",
+   "💎 DUM": "💎 DUM",
     "⚡ CLICK": "⚡ КЛИК",
     "🤖 / SEC": "🤖 / СЕК",
     "🛡️ SHIELD": "🛡️ ЗАЩИТА",
@@ -137,8 +137,8 @@
     "AUTO CLICKER": "АВТОКЛИКЕР",
     "SHIELD": "ЗАЩИТА",
 
-    "+1 MEM per tap": "+1 МЭ за каждый клик",
-    "+1 MEM every second": "+1 МЭ каждую секунду",
+    "+1 DUM per tap": "+1 DUM за каждый клик",
+    "+1 DUM every second": "+1 DUM каждую секунду",
     "-10% losses when stolen": "-10% потерь при краже",
 
     "Nothing here yet. Create your first completely useless meme.":
@@ -159,11 +159,11 @@
     "Warning: on-chain recording is a real transaction and requires a small network fee.":
       "Внимание: on-chain запись — настоящая транзакция и требует небольшой комиссии сети.",
 
-    "Tap Lago and collect MEM Energy. The more you tap, the more brainrot you create.":
-      "Кликай по Лаго и собирай Мем-Энергию. Чем больше кликов — тем больше кринжа.",
+    "Tap Lago and collect DUM ENERGY. The more you tap, the more brainrot you create.":
+      "Кликай по Лаго и собирай DUM ЭНЕРГИЯ. Чем больше кликов — тем больше кринжа.",
 
-    "Lago stopped existing. MEM Energy reached zero. That was stupid.":
-  "Лаго перестал существовать. Мем-Энергия достигла нуля. Это было тупо.",
+    "Lago stopped existing. DUM ENERGY reached zero. That was stupid.":
+  "Лаго перестал существовать. DUM ЭНЕРГИЯ достигла нуля. Это было тупо.",
 
 "BRAINROT SNAIL":
   "БРЕЙНРОТ-УЛИТКА",
