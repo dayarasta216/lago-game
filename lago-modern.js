@@ -576,13 +576,11 @@ tapState =
 
 bind();
 
+
 update(
   tapState
 );
 
-    bind();
-
-    update();
 
   }
 
