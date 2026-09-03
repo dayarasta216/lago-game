@@ -1,0 +1,159 @@
+/* =========================================================
+   LAGO VECTOR UI SYSTEM
+   ========================================================= */
+
+.lago-icon {
+
+  width: 1em;
+  height: 1em;
+
+  display: block;
+
+  overflow: visible;
+
+  color: inherit;
+
+  shape-rendering:
+    geometricPrecision;
+
+  pointer-events: none;
+
+}
+
+
+.lago-icon-slot {
+
+  display:
+    inline-grid;
+
+  place-items:
+    center;
+
+  flex:
+    0 0 auto;
+
+  width: 18px;
+  height: 18px;
+
+}
+
+
+.lago-icon-slot .lago-icon {
+
+  width: 100%;
+  height: 100%;
+
+}
+
+
+/* navigation */
+
+.lago-nav-btn,
+.lago-bottom-btn {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content:
+    center;
+
+  gap: 7px;
+
+}
+
+
+.lago-nav-btn
+.lago-icon-slot {
+
+  width: 16px;
+  height: 16px;
+
+}
+
+
+.lago-bottom-btn {
+
+  flex-direction:
+    column;
+
+  gap: 3px;
+
+}
+
+
+.lago-bottom-btn
+.lago-icon-slot {
+
+  width: 18px;
+  height: 18px;
+
+}
+
+
+/* stat cards */
+
+.lago-stat-label {
+
+  align-items:
+    center;
+
+}
+
+
+.lago-stat-label
+.lago-icon-slot {
+
+  width: 14px;
+  height: 14px;
+
+}
+
+
+/* action buttons */
+
+.lago-action-icon {
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+}
+
+
+.lago-action-icon
+.lago-icon {
+
+  width: 18px;
+  height: 18px;
+
+}
+
+
+/* profile */
+
+.lago-profile-icon
+.lago-icon {
+
+  width: 17px;
+  height: 17px;
+
+}
+
+
+/* retina / 4K */
+
+@media
+(-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
+  .lago-icon {
+
+    shape-rendering:
+      geometricPrecision;
+
+  }
+
+}
