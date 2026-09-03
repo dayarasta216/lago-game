@@ -388,7 +388,7 @@ function readTapState() {
               NEXT LEVEL
             </div>
 
-            <<div
+            <div
   class="lago-side-big"
   id="modernXP"
 >
