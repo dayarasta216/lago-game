@@ -512,92 +512,28 @@ function readTapState() {
 
         </section>
 
+<!-- RIGHT -->
 
-        <!-- RIGHT -->
+<aside class="lago-side">
 
-        <aside
-          class="lago-side"
-        >
+  <div class="lago-side-card">
 
-            <div
-              class="lago-side-title"
-            >
-              YOUR LAGO
-            </div>
+    <div class="lago-side-title">
+      YOUR LAGO
+    </div>
 
-            <div
-              class="lago-side-big"
-            >
-              🐌
-            </div>
+    <div class="lago-side-big">
+      🐌
+    </div>
 
-            <div
-              class="lago-side-desc"
-            >
-              Name it whatever you want.
-              Nobody knows what Lago is.
-            </div>
+    <div class="lago-side-desc">
+      Name it whatever you want.
+      Nobody knows what Lago is.
+    </div>
 
-          </div>
+  </div>
 
-
-          <button
-            class="lago-action"
-            data-action="create"
-          >
-
-            <div
-              class="lago-action-icon"
-            >
-              🎨
-            </div>
-
-            <div>
-
-              <div
-                class="lago-action-text"
-              >
-              
-
-              <div
-                class="lago-action-sub"
-              >
-                Make something stupid
-              </div>
-
-            </div>
-
-          </button>
-
-
-          <button
-            class="lago-action"
-            data-action="collection"
-          >
-
-            <div
-              class="lago-action-icon"
-            >
-              🧩
-            </div>
-
-            <div>
-
-              <div
-                class="lago-action-text"
-              >
-               
-              <div
-                class="lago-action-sub"
-              >
-                Your terrible creations
-              </div>
-
-            </div>
-
-          </button>
-
-        </aside>
+</aside>
 
       </main>
 
@@ -695,11 +631,12 @@ bind();
 update(
   tapState
 );
-
 setTapHint(
   null,
   true
 );
+
+}
 
 
 function bind() {
@@ -854,7 +791,6 @@ function bind() {
     }
   );
 
-}
 document.addEventListener(
   "lago:language",
   () => {
@@ -906,6 +842,7 @@ window.addEventListener(
 
     }
   );
+  }
 
   function navigate(
   page
@@ -1137,35 +1074,6 @@ setTapHint();
       .toUpperCase();
 
 }
-if (
-  game.speech &&
-  $("modernSpeech")
-) {
-
-  const originalSpeech =
-    String(
-      game.speech
-    ).trim();
-
-
-  const translatedSpeech =
-    window.LAGO_LANGUAGE
-      ?.translate
-      ?.(originalSpeech) ??
-    originalSpeech;
-
-
-  $("modernSpeech")
-    .textContent =
-    String(
-      translatedSpeech
-    )
-      .trim()
-      .toUpperCase();
-
-}
-
-
 /*
  * End update()
  */
@@ -1188,45 +1096,6 @@ if (
 
   createUI();
 
-}
-document.addEventListener(
-  "visibilitychange",
-  () => {
-
-    if (
-      document.visibilityState ===
-      "visible"
-    ) {
-
-      setTapHint();
-
-    }
-
   }
-);
 
-
-window.addEventListener(
-  "focus",
-  () => {
-
-    setTapHint();
-
-  }
-);
-
-
-/*
- * The snail itself is the button.
- */
-
-.lago-modern-snail #snail {
-
-  cursor: pointer;
-
-  touch-action:
-    manipulation;
-
-}
-    
 })();
