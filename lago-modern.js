@@ -785,12 +785,16 @@ document.addEventListener(
 
 
   if (
-    page === "play"
-  ) {
+  page === "games"
+) {
 
-    return;
+  window.LAGO_GAMES
+    ?.show
+    ?.();
 
-  }
+  return;
+
+}
 
 
   if (
