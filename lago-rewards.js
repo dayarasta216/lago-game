@@ -1,4 +1,4 @@
-(() => {
+ (() => {
   "use strict";
 
   const REWARD_STORAGE =
@@ -504,7 +504,7 @@
         "#lagoRewardName"
       )
       .textContent =
-      "+250 MEM";
+      "+250 DUM";
 
 
     document
