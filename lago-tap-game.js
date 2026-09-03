@@ -50,7 +50,7 @@
       key: "click",
       icon: "🚀",
       name: "УСИЛЕНИЕ КЛИКА",
-      desc: "+1 МЭ за каждый клик",
+      desc: desc: "+1 DUM за каждый клик",
       base: 25,
       max: 50,
 
@@ -66,7 +66,7 @@
       key: "auto",
       icon: "🤖",
       name: "АВТОКЛИКЕР",
-      desc: "+1 МЭ каждую секунду",
+      desc: desc: "+1 DUM каждую секунду",
       base: 80,
       max: 50,
 
@@ -229,7 +229,7 @@
 
 
     runtime.spawnFloat(
-      `+${gain} МЭ`,
+     `+${gain} DUM`
       event
     );
 
@@ -265,7 +265,7 @@
     ) {
 
       runtime.toast(
-        "Сначала собери хотя бы 5 МЭ 😭"
+        "Сначала собери хотя бы 5 DUM 😭"
       );
 
 
@@ -317,7 +317,7 @@
 
 
       runtime.toast(
-        `👾 ОГРАБИЛ! +${amount} МЭ`
+        `👾 ОГРАБИЛ! +${amount} DUM`
       );
 
 
@@ -357,7 +357,7 @@
 
 
       runtime.toast(
-        `🚓 СПАЛИЛИ! -${loss} МЭ`
+        `🚓 СПАЛИЛИ! -${loss} DUM`
       );
 
 
