@@ -644,16 +644,21 @@
   };
 
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+ document.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-      createUI();
+    /*
+     * Daily Reward is now controlled
+     * from the User Profile.
+     *
+     * No floating duplicate button.
+     */
 
-      addDailyButton();
+    createUI();
 
-    }
-  );
+  }
+);
 
 
 })();
