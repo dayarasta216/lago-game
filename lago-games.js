@@ -256,19 +256,23 @@
             </div>
 
             <div>
-              Earn DUM and SP
-              across Lago mini-games.
-            </div>
+  Spend DUM Energy.
+  Earn SP.
+  Play together.
+</div>
 
           </div>
 
-          <button
-            class="lago-games-close"
-            id="lagoGamesClose"
-          >
-            ×
-          </button>
-
+         <button
+  class="lago-games-close lago-overlay-close"
+  id="lagoGamesClose"
+  aria-label="Close"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="close"
+  ></span>
+</button>
         </div>
 
 
@@ -278,9 +282,10 @@
 
             <div>
 
-              <div class="lago-game-card-icon">
-                🐌
-              </div>
+              <div
+  class="lago-game-card-icon"
+  data-lago-icon="snail"
+></div>
 
               <div class="lago-game-card-name">
                 TAP LAGO
@@ -292,9 +297,19 @@
 
             </div>
 
-            <button id="lagoGamesTap">
-              PLAY
-            </button>
+            <button
+  id="lagoGamesTap"
+  class="lago-vector-button"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="play"
+  ></span>
+
+  <span>
+    PLAY
+  </span>
+</button>
 
           </article>
 
@@ -303,9 +318,10 @@
 
             <div>
 
-              <div class="lago-game-card-icon">
-                🔪
-              </div>
+             <div
+  class="lago-game-card-icon"
+  data-lago-icon="knife"
+></div>
 
               <div class="lago-game-card-name">
                 KNIFE CHALLENGE
@@ -328,9 +344,10 @@
 
             <div>
 
-              <div class="lago-game-card-icon">
-                🏁
-              </div>
+              <<div
+  class="lago-game-card-icon"
+  data-lago-icon="race"
+></div>
 
               <div class="lago-game-card-name">
                 SLOWEST RACE
@@ -353,9 +370,10 @@
 
             <div>
 
-              <div class="lago-game-card-icon">
-                🧠
-              </div>
+              <div
+  class="lago-game-card-icon"
+  data-lago-icon="brain"
+></div>
 
               <div class="lago-game-card-name">
                 BRAIN LOADING
@@ -379,12 +397,16 @@
 
     `;
 
-
+window.LAGO_LANGUAGE
+  ?.translateDOM
+  ?.(overlay);
     document.body.appendChild(
       overlay
     );
 
-
+window.LAGO_UI
+  ?.hydrate
+  ?.(overlay);
     overlay
       .querySelector(
         "#lagoGamesClose"
