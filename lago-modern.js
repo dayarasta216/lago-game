@@ -9,7 +9,123 @@
 
 
   let tapState = null;
+const TAP_HINTS = [
 
+  "TAP TAP",
+
+  "BANANA",
+
+  "HIT THE SNAIL",
+
+  "PRESS ME",
+
+  "WAKE THE SNAIL",
+
+  "TOUCH THE SNAIL",
+
+  "DO IT AGAIN"
+
+];
+
+
+let currentTapHint =
+  "";
+
+
+let lastTapHintChange =
+  0;
+
+
+function translate(
+  text
+) {
+
+  return (
+    window.LAGO_LANGUAGE
+      ?.translate
+      ?.(text) ??
+    text
+  );
+
+}
+
+
+function setTapHint(
+  value = null,
+  force = false
+) {
+
+  const element =
+    $("lagoTapHint");
+
+
+  if (!element) {
+    return;
+  }
+
+
+  const now =
+    Date.now();
+
+
+  /*
+   * Prevent Safari focus +
+   * visibilitychange from changing
+   * the text twice instantly.
+   */
+
+  if (
+    !force &&
+    now -
+      lastTapHintChange <
+      350
+  ) {
+
+    return;
+
+  }
+
+
+  let next =
+    value;
+
+
+  if (!next) {
+
+    const available =
+      TAP_HINTS.filter(
+        item =>
+          item !==
+          currentTapHint
+      );
+
+
+    next =
+      available[
+        Math.floor(
+          Math.random() *
+          available.length
+        )
+      ] ||
+      TAP_HINTS[0];
+
+  }
+
+
+  currentTapHint =
+    next;
+
+
+  lastTapHintChange =
+    now;
+
+
+  element.textContent =
+    String(
+      translate(next)
+    ).toUpperCase();
+
+}
 
 function readTapState() {
 
@@ -386,15 +502,13 @@ function readTapState() {
           </div>
 
 
-          <button
-  class="lago-play"
-  id="modernPlay"
+         <div
+  class="lago-tap-hint"
+  id="lagoTapHint"
+  aria-live="polite"
 >
-  🐌
-  <span id="lagoTapButtonLabel">
-    TAP LAGO
-  </span>
-</button>
+  TAP TAP
+</div>
 
         </section>
 
@@ -578,13 +692,14 @@ tapState =
 
 bind();
 
-
 update(
   tapState
 );
 
-
-  }
+setTapHint(
+  null,
+  true
+);
 
 
 function bind() {
@@ -593,17 +708,7 @@ function bind() {
    * Main TAP.
    */
 
-  $("modernPlay")
-    ?.addEventListener(
-      "click",
-      () => {
 
-        window.LAGO_TAP_GAME
-          ?.tap
-          ?.();
-
-      }
-    );
 
 
   /*
@@ -758,8 +863,49 @@ document.addEventListener(
       tapState
     );
 
+
+    setTapHint(
+      currentTapHint ||
+      TAP_HINTS[0],
+      true
+    );
+
   }
 );
+    document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    if (
+      document.visibilityState ===
+      "visible"
+    ) {
+
+      setTapHint();
+
+    }
+
+  }
+);
+
+
+window.addEventListener(
+  "focus",
+  () => {
+
+    setTapHint();
+
+  }
+);
+    $("lagoProfileButton")
+  ?.addEventListener(
+    "click",
+    () => {
+
+      setTapHint();
+
+    }
+  );
 
   function navigate(
   page
@@ -781,7 +927,14 @@ document.addEventListener(
       }
     );
 
+/*
+ * When the player leaves Play,
+ * prepare another stupid hint
+ * for when they return.
+ */
 
+setTapHint();
+    
   if (
   page === "games"
 ) {
@@ -1036,5 +1189,29 @@ if (
   createUI();
 
 }
+document.addEventListener(
+  "visibilitychange",
+  () => {
 
+    if (
+      document.visibilityState ===
+      "visible"
+    ) {
+
+      setTapHint();
+
+    }
+
+  }
+);
+
+
+window.addEventListener(
+  "focus",
+  () => {
+
+    setTapHint();
+
+  }
+);
 })();
