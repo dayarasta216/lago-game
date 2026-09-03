@@ -256,7 +256,7 @@
             </div>
 
             <div>
-              Earn MEM and XP
+              Earn DUM and SP
               across Lago mini-games.
             </div>
 
