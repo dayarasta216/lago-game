@@ -50,7 +50,7 @@
       key: "click",
       icon: "🚀",
       name: "УСИЛЕНИЕ КЛИКА",
-      desc: desc: "+1 DUM за каждый клик",
+     desc: "+1 DUM за каждый клик",
       base: 25,
       max: 50,
 
@@ -66,7 +66,7 @@
       key: "auto",
       icon: "🤖",
       name: "АВТОКЛИКЕР",
-      desc: desc: "+1 DUM каждую секунду",
+     desc: "+1 DUM каждую секунду",
       base: 80,
       max: 50,
 
@@ -228,10 +228,10 @@
     );
 
 
-    runtime.spawnFloat(
-     `+${gain} DUM`
-      event
-    );
+   runtime.spawnFloat(
+  `+${gain} DUM`,
+  event
+);
 
 
     runtime.checkAchievements();
@@ -561,7 +561,7 @@
     ) {
 
       runtime.toast(
-        "Не хватает МЭ 😭"
+        "Не хватает DUM 😭"
       );
 
 
