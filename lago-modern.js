@@ -402,10 +402,6 @@ function readTapState() {
           class="lago-side"
         >
 
-          <div
-            class="lago-side-card"
-          >
-
             <div
               class="lago-side-title"
             >
@@ -444,8 +440,7 @@ function readTapState() {
               <div
                 class="lago-action-text"
               >
-                CREATE LAGO
-              </div>
+              
 
               <div
                 class="lago-action-sub"
@@ -474,9 +469,7 @@ function readTapState() {
               <div
                 class="lago-action-text"
               >
-                COLLECTION
-              </div>
-
+               
               <div
                 class="lago-action-sub"
               >
@@ -538,10 +531,12 @@ function readTapState() {
 
 </nav>
 
+`;
 
-    document.body.appendChild(
-      root
-    );
+
+document.body.appendChild(
+  root
+);
 
 
     /*
@@ -971,12 +966,36 @@ document.addEventListener(
     ).trim();
 
 
+ const translatedSpeech =
+  window.LAGO_LANGUAGE
+    ?.translate
+    ?.(originalSpeech) ??
+  originalSpeech;
+
+  $("modernSpeech")
+    .textContent =
+    String(
+      translatedSpeech
+    )
+      .trim()
+      .toUpperCase();
+
+}
+if (
+  game.speech &&
+  $("modernSpeech")
+) {
+
+  const originalSpeech =
+    String(
+      game.speech
+    ).trim();
+
+
   const translatedSpeech =
     window.LAGO_LANGUAGE
       ?.translate
-      ?(
-        originalSpeech
-      ) ??
+      ?.(originalSpeech) ??
     originalSpeech;
 
 
@@ -989,6 +1008,14 @@ document.addEventListener(
       .toUpperCase();
 
 }
+
+
+/*
+ * End update()
+ */
+}
+
+
 if (
   document.readyState === "loading"
 ) {
