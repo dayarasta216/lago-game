@@ -323,6 +323,15 @@
 
 "DO IT AGAIN":
   "ЕЩЁ РАЗ",
+
+    "Spend DUM Energy. Earn SP. Play together.":
+  "Трать DUM Energy. Зарабатывай SP. Играй вместе.",
+
+"DUM ENERGY":
+  "DUM ENERGY",
+
+"SP":
+  "SP",
     
   };
 
@@ -505,20 +514,49 @@
   }
 
   function updateButton() {
-    const button =
-      document.querySelector(
-        "#lagoLanguageButton"
-      );
 
-    if (!button) {
-      return;
-    }
+  const button =
+    document.querySelector(
+      "#lagoLanguageButton"
+    );
 
-    const meta = getLanguageMeta();
 
-    button.textContent =
-      `${meta.flag} ${meta.code.toUpperCase()}`;
+  if (!button) {
+    return;
   }
+
+
+  const meta =
+    getLanguageMeta();
+
+
+  button.innerHTML = `
+
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="language"
+    ></span>
+
+    <span
+      class="lago-language-button-flag"
+    >
+      ${meta.flag}
+    </span>
+
+    <span
+      class="lago-language-button-code"
+    >
+      ${meta.code.toUpperCase()}
+    </span>
+
+  `;
+
+
+  window.LAGO_UI
+    ?.hydrate
+    ?.(button);
+
+}
 
   function createLanguageButton() {
     if (
@@ -1136,13 +1174,19 @@
             closable
               ? `
                 <button
-                  type="button"
-                  class="lago-language-close"
-                  id="lagoLanguageClose"
-                  aria-label="Close"
-                >
-                  ×
-                </button>
+  type="button"
+  class="
+    lago-language-close
+    lago-overlay-close
+  "
+  id="lagoLanguageClose"
+  aria-label="Close"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="close"
+  ></span>
+</button>
               `
               : ""
           }
@@ -1169,7 +1213,9 @@
     `;
 
     document.body.appendChild(panel);
-
+window.LAGO_UI
+  ?.hydrate
+  ?.(panel);
     renderLanguageGrid(panel);
 
     const search =
