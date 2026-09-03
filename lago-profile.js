@@ -486,8 +486,8 @@
 
             <div class="lago-profile-stat">
 
-              <small>XP</small>
-
+              <small>SP</small>
+              
               <strong id="lagoProfileXP">
                 0
               </strong>
@@ -496,7 +496,7 @@
 
             <div class="lago-profile-stat">
 
-              <small>MEM</small>
+             <small>DUM</small>
 
               <strong id="lagoProfileMEM">
                 0
@@ -1075,44 +1075,97 @@
   }
 
 
-  function refreshHeader() {
+ function refreshHeader() {
 
-    const avatar =
-      document.getElementById(
-        "lagoHeaderAvatar"
-      );
+  /*
+   * Header avatar.
+   */
 
-
-    if (avatar) {
-
-      avatar.innerHTML =
-        profile.avatar
-
-          ? `<img
-               src="${profile.avatar}"
-               alt=""
-             >`
-
-          : "🐌";
-
-    }
+  const avatar =
+    document.getElementById(
+      "lagoHeaderAvatar"
+    );
 
 
-    const name =
-      document.getElementById(
-        "lagoHeaderName"
-      );
+  if (avatar) {
 
+    avatar.innerHTML =
+      profile.avatar
 
-    if (name) {
+        ? `<img
+             src="${profile.avatar}"
+             alt=""
+           >`
 
-      name.textContent =
-        profile.name;
-
-    }
+        : "🐌";
 
   }
 
+
+  /*
+   * Header profile name.
+   */
+
+  const headerName =
+    document.getElementById(
+      "lagoHeaderName"
+    );
+
+
+  if (headerName) {
+
+    headerName.textContent =
+      profile.name;
+
+  }
+
+
+  /*
+   * Character name above the snail.
+   *
+   * The profile name IS the snail's name.
+   */
+
+  const characterName =
+    document.getElementById(
+      "lagoCharacterName"
+    );
+
+
+  if (characterName) {
+
+    characterName.textContent =
+      profile.name;
+
+  }
+
+
+  /*
+   * Main Tap button also uses
+   * the selected character name.
+   */
+
+  const tapLabel =
+    document.getElementById(
+      "lagoTapButtonLabel"
+    );
+
+
+  if (tapLabel) {
+
+    const tapWord =
+      window.LAGO_LANGUAGE
+        ?.translate
+        ?.("TAP") ||
+      "TAP";
+
+
+    tapLabel.textContent =
+      `${tapWord} ${profile.name}`;
+
+  }
+
+}
 
   function refresh() {
 
