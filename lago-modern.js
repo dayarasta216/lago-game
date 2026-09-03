@@ -175,7 +175,7 @@ function readTapState() {
           <div
             class="lago-stat-label"
           >
-            💎 MEM ENERGY
+            💎 DUM ENERGY
           </div>
 
           <div
@@ -272,13 +272,12 @@ function readTapState() {
               NEXT LEVEL
             </div>
 
-            <div
-              class="lago-side-big"
-              id="modernXP"
-            >
-              0 XP
-            </div>
-
+            <<div
+  class="lago-side-big"
+  id="modernXP"
+>
+  0 SP
+</div>
             <div
               class="lago-progress"
             >
@@ -359,10 +358,11 @@ function readTapState() {
         >
 
           <div
-            class="lago-center-title"
-          >
-            LAGO
-          </div>
+  class="lago-center-title"
+  id="lagoCharacterName"
+>
+  LAGO
+</div>
 
 
           <div
@@ -387,11 +387,14 @@ function readTapState() {
 
 
           <button
-            class="lago-play"
-            id="modernPlay"
-          >
-            🐌 TAP LAGO
-          </button>
+  class="lago-play"
+  id="modernPlay"
+>
+  🐌
+  <span id="lagoTapButtonLabel">
+    TAP LAGO
+  </span>
+</button>
 
         </section>
 
@@ -930,9 +933,9 @@ document.addEventListener(
 
 
   $("modernXP")
-    ?.replaceChildren(
-      `${xp} XP`
-    );
+  ?.replaceChildren(
+    `${xp} SP`
+  );
 
 
   const bar =
