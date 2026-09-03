@@ -302,6 +302,28 @@
 
 "AWESOME":
   "ОТЛИЧНО"
+
+    "TAP TAP":
+  "ТЫК ТЫК",
+
+"BANANA":
+  "БАНАН",
+
+"HIT THE SNAIL":
+  "БЕЙ УЛИТКУ",
+
+"PRESS ME":
+  "НАЖМИ НА МЕНЯ",
+
+"WAKE THE SNAIL":
+  "РАЗБУДИ УЛИТКУ",
+
+"TOUCH THE SNAIL":
+  "ТРОНЬ УЛИТКУ",
+
+"DO IT AGAIN":
+  "ЕЩЁ РАЗ",
+    
   };
 
   const RU_TO_EN = Object.fromEntries(
