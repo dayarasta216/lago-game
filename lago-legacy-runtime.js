@@ -82,16 +82,116 @@ function telegramShare(){
 }
 
 /* ---------- Звук ---------- */
-function beep(freq=440,duration=.06,type="square"){
-  try{
-    audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==="suspended") audioCtx.resume();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type=type;o.frequency.value=freq;
-    g.gain.setValueAtTime(.035,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
-    o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration);
-  }catch(e){}
+function beep(
+  freq = 440,
+  duration = .06,
+  type = "square"
+) {
+
+  try {
+
+    const AudioEngine =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+
+    if (!AudioEngine) {
+      return;
+    }
+
+
+    audioCtx ||=
+      new AudioEngine();
+
+
+    const play = () => {
+
+      const now =
+        audioCtx.currentTime;
+
+
+      const oscillator =
+        audioCtx.createOscillator();
+
+
+      const gain =
+        audioCtx.createGain();
+
+
+      oscillator.type =
+        type;
+
+
+      oscillator.frequency
+        .setValueAtTime(
+          freq,
+          now
+        );
+
+
+      gain.gain
+        .setValueAtTime(
+          .04,
+          now
+        );
+
+
+      gain.gain
+        .exponentialRampToValueAtTime(
+          .001,
+          now + duration
+        );
+
+
+      oscillator.connect(
+        gain
+      );
+
+
+      gain.connect(
+        audioCtx.destination
+      );
+
+
+      oscillator.start(
+        now
+      );
+
+
+      oscillator.stop(
+        now + duration
+      );
+
+    };
+
+
+    if (
+      audioCtx.state ===
+      "suspended"
+    ) {
+
+      audioCtx
+        .resume()
+        .then(play)
+        .catch(() => {});
+
+
+      return;
+
+    }
+
+
+    play();
+
+  } catch (error) {
+
+    console.warn(
+      "[LAGO AUDIO]",
+      error
+    );
+
+  }
+
 }
 
 /* ---------- UI ---------- */
