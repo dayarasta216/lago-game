@@ -411,9 +411,17 @@
 
     style.textContent = `
       #lagoLanguageButton {
-        position: fixed;
-        top: calc(10px + env(safe-area-inset-top));
-        right: 10px;
+  position: fixed;
+
+  top: auto;
+
+  right: 18px;
+
+  bottom:
+    calc(
+      18px +
+      env(safe-area-inset-bottom)
+    );
         z-index: 5000;
 
         min-width: 62px;
@@ -774,6 +782,15 @@
       }
 
       @media (max-width: 620px) {
+      #lagoLanguageButton {
+  right: 12px;
+
+  bottom:
+    calc(
+      84px +
+      env(safe-area-inset-bottom)
+    );
+}
         #lagoLanguagePanel {
           padding:
             env(safe-area-inset-top)
@@ -1179,6 +1196,8 @@
 
   window.LAGO_LANGUAGE = {
     set: setLanguage,
+
+    translate: translateText,
 
     get() {
       return language;
