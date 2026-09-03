@@ -539,91 +539,6 @@
   }
 
 
-  function addDailyButton() {
-
-    if (
-      document.querySelector(
-        "#lagoDailyButton"
-      )
-    )
-      return;
-
-
-    const button =
-      document.createElement(
-        "button"
-      );
-
-
-    button.id =
-      "lagoDailyButton";
-
-
-    button.className =
-      "lago-daily-button";
-
-
-    button.innerHTML = `
-      <span>🎁</span>
-      DAILY
-    `;
-
-
-    button.addEventListener(
-      "click",
-      claim
-    );
-
-
-    document.body.appendChild(
-      button
-    );
-
-
-    refreshDailyButton();
-
-  }
-
-
-  function refreshDailyButton() {
-
-    const button =
-      document.querySelector(
-        "#lagoDailyButton"
-      );
-
-
-    if (!button)
-      return;
-
-
-    if (
-      canClaim()
-    ) {
-
-      button.classList.add(
-        "ready"
-      );
-
-      button.innerHTML = `
-        <span>🎁</span>
-        DAILY
-      `;
-
-    } else {
-
-      button.classList.remove(
-        "ready"
-      );
-
-      button.innerHTML = `
-        <span>✓</span>
-        CLAIMED
-      `;
-
-    }
-
-  }
 
 
   /*
@@ -632,17 +547,13 @@
 
   window.LAGO_REWARDS = {
 
-    claim,
+  claim,
 
-    canClaim,
+  canClaim,
 
-    getState,
+  getState
 
-    refresh:
-      refreshDailyButton
-
-  };
-
+};
 
  document.addEventListener(
   "DOMContentLoaded",
