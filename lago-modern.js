@@ -668,19 +668,18 @@ function bind() {
             }
 
 
-            if (
-              action ===
-              "create"
-            ) {
+          if (
+  action ===
+  "create"
+) {
 
-              window.LAGO_TAP_GAME
-                ?.openCreator
-                ?.();
+  window.LAGO_CREATOR
+    ?.open
+    ?.();
 
-              return;
+  return;
 
-            }
-
+}
 
             if (
               action ===
@@ -795,17 +794,16 @@ function bind() {
 
 
   if (
-    page === "create"
-  ) {
+  page === "create"
+) {
 
-    window.LAGO_TAP_GAME
-      ?.openCreator
-      ?.();
+  window.LAGO_CREATOR
+    ?.open
+    ?.();
 
-    return;
+  return;
 
-  }
-
+}
 
   if (
     page === "collection"
