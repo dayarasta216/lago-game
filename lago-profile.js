@@ -424,11 +424,15 @@
           </div>
 
           <button
-            class="lago-profile-close"
-            id="lagoProfileClose"
-          >
-            ×
-          </button>
+  class="lago-profile-close lago-overlay-close"
+  id="lagoProfileClose"
+  aria-label="Close"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="close"
+  ></span>
+</button>
 
         </div>
 
@@ -450,12 +454,18 @@
           >
 
           <button
-            class="lago-profile-action"
-            id="lagoUploadAvatar"
-          >
-            UPLOAD AVATAR
-          </button>
+  class="lago-profile-action"
+  id="lagoUploadAvatar"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="upload"
+  ></span>
 
+  <span>
+    UPLOAD AVATAR
+  </span>
+</button>
 
           <input
             class="lago-profile-input"
@@ -486,7 +496,16 @@
 
             <div class="lago-profile-stat">
 
-              <small>SP</small>
+              <small class="lago-profile-stat-label">
+
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="sp"
+  ></span>
+
+  <span>SP</span>
+
+</small>
               
               <strong id="lagoProfileXP">
                 0
@@ -496,8 +515,18 @@
 
             <div class="lago-profile-stat">
 
-             <small>DUM</small>
+           <small class="lago-profile-stat-label">
 
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="dum"
+  ></span>
+
+  <span>
+    DUM ENERGY
+  </span>
+
+</small>
               <strong id="lagoProfileMEM">
                 0
               </strong>
@@ -511,21 +540,50 @@
 
         <section class="lago-profile-section">
 
-          <strong>DAILY REWARD</strong>
+         <strong class="lago-profile-section-title">
 
-          <button
-            class="lago-profile-action primary"
-            id="lagoProfileDaily"
-          >
-            CLAIM DAILY REWARD
-          </button>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="daily"
+  ></span>
+
+  <span>
+    DAILY REWARD
+  </span>
+
+</strong>
+
+         <button
+  class="lago-profile-action primary"
+  id="lagoProfileDaily"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="daily"
+  ></span>
+
+  <span>
+    CLAIM DAILY REWARD
+  </span>
+</button>
 
         </section>
 
 
         <section class="lago-profile-section">
 
-          <strong>ACCOUNT & WALLET</strong>
+         <strong class="lago-profile-section-title">
+
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="wallet"
+  ></span>
+
+  <span>
+    ACCOUNT & WALLET
+  </span>
+
+</strong>
 
           <div
             class="lago-profile-muted"
@@ -534,19 +592,33 @@
             NOT CONNECTED
           </div>
 
-          <button
-            class="lago-profile-action"
-            id="lagoConnectWallet"
-          >
-            CONNECT WALLET
-          </button>
+         <button
+  class="lago-profile-action"
+  id="lagoConnectWallet"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="wallet"
+  ></span>
 
-          <button
-            class="lago-profile-action"
-            id="lagoWalletSignIn"
-          >
-            SIGN IN WITH WALLET
-          </button>
+  <span>
+    CONNECT WALLET
+  </span>
+</button>
+
+          <<button
+  class="lago-profile-action"
+  id="lagoWalletSignIn"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="profile"
+  ></span>
+
+  <span>
+    SIGN IN WITH WALLET
+  </span>
+</button>
 
           <div class="lago-profile-muted">
             Wallet signature is currently
@@ -560,15 +632,32 @@
 
         <section class="lago-profile-section">
 
-          <strong>SETTINGS</strong>
+          <strong class="lago-profile-section-title">
 
-          <button
-            class="lago-profile-action"
-            id="lagoProfileLanguage"
-          >
-            CHANGE LANGUAGE
-          </button>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="settings"
+  ></span>
 
+  <span>
+    SETTINGS
+  </span>
+
+</strong>
+
+          <<button
+  class="lago-profile-action"
+  id="lagoProfileLanguage"
+>
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="language"
+  ></span>
+
+  <span>
+    CHANGE LANGUAGE
+  </span>
+</button>
         </section>
 
       </div>
@@ -579,7 +668,9 @@
     document.body.appendChild(
       overlay
     );
-
+window.LAGO_UI
+  ?.hydrate
+  ?.(overlay);
 
     bind();
 
@@ -981,7 +1072,18 @@
              alt=""
            >`
 
-        : "🐌";
+        : (
+    window.LAGO_UI
+      ?.icon
+      ?.(
+        "snail",
+        {
+          className:
+            "lago-profile-avatar-fallback"
+        }
+      ) ||
+    "LAGO"
+  );
 
 
     overlay
