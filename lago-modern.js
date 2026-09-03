@@ -1214,4 +1214,54 @@ window.addEventListener(
 
   }
 );
+
+    /* =========================================================
+   TAP HINT
+   ========================================================= */
+
+.lago-tap-hint {
+
+  min-height: 28px;
+
+  margin-top: 10px;
+
+  padding: 4px 8px;
+
+  color:
+    var(--lago-lime);
+
+  font-family:
+    monospace;
+
+  font-size: 13px;
+
+  font-weight: 1000;
+
+  letter-spacing: .09em;
+
+  text-align: center;
+
+  text-transform:
+    uppercase;
+
+  user-select: none;
+
+  pointer-events: none;
+
+}
+
+
+/*
+ * The snail itself is the button.
+ */
+
+.lago-modern-snail #snail {
+
+  cursor: pointer;
+
+  touch-action:
+    manipulation;
+
+}
+    
 })();
