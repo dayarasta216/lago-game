@@ -202,41 +202,70 @@ function readTapState() {
         </div>
 
 
-        <nav class="lago-main-nav">
+     <nav class="lago-main-nav">
 
   <button
     class="lago-nav-btn active"
     data-page="play"
   >
-    PLAY
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="play"
+    ></span>
+
+    <span>PLAY</span>
   </button>
+
 
   <button
     class="lago-nav-btn"
     data-page="games"
   >
-    GAMES
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="games"
+    ></span>
+
+    <span>GAMES</span>
   </button>
+
 
   <button
     class="lago-nav-btn"
     data-page="create"
   >
-    CREATE
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="create"
+    ></span>
+
+    <span>CREATE</span>
   </button>
+
 
   <button
     class="lago-nav-btn"
     data-page="collection"
   >
-    COLLECTION
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="collection"
+    ></span>
+
+    <span>COLLECTION</span>
   </button>
+
 
   <button
     class="lago-nav-btn"
     data-page="shop"
   >
-    SHOP
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="shop"
+    ></span>
+
+    <span>SHOP</span>
   </button>
 
 </nav>
@@ -288,12 +317,18 @@ function readTapState() {
           class="lago-stat-card"
         >
 
-          <div
-            class="lago-stat-label"
-          >
-            💎 DUM ENERGY
-          </div>
+          <div class="lago-stat-label">
 
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="dum"
+  ></span>
+
+  <span>
+    DUM ENERGY
+  </span>
+
+</div>
           <div
             class="lago-stat-value"
             id="modernEnergy"
@@ -308,11 +343,18 @@ function readTapState() {
           class="lago-stat-card"
         >
 
-          <div
-            class="lago-stat-label"
-          >
-            ⚡ CLICK POWER
-          </div>
+          <div class="lago-stat-label">
+
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="power"
+  ></span>
+
+  <span>
+    CLICK POWER
+  </span>
+
+</div>
 
           <div
             class="lago-stat-value"
@@ -328,11 +370,18 @@ function readTapState() {
           class="lago-stat-card"
         >
 
-          <div
-            class="lago-stat-label"
-          >
-            🤖 PER SECOND
-          </div>
+         <div class="lago-stat-label">
+
+  <span
+    class="lago-icon-slot"
+    data-lago-icon="auto"
+  ></span>
+
+  <span>
+    PER SECOND
+  </span>
+
+</div>
 
           <div
             class="lago-stat-value"
@@ -411,10 +460,9 @@ function readTapState() {
           >
 
             <div
-              class="lago-action-icon"
-            >
-              ⚡
-            </div>
+  class="lago-action-icon"
+  data-lago-icon="upgrade"
+></div>
 
             <div>
 
@@ -440,11 +488,10 @@ function readTapState() {
             data-action="steal"
           >
 
-            <div
-              class="lago-action-icon"
-            >
-              👾
-            </div>
+            <<div
+  class="lago-action-icon"
+  data-lago-icon="steal"
+></div>
 
             <div>
 
@@ -461,6 +508,10 @@ function readTapState() {
               </div>
 
             </div>
+            <div
+  class="lago-action-icon"
+  data-lago-icon="steal"
+></div>
 
           </button>
 
@@ -540,46 +591,70 @@ function readTapState() {
 
       <!-- BOTTOM -->
 
-      <nav class="lago-bottom">
+    <nav class="lago-bottom">
 
   <button
     class="lago-bottom-btn active"
     data-page="play"
   >
-    🏠<br>
-    PLAY
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="play"
+    ></span>
+
+    <span>PLAY</span>
   </button>
+
 
   <button
     class="lago-bottom-btn"
     data-page="games"
   >
-    🎮<br>
-    GAMES
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="games"
+    ></span>
+
+    <span>GAMES</span>
   </button>
+
 
   <button
     class="lago-bottom-btn"
     data-page="create"
   >
-    🎨<br>
-    CREATE
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="create"
+    ></span>
+
+    <span>CREATE</span>
   </button>
+
 
   <button
     class="lago-bottom-btn"
     data-page="collection"
   >
-    🧩<br>
-    COLLECTION
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="collection"
+    ></span>
+
+    <span>COLLECTION</span>
   </button>
+
 
   <button
     class="lago-bottom-btn"
     data-page="shop"
   >
-    🛒<br>
-    SHOP
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="shop"
+    ></span>
+
+    <span>SHOP</span>
   </button>
 
 </nav>
@@ -590,7 +665,9 @@ function readTapState() {
 document.body.appendChild(
   root
 );
-
+window.LAGO_UI
+  ?.hydrate
+  ?.(root);
 
     /*
      * Move the ORIGINAL snail
