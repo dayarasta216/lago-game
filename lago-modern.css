@@ -1415,3 +1415,568 @@ height: 100dvh;
     manipulation;
 
 }
+/* =========================================================
+   MOBILE FIT — NO VERTICAL PAGE SCROLL
+   ========================================================= */
+
+@media (max-width: 560px) {
+
+  #lagoModern {
+
+    width: 100%;
+
+    height: 100vh;
+    height: 100dvh;
+
+    overflow: hidden;
+
+  }
+
+
+  /* -------------------------
+     HEADER
+     ------------------------- */
+
+  .lago-modern-header {
+
+    flex: 0 0 auto;
+
+    width:
+      calc(100% - 20px);
+
+    padding:
+      calc(
+        7px +
+        env(safe-area-inset-top)
+      )
+      0
+      5px;
+
+    gap: 8px;
+
+  }
+
+
+  .lago-brand-name {
+
+    font-size: 24px;
+
+  }
+
+
+  .lago-profile {
+
+    padding: 5px;
+
+  }
+
+
+  .lago-profile-icon {
+
+    width: 34px;
+    height: 34px;
+
+  }
+
+
+  /* -------------------------
+     TOP STATS
+     ------------------------- */
+
+  .lago-statbar {
+
+    flex: 0 0 auto;
+
+    width:
+      calc(100% - 20px);
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap: 6px;
+
+  }
+
+
+  .lago-stat-card {
+
+    min-height: 52px;
+
+    padding:
+      6px
+      9px;
+
+    border-radius: 13px;
+
+  }
+
+
+  .lago-stat-label {
+
+    font-size: 7px;
+
+  }
+
+
+  .lago-stat-value {
+
+    margin-top: 2px;
+
+    font-size: 17px;
+
+  }
+
+
+  /* -------------------------
+     MAIN AREA
+     ------------------------- */
+
+  .lago-game-area {
+
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    width:
+      calc(100% - 20px);
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+    grid-template-rows:
+      minmax(0, 1fr)
+      auto;
+
+    gap: 5px;
+
+    align-items: stretch;
+
+    overflow: hidden;
+
+    padding:
+      2px
+      0
+      4px;
+
+  }
+
+
+  /* -------------------------
+     CENTER / SNAIL
+     ------------------------- */
+
+  .lago-game-area
+  > .lago-center {
+
+    order: 1;
+
+    height: 100%;
+
+    min-height: 0;
+
+    justify-content: center;
+
+    overflow: hidden;
+
+  }
+
+
+  .lago-center-title {
+
+    flex: 0 0 auto;
+
+    font-size: 34px;
+
+    line-height: .9;
+
+  }
+
+
+  .lago-center-sub {
+
+    flex: 0 0 auto;
+
+    margin-top: 4px;
+
+    font-size: 7px;
+
+  }
+
+
+  .lago-modern-snail {
+
+    flex: 0 1 auto;
+
+    width:
+      min(
+        74vw,
+        300px
+      );
+
+    height:
+      min(
+        29dvh,
+        245px
+      );
+
+    min-height: 0;
+
+    margin:
+      0
+      0
+      2px;
+
+  }
+
+
+  .lago-speech {
+
+    flex: 0 0 auto;
+
+    min-height: 30px;
+
+    max-width: 240px;
+
+    padding:
+      6px
+      11px;
+
+    font-size: 10px;
+
+  }
+
+
+  .lago-tap-hint {
+
+    flex: 0 0 auto;
+
+    min-height: 20px;
+
+    margin-top: 4px;
+
+    padding: 2px 6px;
+
+    font-size: 11px;
+
+  }
+
+
+  /* -------------------------
+     NEXT LEVEL + ACTIONS
+     ------------------------- */
+
+  .lago-game-area
+  > .lago-side:first-of-type {
+
+    order: 2;
+
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+    gap: 6px;
+
+    padding: 0;
+
+  }
+
+
+  /*
+   * NEXT LEVEL
+   * occupies whole width.
+   */
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
+
+    grid-column:
+      1 / -1;
+
+    padding:
+      7px
+      10px;
+
+    border-radius: 13px;
+
+  }
+
+
+  .lago-side-title {
+
+    margin-bottom: 3px;
+
+    font-size: 7px;
+
+  }
+
+
+  .lago-side-big {
+
+    font-size: 20px;
+
+  }
+
+
+  .lago-progress {
+
+    height: 4px;
+
+    margin-top: 4px;
+
+  }
+
+
+  /*
+   * UPGRADE = column 1
+   * STEAL   = column 2
+   * language button will use column 3
+   */
+
+  .lago-action {
+
+    min-width: 0;
+
+    min-height: 42px;
+
+    padding:
+      6px
+      7px;
+
+    gap: 6px;
+
+    border-radius: 12px;
+
+  }
+
+
+  .lago-action-icon {
+
+    width: 27px;
+    height: 27px;
+
+    border-radius: 8px;
+
+  }
+
+
+  .lago-action-text {
+
+    font-size: 8px;
+
+  }
+
+
+  .lago-action-sub {
+
+    font-size: 6px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+  }
+
+
+  /*
+   * Desktop decorative YOUR LAGO
+   * stays hidden.
+   */
+
+  .lago-game-area
+  > .lago-side:last-of-type {
+
+    display: none;
+
+  }
+
+
+  /* -------------------------
+     BOTTOM NAV
+     ------------------------- */
+
+  .lago-bottom {
+
+    flex: 0 0 auto;
+
+    width:
+      calc(100% - 20px);
+
+    margin:
+      0
+      auto
+      calc(
+        4px +
+        env(safe-area-inset-bottom)
+      );
+
+    padding: 4px;
+
+    gap: 2px;
+
+    border-radius: 15px;
+
+  }
+
+
+  .lago-bottom-btn {
+
+    min-height: 42px;
+
+    font-size: 7px;
+
+  }
+
+
+  /* -------------------------
+     LANGUAGE = THIRD BUTTON
+     ------------------------- */
+
+  #lagoLanguageButton {
+
+    right:
+      10px !important;
+
+    bottom:
+      calc(
+        56px +
+        env(safe-area-inset-bottom)
+      ) !important;
+
+    width:
+      calc(
+        (
+          100vw -
+          32px
+        ) / 3
+      ) !important;
+
+    min-width:
+      0 !important;
+
+    max-width:
+      122px !important;
+
+    height:
+      42px !important;
+
+    padding:
+      0
+      7px !important;
+
+    z-index:
+      5001 !important;
+
+  }
+
+}
+@media
+(max-width: 560px)
+and
+(max-height: 740px) {
+
+  .lago-stat-card {
+
+    min-height: 46px;
+
+    padding:
+      5px
+      8px;
+
+  }
+
+
+  .lago-center-title {
+
+    font-size: 30px;
+
+  }
+
+
+  .lago-modern-snail {
+
+    width:
+      min(
+        68vw,
+        270px
+      );
+
+    height:
+      min(
+        25dvh,
+        205px
+      );
+
+  }
+
+
+  .lago-speech {
+
+    min-height: 27px;
+
+    padding:
+      5px
+      9px;
+
+  }
+
+
+  .lago-tap-hint {
+
+    margin-top: 2px;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
+
+    padding:
+      5px
+      8px;
+
+  }
+
+
+  .lago-action {
+
+    min-height: 38px;
+
+  }
+
+
+  .lago-bottom-btn {
+
+    min-height: 38px;
+
+  }
+
+
+  #lagoLanguageButton {
+
+    height:
+      38px !important;
+
+    bottom:
+      calc(
+        52px +
+        env(safe-area-inset-bottom)
+      ) !important;
+
+  }
+
+}
