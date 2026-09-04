@@ -1994,43 +1994,96 @@ and
 
   #lagoLanguageButton {
 
-    position:
-      fixed !important;
+  position:
+    fixed !important;
 
-    left:
-      118px !important;
+  /*
+   * Immediately after LAGO.
+   */
+  left:
+    72px !important;
 
-    right:
-      auto !important;
+  right:
+    auto !important;
 
-    top:
-      calc(
-        12px +
-        env(safe-area-inset-top)
-      ) !important;
+  top:
+    calc(
+      12px +
+      env(safe-area-inset-top)
+    ) !important;
 
-    bottom:
-      auto !important;
+  bottom:
+    auto !important;
 
-    width:
-      96px !important;
+  width:
+    34px !important;
 
-    min-width:
-      96px !important;
+  min-width:
+    34px !important;
 
-    max-width:
-      96px !important;
+  max-width:
+    34px !important;
 
-    height:
-      36px !important;
+  height:
+    32px !important;
 
-    padding:
-      0 8px !important;
+  padding:
+    0 !important;
 
-    z-index:
-      5001 !important;
+  display:
+    grid !important;
 
-  }
+  place-items:
+    center !important;
+
+  border-radius:
+    10px !important;
+
+  z-index:
+    5001 !important;
+
+}
+
+
+/*
+ * Mobile language button:
+ * show ONLY current flag.
+ */
+
+#lagoLanguageButton
+.lago-icon-slot {
+
+  display:
+    none !important;
+
+}
+
+
+#lagoLanguageButton
+.lago-language-button-code {
+
+  display:
+    none !important;
+
+}
+
+
+#lagoLanguageButton
+.lago-language-button-flag {
+
+  display:
+    block !important;
+
+  margin:
+    0 !important;
+
+  font-size:
+    17px !important;
+
+  line-height:
+    1 !important;
+
+}
 
 
   /*
