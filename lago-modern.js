@@ -196,7 +196,7 @@ function readTapState() {
           <div
             class="lago-brand-tag"
           >
-            BRAINROT SNAIL
+            BRAIN SNAIL
           </div>
 
         </div>
@@ -400,7 +400,7 @@ function readTapState() {
           <div
             class="lago-stat-label"
           >
-            🧠 BRAINROT
+            🧠 BRAIN
           </div>
 
           <div
@@ -484,36 +484,32 @@ function readTapState() {
 
 
           <button
-            class="lago-action"
-            data-action="steal"
-          >
+  class="lago-action"
+  data-action="steal"
+>
 
-            <<div
-  class="lago-action-icon"
-  data-lago-icon="steal"
-></div>
+  <div
+    class="lago-action-icon"
+    data-lago-icon="steal"
+  ></div>
 
-            <div>
+  <div>
 
-              <div
-                class="lago-action-text"
-              >
-                STEAL
-              </div>
+    <div
+      class="lago-action-text"
+    >
+      STEAL
+    </div>
 
-              <div
-                class="lago-action-sub"
-              >
-                Do something illegal
-              </div>
+    <div
+      class="lago-action-sub"
+    >
+      Do something illegal
+    </div>
 
-            </div>
-            <div
-  class="lago-action-icon"
-  data-lago-icon="steal"
-></div>
+  </div>
 
-          </button>
+</button>
 
         </aside>
 
