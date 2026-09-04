@@ -746,3 +746,341 @@
   }
 
 }
+/* =========================================================
+   CREATOR MOBILE — HORIZONTAL ITEMS
+   ========================================================= */
+
+@media (max-width: 720px) {
+
+  .lago-creator-overlay {
+
+    overflow: hidden;
+
+    overscroll-behavior: none;
+
+  }
+
+
+  .lago-creator {
+
+    width: 100%;
+
+    height: 100vh;
+    height: 100dvh;
+
+    max-height: 100dvh;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border-radius: 0;
+
+  }
+
+
+  /* -------------------------
+     PREVIEW
+     ------------------------- */
+
+  .lago-creator-preview {
+
+    flex:
+      0 0 34%;
+
+    min-height: 0;
+
+    overflow: hidden;
+
+    padding:
+      10px
+      14px
+      5px;
+
+  }
+
+
+  .lago-creator-preview-title {
+
+    top: 12px;
+
+    left: 16px;
+
+    font-size: 9px;
+
+  }
+
+
+  .lago-creator-stage {
+
+    width:
+      min(
+        62vw,
+        280px
+      );
+
+    height:
+      min(
+        24dvh,
+        210px
+      );
+
+    aspect-ratio: auto;
+
+  }
+
+
+  .lago-creator-name {
+
+    margin-top: 0;
+
+    font-size: 18px;
+
+  }
+
+
+  .lago-creator-rarity {
+
+    margin-top: 3px;
+
+    font-size: 8px;
+
+  }
+
+
+  /* -------------------------
+     CONTROLS
+     ------------------------- */
+
+  .lago-creator-controls {
+
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    overflow: hidden;
+
+  }
+
+
+  .lago-creator-header {
+
+    flex:
+      0 0 auto;
+
+    min-height: 46px;
+
+    padding:
+      6px
+      13px;
+
+  }
+
+
+  .lago-creator-header h2 {
+
+    font-size: 22px;
+
+  }
+
+
+  .lago-creator-close {
+
+    width: 36px;
+    height: 36px;
+
+  }
+
+
+  /* -------------------------
+     CATEGORY TABS
+     ------------------------- */
+
+  .lago-creator-tabs {
+
+    flex:
+      0 0 auto;
+
+    gap: 5px;
+
+    padding:
+      7px
+      11px;
+
+    overflow-x: auto;
+
+    overflow-y: hidden;
+
+    -webkit-overflow-scrolling:
+      touch;
+
+    touch-action:
+      pan-x;
+
+  }
+
+
+  .lago-creator-tab {
+
+    padding:
+      8px
+      10px;
+
+    font-size: 8px;
+
+  }
+
+
+  /* -------------------------
+     ITEMS:
+     HORIZONTAL ONLY
+     ------------------------- */
+
+  .lago-creator-items {
+
+    flex:
+      1 1 auto;
+
+    min-height: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    overflow-x: auto;
+
+    overflow-y: hidden;
+
+    padding:
+      6px
+      11px;
+
+    -webkit-overflow-scrolling:
+      touch;
+
+    overscroll-behavior-x:
+      contain;
+
+    touch-action:
+      pan-x;
+
+    scroll-snap-type:
+      x proximity;
+
+    scrollbar-width:
+      none;
+
+  }
+
+
+  .lago-creator-items::-webkit-scrollbar {
+
+    display: none;
+
+  }
+
+
+  .lago-creator-grid {
+
+    display: flex;
+
+    flex:
+      0 0 auto;
+
+    width:
+      max-content;
+
+    height: 112px;
+
+    gap: 7px;
+
+  }
+
+
+  .lago-item {
+
+    flex:
+      0 0 104px;
+
+    width: 104px;
+
+    min-height: 112px;
+    height: 112px;
+
+    padding: 6px;
+
+    gap: 4px;
+
+    border-radius: 14px;
+
+    scroll-snap-align:
+      start;
+
+  }
+
+
+  .lago-item-preview {
+
+    width: 45px;
+    height: 45px;
+
+  }
+
+
+  .lago-item-preview span {
+
+    font-size:
+      29px !important;
+
+  }
+
+
+  .lago-item-name {
+
+    font-size: 8px;
+
+  }
+
+
+  .lago-item-rarity {
+
+    font-size: 6px;
+
+  }
+
+
+  /* -------------------------
+     FOOTER
+     ------------------------- */
+
+  .lago-creator-footer {
+
+    flex:
+      0 0 auto;
+
+    gap: 7px;
+
+    padding:
+      7px
+      11px
+      calc(
+        7px +
+        env(safe-area-inset-bottom)
+      );
+
+  }
+
+
+  .lago-creator-action {
+
+    min-height: 46px;
+
+    border-radius: 13px;
+
+    font-size: 10px;
+
+  }
+
+}
