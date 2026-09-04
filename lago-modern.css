@@ -1980,3 +1980,170 @@ and
   }
 
 }
+/* =========================================================
+   MOBILE UI HOTFIX 2
+   ========================================================= */
+
+@media (max-width: 560px) {
+
+  /*
+   * LANGUAGE:
+   * move from gameplay controls
+   * to top header area beside LAGO.
+   */
+
+  #lagoLanguageButton {
+
+    position:
+      fixed !important;
+
+    left:
+      118px !important;
+
+    right:
+      auto !important;
+
+    top:
+      calc(
+        12px +
+        env(safe-area-inset-top)
+      ) !important;
+
+    bottom:
+      auto !important;
+
+    width:
+      96px !important;
+
+    min-width:
+      96px !important;
+
+    max-width:
+      96px !important;
+
+    height:
+      36px !important;
+
+    padding:
+      0 8px !important;
+
+    z-index:
+      5001 !important;
+
+  }
+
+
+  /*
+   * LEFT GAME CONTROLS:
+   *
+   * NEXT LEVEL
+   * ─────────────
+   * UPGRADE | STEAL
+   */
+
+  .lago-game-area
+  > .lago-side:first-of-type {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      7px;
+
+  }
+
+
+  /*
+   * Make XP panel larger.
+   */
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
+
+    grid-column:
+      1 / -1;
+
+    min-height:
+      76px;
+
+    padding:
+      10px
+      12px;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    justify-content:
+      center;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  .lago-side-title {
+
+    margin-bottom:
+      4px;
+
+    font-size:
+      8px;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  .lago-side-big {
+
+    font-size:
+      26px;
+
+    line-height:
+      1;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  .lago-progress {
+
+    height:
+      6px;
+
+    margin-top:
+      8px;
+
+  }
+
+
+  /*
+   * Two equal action buttons
+   * directly below XP.
+   */
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  .lago-action {
+
+    width:
+      100%;
+
+    min-height:
+      48px;
+
+    padding:
+      7px
+      9px;
+
+  }
+
+}
