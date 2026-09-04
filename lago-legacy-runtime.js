@@ -82,6 +82,151 @@ function telegramShare(){
 }
 
 /* ---------- Звук ---------- */
+
+function getAudioContext() {
+
+  const AudioEngine =
+    window.AudioContext ||
+    window.webkitAudioContext;
+
+
+  if (!AudioEngine) {
+
+    return null;
+
+  }
+
+
+  if (!audioCtx) {
+
+    audioCtx =
+      new AudioEngine();
+
+  }
+
+
+  return audioCtx;
+
+}
+
+
+function unlockAudio() {
+
+  try {
+
+    const context =
+      getAudioContext();
+
+
+    if (!context) {
+
+      return;
+
+    }
+
+
+    if (
+      context.state !==
+      "running"
+    ) {
+
+      context
+        .resume()
+        .catch(() => {});
+
+    }
+
+
+    /*
+     * iOS Safari audio unlock.
+     *
+     * A silent one-sample buffer
+     * is started directly from the
+     * user's gesture.
+     */
+
+    const buffer =
+      context.createBuffer(
+        1,
+        1,
+        22050
+      );
+
+
+    const source =
+      context.createBufferSource();
+
+
+    const gain =
+      context.createGain();
+
+
+    source.buffer =
+      buffer;
+
+
+    gain.gain.value =
+      0;
+
+
+    source.connect(
+      gain
+    );
+
+
+    gain.connect(
+      context.destination
+    );
+
+
+    source.start(0);
+
+  } catch (error) {
+
+    console.warn(
+      "[LAGO AUDIO UNLOCK]",
+      error
+    );
+
+  }
+
+}
+
+
+/*
+ * Safari/iOS requires audio context
+ * activation from a real user gesture.
+ */
+
+document.addEventListener(
+  "pointerdown",
+  unlockAudio,
+  {
+    capture: true,
+    passive: true
+  }
+);
+
+
+document.addEventListener(
+  "touchstart",
+  unlockAudio,
+  {
+    capture: true,
+    passive: true
+  }
+);
+
+
+document.addEventListener(
+  "keydown",
+  unlockAudio,
+  {
+    capture: true
+  }
+);
+
+
 function beep(
   freq = 440,
   duration = .06,
@@ -90,32 +235,29 @@ function beep(
 
   try {
 
-    const AudioEngine =
-      window.AudioContext ||
-      window.webkitAudioContext;
+    const context =
+      getAudioContext();
 
 
-    if (!AudioEngine) {
+    if (!context) {
+
       return;
+
     }
-
-
-    audioCtx ||=
-      new AudioEngine();
 
 
     const play = () => {
 
       const now =
-        audioCtx.currentTime;
+        context.currentTime;
 
 
       const oscillator =
-        audioCtx.createOscillator();
+        context.createOscillator();
 
 
       const gain =
-        audioCtx.createGain();
+        context.createGain();
 
 
       oscillator.type =
@@ -131,7 +273,7 @@ function beep(
 
       gain.gain
         .setValueAtTime(
-          .04,
+          .055,
           now
         );
 
@@ -149,7 +291,7 @@ function beep(
 
 
       gain.connect(
-        audioCtx.destination
+        context.destination
       );
 
 
@@ -166,14 +308,23 @@ function beep(
 
 
     if (
-      audioCtx.state ===
-      "suspended"
+      context.state !==
+      "running"
     ) {
 
-      audioCtx
+      context
         .resume()
         .then(play)
-        .catch(() => {});
+        .catch(
+          error => {
+
+            console.warn(
+              "[LAGO AUDIO RESUME]",
+              error
+            );
+
+          }
+        );
 
 
       return;
