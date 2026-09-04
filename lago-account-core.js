@@ -44,9 +44,15 @@ const DUM_DEFAULT_MAX =
 
 const DUM_REGEN_SECONDS =
   120;
-    mem:
-      0,
 
+
+const defaults = {
+
+  schemaVersion:
+    SCHEMA_VERSION,
+
+  mem:
+    0,
     xp:
       0,
 
