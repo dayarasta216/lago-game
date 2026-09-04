@@ -606,7 +606,7 @@
   </span>
 </button>
 
-          <<button
+          <button
   class="lago-profile-action"
   id="lagoWalletSignIn"
 >
@@ -645,7 +645,7 @@
 
 </strong>
 
-          <<button
+          <button
   class="lago-profile-action"
   id="lagoProfileLanguage"
 >
