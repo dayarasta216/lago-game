@@ -344,7 +344,7 @@
 
             <div>
 
-              <<div
+              <div
   class="lago-game-card-icon"
   data-lago-icon="race"
 ></div>
