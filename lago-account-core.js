@@ -21,25 +21,29 @@
    */
 
   const STORAGE_KEY =
-    "lago_account_state_v1";
+  "lago_account_state_v2";
 
-  const LEGACY_BRIDGE_KEY =
-    "lago_game_state_v2";
+const LEGACY_ACCOUNT_KEY =
+  "lago_account_state_v1";
 
-  const LEGACY_TAP_KEY =
-    "lago_brainrot_save_v1";
+const LEGACY_BRIDGE_KEY =
+  "lago_game_state_v2";
 
-  const LANGUAGE_KEY =
-    "lago_language_v1";
+const LEGACY_TAP_KEY =
+  "lago_brainrot_save_v1";
 
-  const SCHEMA_VERSION = 1;
+const LANGUAGE_KEY =
+  "lago_language_v1";
+
+const SCHEMA_VERSION = 2;
 
 
-  const defaults = {
+const DUM_DEFAULT_MAX =
+  100;
 
-    schemaVersion:
-      SCHEMA_VERSION,
 
+const DUM_REGEN_SECONDS =
+  120;
     mem:
       0,
 
@@ -50,10 +54,156 @@
       1,
 
     clicks:
-      0,
+  0,
 
-    skins:
-      [],
+
+/*
+ * =========================================================
+ * R0.5 ACCOUNT MODEL
+ * =========================================================
+ */
+
+economy: {
+
+  /*
+   * Real Solana / Pump.fun $LAGO.
+   *
+   * Old MEM must NEVER become $LAGO.
+   */
+  lagoBalance:
+    0,
+
+  /*
+   * Permanent progression.
+   */
+  sp:
+    0,
+
+  level:
+    1
+
+},
+
+
+energy: {
+
+  /*
+   * DUM Energy = stamina.
+   */
+  dum:
+    DUM_DEFAULT_MAX,
+
+  max:
+    DUM_DEFAULT_MAX,
+
+  /*
+   * 1 DUM every 120 sec.
+   */
+  regenSecondsPerPoint:
+    DUM_REGEN_SECONDS,
+
+  updatedAt:
+    null,
+
+  /*
+   * R0.5B:
+   * every 5 Tap Lago taps
+   * will cost 1 DUM.
+   */
+  tapCounter:
+    0
+
+},
+
+
+life: {
+
+  value:
+    100,
+
+  max:
+    100,
+
+  status:
+    "alive",
+
+  lastActiveAt:
+    null,
+
+  lastDecayAt:
+    null,
+
+  consecutiveDays:
+    0
+
+},
+
+
+heist: {
+
+  skill:
+    0,
+
+  heat:
+    0,
+
+  attempts:
+    0,
+
+  successes:
+    0,
+
+  failures:
+    0,
+
+  protectedUntil:
+    null,
+
+  revenge:
+    []
+
+},
+
+
+social: {
+
+  userId:
+    "",
+
+  username:
+    "",
+
+  friends:
+    [],
+
+  blocked:
+    [],
+
+  discoverByWallet:
+    false
+
+},
+
+
+inventory: {
+
+  protected:
+    [],
+
+  raidable:
+    [],
+
+  equipped:
+    [],
+
+  trophies:
+    []
+
+},
+
+
+skins:
+  [],
 
     selectedSkin:
       "default",
@@ -78,16 +228,38 @@
 
     lifetime: {
 
-      memEarned:
-        0,
+  /*
+   * Canonical R0.5 counters.
+   */
+  spEarned:
+    0,
 
-      memSpent:
-        0,
+  dumSpent:
+    0,
 
-      xpEarned:
-        0
+  dumRegenerated:
+    0,
 
-    },
+  heistAttempts:
+    0,
+
+  heistSuccesses:
+    0,
+
+
+  /*
+   * Legacy compatibility.
+   */
+  memEarned:
+    0,
+
+  memSpent:
+    0,
+
+  xpEarned:
+    0
+
+},
 
     updatedAt:
       null
@@ -205,18 +377,439 @@
       );
 
 
-    next.clicks =
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            next.clicks
-          ) || 0
-        )
-      );
+   next.clicks =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.clicks
+      ) || 0
+    )
+  );
 
 
-    next.skins =
+/*
+ * =========================================================
+ * ECONOMY v2
+ * =========================================================
+ */
+
+next.economy = {
+
+  ...clone(
+    defaults.economy
+  ),
+
+  ...(
+    input.economy &&
+    typeof input.economy ===
+      "object" &&
+    !Array.isArray(
+      input.economy
+    )
+
+      ? input.economy
+      : {}
+  )
+
+};
+
+
+/*
+ * $LAGO never comes from MEM.
+ */
+next.economy.lagoBalance =
+  Math.max(
+    0,
+    Number(
+      input.economy
+        ?.lagoBalance
+    ) || 0
+  );
+
+
+/*
+ * Existing XP migrates to SP.
+ */
+next.economy.sp =
+  Math.max(
+    0,
+    Number(
+      input.economy
+        ?.sp ??
+      next.xp
+    ) || 0
+  );
+
+
+/*
+ * Temporary compatibility.
+ */
+next.xp =
+  next.economy.sp;
+
+
+/*
+ * =========================================================
+ * DUM ENERGY
+ * =========================================================
+ */
+
+next.energy = {
+
+  ...clone(
+    defaults.energy
+  ),
+
+  ...(
+    input.energy &&
+    typeof input.energy ===
+      "object" &&
+    !Array.isArray(
+      input.energy
+    )
+
+      ? input.energy
+      : {}
+  )
+
+};
+
+
+next.energy.max =
+  Math.max(
+    1,
+    Math.floor(
+      Number(
+        next.energy.max
+      ) ||
+      DUM_DEFAULT_MAX
+    )
+  );
+
+
+next.energy.dum =
+  Math.min(
+    next.energy.max,
+
+    Math.max(
+      0,
+      Number(
+        next.energy.dum
+      ) || 0
+    )
+  );
+
+
+next.energy.regenSecondsPerPoint =
+  Math.max(
+    10,
+    Math.floor(
+      Number(
+        next.energy
+          .regenSecondsPerPoint
+      ) ||
+      DUM_REGEN_SECONDS
+    )
+  );
+
+
+next.energy.tapCounter =
+  Math.min(
+    4,
+
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          next.energy
+            .tapCounter
+        ) || 0
+      )
+    )
+  );
+
+
+next.energy.updatedAt =
+  typeof next.energy
+    .updatedAt ===
+    "string"
+
+    ? next.energy.updatedAt
+    : null;
+
+
+/*
+ * =========================================================
+ * LAGO LIFE
+ * =========================================================
+ */
+
+next.life = {
+
+  ...clone(
+    defaults.life
+  ),
+
+  ...(
+    input.life &&
+    typeof input.life ===
+      "object" &&
+    !Array.isArray(
+      input.life
+    )
+
+      ? input.life
+      : {}
+  )
+
+};
+
+
+next.life.max =
+  Math.max(
+    1,
+    Math.floor(
+      Number(
+        next.life.max
+      ) || 100
+    )
+  );
+
+
+next.life.value =
+  Math.min(
+    next.life.max,
+
+    Math.max(
+      0,
+      Number(
+        next.life.value
+      ) || 0
+    )
+  );
+
+
+if (
+  next.life.value <= 0
+) {
+
+  next.life.status =
+    "dead";
+
+} else if (
+  next.life.value <= 25
+) {
+
+  next.life.status =
+    "dying";
+
+} else if (
+  next.life.value <= 50
+) {
+
+  next.life.status =
+    "dumb";
+
+} else if (
+  next.life.value <= 75
+) {
+
+  next.life.status =
+    "tired";
+
+} else {
+
+  next.life.status =
+    "alive";
+
+}
+
+
+/*
+ * =========================================================
+ * HEIST
+ * =========================================================
+ */
+
+next.heist = {
+
+  ...clone(
+    defaults.heist
+  ),
+
+  ...(
+    input.heist &&
+    typeof input.heist ===
+      "object" &&
+    !Array.isArray(
+      input.heist
+    )
+
+      ? input.heist
+      : {}
+  )
+
+};
+
+
+next.heist.skill =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.heist.skill
+      ) || 0
+    )
+  );
+
+
+next.heist.heat =
+  Math.min(
+    100,
+
+    Math.max(
+      0,
+      Number(
+        next.heist.heat
+      ) || 0
+    )
+  );
+
+
+next.heist.attempts =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.heist.attempts
+      ) || 0
+    )
+  );
+
+
+next.heist.successes =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.heist.successes
+      ) || 0
+    )
+  );
+
+
+next.heist.failures =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.heist.failures
+      ) || 0
+    )
+  );
+
+
+next.heist.revenge =
+  Array.isArray(
+    next.heist.revenge
+  )
+
+    ? next.heist.revenge
+    : [];
+
+
+/*
+ * =========================================================
+ * SOCIAL
+ * =========================================================
+ */
+
+next.social = {
+
+  ...clone(
+    defaults.social
+  ),
+
+  ...(
+    input.social &&
+    typeof input.social ===
+      "object" &&
+    !Array.isArray(
+      input.social
+    )
+
+      ? input.social
+      : {}
+  )
+
+};
+
+
+next.social.friends =
+  uniqueStrings(
+    next.social.friends
+  );
+
+
+next.social.blocked =
+  uniqueStrings(
+    next.social.blocked
+  );
+
+
+/*
+ * =========================================================
+ * INVENTORY
+ * =========================================================
+ */
+
+next.inventory = {
+
+  ...clone(
+    defaults.inventory
+  ),
+
+  ...(
+    input.inventory &&
+    typeof input.inventory ===
+      "object" &&
+    !Array.isArray(
+      input.inventory
+    )
+
+      ? input.inventory
+      : {}
+  )
+
+};
+
+
+next.inventory.protected =
+  uniqueStrings(
+    next.inventory.protected
+  );
+
+
+next.inventory.raidable =
+  uniqueStrings(
+    next.inventory.raidable
+  );
+
+
+next.inventory.equipped =
+  uniqueStrings(
+    next.inventory.equipped
+  );
+
+
+next.inventory.trophies =
+  uniqueStrings(
+    next.inventory.trophies
+  );
+
+
+next.skins =
       uniqueStrings(
         next.skins
       );
@@ -297,22 +890,109 @@
       );
 
 
-    next.lifetime.xpEarned =
-      Math.max(
-        0,
-        Number(
-          next.lifetime.xpEarned
-        ) || 0
-      );
+   next.lifetime.xpEarned =
+  Math.max(
+    0,
+    Number(
+      next.lifetime.xpEarned
+    ) || 0
+  );
 
 
-    updateLevel(
-      next,
-      false
-    );
+next.lifetime.spEarned =
+  Math.max(
+    next.economy.sp,
+
+    Number(
+      next.lifetime.spEarned
+    ) || 0,
+
+    next.lifetime.xpEarned
+  );
 
 
-    return next;
+next.lifetime.dumSpent =
+  Math.max(
+    0,
+    Number(
+      next.lifetime.dumSpent
+    ) || 0
+  );
+
+
+next.lifetime.dumRegenerated =
+  Math.max(
+    0,
+    Number(
+      next.lifetime
+        .dumRegenerated
+    ) || 0
+  );
+
+
+next.lifetime.heistAttempts =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.lifetime
+          .heistAttempts
+      ) || 0
+    )
+  );
+
+
+next.lifetime.heistSuccesses =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        next.lifetime
+          .heistSuccesses
+      ) || 0
+    )
+  );
+
+
+updateLevel(
+  next,
+  false
+);
+
+
+/*
+ * Synchronize canonical v2 progression
+ * with old compatibility fields.
+ */
+next.economy.sp =
+  next.xp;
+
+
+next.economy.level =
+  next.level;
+
+
+/*
+ * First creation of DUM Energy.
+ *
+ * Old MEM and old Tap energy
+ * are deliberately NOT imported.
+ */
+if (
+  !next.energy.updatedAt
+) {
+
+  next.energy.dum =
+    next.energy.max;
+
+  next.energy.updatedAt =
+    new Date()
+      .toISOString();
+
+}
+
+
+return next;
 
   }
 
@@ -331,21 +1011,41 @@
   function migrate() {
 
     const current =
-      readJSON(
-        STORAGE_KEY
-      );
+  readJSON(
+    STORAGE_KEY
+  );
 
 
-    if (current) {
+if (current) {
 
-      return sanitize(
-        current
-      );
+  return sanitize(
+    current
+  );
 
-    }
+}
 
 
-    const oldBridge =
+/*
+ * Migration from Account Core v1.
+ *
+ * We do not delete the old save.
+ */
+const oldAccount =
+  readJSON(
+    LEGACY_ACCOUNT_KEY
+  );
+
+
+if (oldAccount) {
+
+  return sanitize(
+    oldAccount
+  );
+
+}
+
+
+const oldBridge =
       readJSON(
         LEGACY_BRIDGE_KEY
       ) || {};
