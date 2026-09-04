@@ -940,40 +940,50 @@
 
   .lago-creator-items {
 
-    flex:
-      1 1 auto;
+  flex:
+    0 0 148px;
 
-    min-height: 0;
+  width:
+    100%;
 
-    display: flex;
+  height:
+    148px;
 
-    align-items: center;
+  min-height:
+    148px;
 
-    overflow-x: auto;
+  max-height:
+    148px;
 
-    overflow-y: hidden;
+  display:
+    block;
 
-    padding:
-      6px
-      11px;
+  overflow-x:
+    auto;
 
-    -webkit-overflow-scrolling:
-      touch;
+  overflow-y:
+    hidden;
 
-    overscroll-behavior-x:
-      contain;
+  padding:
+    8px
+    10px;
 
-    touch-action:
-      pan-x;
+  -webkit-overflow-scrolling:
+    touch;
 
-    scroll-snap-type:
-      x proximity;
+  overscroll-behavior-x:
+    contain;
 
-    scrollbar-width:
-      none;
+  touch-action:
+    pan-x;
 
-  }
+  scroll-snap-type:
+    x proximity;
 
+  scrollbar-width:
+    none;
+
+}
 
   .lago-creator-items::-webkit-scrollbar {
 
@@ -984,49 +994,82 @@
 
   .lago-creator-grid {
 
-    display: flex;
+  display:
+    flex;
 
-    flex:
-      0 0 auto;
+  flex-flow:
+    row nowrap;
 
-    width:
-      max-content;
+  align-items:
+    stretch;
 
-    height: 112px;
+  width:
+    max-content;
 
-    gap: 7px;
+  height:
+    132px;
 
-  }
+  gap:
+    7px;
 
+}
 
   .lago-item {
 
-    flex:
-      0 0 104px;
+  flex:
+    0 0
+    calc(
+      (
+        100vw -
+        41px
+      ) / 4
+    );
 
-    width: 104px;
+  width:
+    calc(
+      (
+        100vw -
+        41px
+      ) / 4
+    );
 
-    min-height: 112px;
-    height: 112px;
+  min-width:
+    82px;
 
-    padding: 6px;
+  max-width:
+    104px;
 
-    gap: 4px;
+  min-height:
+    132px;
 
-    border-radius: 14px;
+  height:
+    132px;
 
-    scroll-snap-align:
-      start;
+  padding:
+    7px
+    5px;
 
-  }
+  gap:
+    5px;
+
+  border-radius:
+    14px;
+
+  scroll-snap-align:
+    start;
+
+}
 
 
   .lago-item-preview {
 
-    width: 45px;
-    height: 45px;
+  width:
+    52px;
 
-  }
+  height:
+    52px;
+
+}
 
 
   .lago-item-preview span {
@@ -1037,11 +1080,17 @@
   }
 
 
-  .lago-item-name {
+ .lago-item-name {
 
-    font-size: 8px;
+  width: 100%;
 
-  }
+  font-size:
+    8px;
+
+  text-align:
+    center;
+
+}
 
 
   .lago-item-rarity {
