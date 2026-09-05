@@ -1629,6 +1629,441 @@ function addSP(
   return save();
 
 }
+
+  /*
+ * =========================================================
+ * DUM ENERGY — CANONICAL STAMINA
+ * =========================================================
+ */
+
+
+/*
+ * Calculates offline regeneration.
+ *
+ * Current rule:
+ * +1 DUM every 120 seconds.
+ */
+function refreshDumEnergy(
+  {
+    persist = true
+  } = {}
+) {
+
+  const now =
+    Date.now();
+
+
+  const max =
+    Math.max(
+      1,
+      Math.floor(
+        Number(
+          state.energy.max
+        ) ||
+        DUM_DEFAULT_MAX
+      )
+    );
+
+
+  state.energy.max =
+    max;
+
+
+  state.energy.dum =
+    clamp(
+      state.energy.dum,
+      0,
+      max
+    );
+
+
+  /*
+   * No regeneration is needed
+   * while already full.
+   */
+  if (
+    state.energy.dum >=
+    max
+  ) {
+
+    state.energy.dum =
+      max;
+
+    return 0;
+
+  }
+
+
+  const previousTime =
+    Date.parse(
+      state.energy.updatedAt ||
+      ""
+    );
+
+
+  /*
+   * Invalid or missing timestamp:
+   * start regeneration from now.
+   */
+  if (
+    !Number.isFinite(
+      previousTime
+    )
+  ) {
+
+    state.energy.updatedAt =
+      new Date(now)
+        .toISOString();
+
+
+    if (persist) {
+
+      save();
+
+    }
+
+
+    return 0;
+
+  }
+
+
+  const interval =
+    Math.max(
+      10,
+      Math.floor(
+        Number(
+          state.energy
+            .regenSecondsPerPoint
+        ) ||
+        DUM_REGEN_SECONDS
+      )
+    ) *
+    1000;
+
+
+  const elapsed =
+    Math.max(
+      0,
+      now -
+      previousTime
+    );
+
+
+  const availablePoints =
+    Math.floor(
+      elapsed /
+      interval
+    );
+
+
+  if (
+    availablePoints <= 0
+  ) {
+
+    return 0;
+
+  }
+
+
+  const before =
+    state.energy.dum;
+
+
+  state.energy.dum =
+    Math.min(
+      max,
+      before +
+      availablePoints
+    );
+
+
+  const gained =
+    state.energy.dum -
+    before;
+
+
+  state.lifetime
+    .dumRegenerated =
+    Math.max(
+      0,
+      Number(
+        state.lifetime
+          .dumRegenerated
+      ) || 0
+    ) +
+    gained;
+
+
+  /*
+   * Preserve partial regeneration time
+   * if DUM is still below MAX.
+   */
+  if (
+    state.energy.dum <
+    max
+  ) {
+
+    state.energy.updatedAt =
+      new Date(
+        previousTime +
+        availablePoints *
+        interval
+      ).toISOString();
+
+  } else {
+
+    state.energy.updatedAt =
+      new Date(now)
+        .toISOString();
+
+  }
+
+
+  if (
+    persist &&
+    gained > 0
+  ) {
+
+    save();
+
+  }
+
+
+  return gained;
+
+}
+
+
+/*
+ * Read current DUM state.
+ */
+function getDumEnergy() {
+
+  refreshDumEnergy();
+
+
+  return {
+
+    dum:
+      state.energy.dum,
+
+    max:
+      state.energy.max,
+
+    regenSecondsPerPoint:
+      state.energy
+        .regenSecondsPerPoint,
+
+    tapCounter:
+      state.energy
+        .tapCounter
+
+  };
+
+}
+
+
+/*
+ * Check before an action.
+ */
+function canSpendDum(
+  amount = 0
+) {
+
+  refreshDumEnergy();
+
+
+  const value =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          amount
+        ) || 0
+      )
+    );
+
+
+  return (
+    state.energy.dum >=
+    value
+  );
+
+}
+
+
+/*
+ * Spend stamina.
+ *
+ * Examples later:
+ *
+ * Tap       → 1 / 5 taps
+ * Scout     → 2
+ * Mini-game → 5+
+ * Heist     → 10+
+ */
+function spendDum(
+  amount = 0,
+  options = {}
+) {
+
+  refreshDumEnergy();
+
+
+  const value =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          amount
+        ) || 0
+      )
+    );
+
+
+  if (!value) {
+
+    return true;
+
+  }
+
+
+  if (
+    state.energy.dum <
+    value
+  ) {
+
+    return false;
+
+  }
+
+
+  const wasFull =
+    state.energy.dum >=
+    state.energy.max;
+
+
+  state.energy.dum -=
+    value;
+
+
+  state.lifetime
+    .dumSpent =
+    Math.max(
+      0,
+      Number(
+        state.lifetime
+          .dumSpent
+      ) || 0
+    ) +
+    value;
+
+
+  /*
+   * The regeneration clock starts
+   * as soon as we leave MAX.
+   */
+  if (
+    wasFull ||
+    !state.energy.updatedAt
+  ) {
+
+    state.energy.updatedAt =
+      new Date()
+        .toISOString();
+
+  }
+
+
+  if (
+    options.gameId
+  ) {
+
+    const game =
+      ensureGame(
+        options.gameId
+      );
+
+
+    game.dumSpent =
+      Math.max(
+        0,
+        Number(
+          game.dumSpent
+        ) || 0
+      ) +
+      value;
+
+  }
+
+
+  save();
+
+
+  return true;
+
+}
+
+
+/*
+ * Restore DUM without allowing
+ * the balance to exceed MAX.
+ */
+function restoreDum(
+  amount = 0
+) {
+
+  refreshDumEnergy();
+
+
+  const value =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          amount
+        ) || 0
+      )
+    );
+
+
+  if (!value) {
+
+    return snapshot();
+
+  }
+
+
+  state.energy.dum =
+    Math.min(
+      state.energy.max,
+      state.energy.dum +
+      value
+    );
+
+
+  /*
+   * At MAX there is no partially
+   * completed regeneration timer.
+   */
+  
+  if (
+    state.energy.dum >=
+    state.energy.max
+  ) {
+
+    state.energy.updatedAt =
+      new Date()
+        .toISOString();
+
+  }
+
+
+  return save();
+
+}
+  
   /*
    * =========================================================
    * XP
@@ -1720,16 +2155,46 @@ function addSP(
           0,
 
         xpEarned:
-          0,
+  0,
 
-        lastPlayedAt:
-          null
+spEarned:
+  0,
+
+dumSpent:
+  0,
+
+lastPlayedAt:
+  null
 
       };
 
     }
 
+/*
+ * Upgrade old saved game records
+ * without deleting statistics.
+ */
 
+state.games[id].spEarned =
+  Math.max(
+    0,
+    Number(
+      state.games[id]
+        .spEarned ??
+      state.games[id]
+        .xpEarned
+    ) || 0
+  );
+
+
+state.games[id].dumSpent =
+  Math.max(
+    0,
+    Number(
+      state.games[id]
+        .dumSpent
+    ) || 0
+  );
     return state.games[id];
 
   }
@@ -1997,11 +2462,26 @@ function addSP(
 
     sync,
 
-    /*
+   /*
  * Canonical progression
  */
 
 addSP,
+
+
+/*
+ * Canonical DUM Energy
+ */
+
+getDumEnergy,
+
+canSpendDum,
+
+spendDum,
+
+restoreDum,
+
+refreshDumEnergy,
 
 
 /*
