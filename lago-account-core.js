@@ -1235,15 +1235,43 @@ const oldBridge =
       ) + 1;
 
 
-    target.level =
-      Math.max(
-        1,
-        next
-      );
+   target.level =
+  Math.max(
+    1,
+    next
+  );
 
 
-    if (
-      announce &&
+/*
+ * R0.5 canonical progression.
+ *
+ * Top-level xp / level remain
+ * temporary compatibility fields.
+ */
+
+if (
+  target.economy &&
+  typeof target.economy ===
+    "object"
+) {
+
+  target.economy.sp =
+    Math.max(
+      0,
+      Number(
+        target.xp
+      ) || 0
+    );
+
+
+  target.economy.level =
+    target.level;
+
+}
+
+
+if (
+  announce &&
       target.level >
       previous
     ) {
@@ -1510,7 +1538,97 @@ const oldBridge =
 
   }
 
+/*
+ * =========================================================
+ * SP — CANONICAL PROGRESSION
+ * =========================================================
+ */
 
+function addSP(
+  amount = 0,
+  options = {}
+) {
+
+  const value =
+    Math.max(
+      0,
+      Number(
+        amount
+      ) || 0
+    );
+
+
+  if (!value) {
+
+    return snapshot();
+
+  }
+
+
+  /*
+   * Keep old XP mirror alive
+   * until every module is migrated.
+   */
+
+  state.xp +=
+    value;
+
+
+  state.economy.sp =
+    state.xp;
+
+
+  state.lifetime
+    .xpEarned +=
+    value;
+
+
+  state.lifetime
+    .spEarned +=
+    value;
+
+
+  if (
+    options.gameId
+  ) {
+
+    const game =
+      ensureGame(
+        options.gameId
+      );
+
+
+    game.xpEarned =
+      Math.max(
+        0,
+        Number(
+          game.xpEarned
+        ) || 0
+      ) +
+      value;
+
+
+    game.spEarned =
+      Math.max(
+        0,
+        Number(
+          game.spEarned
+        ) || 0
+      ) +
+      value;
+
+  }
+
+
+  updateLevel(
+    state,
+    true
+  );
+
+
+  return save();
+
+}
   /*
    * =========================================================
    * XP
@@ -1518,57 +1636,22 @@ const oldBridge =
    */
 
   function addXP(
-    amount = 0,
-    options = {}
-  ) {
+  amount = 0,
+  options = {}
+) {
 
-    const value =
-      Math.max(
-        0,
-        Number(
-          amount
-        ) || 0
-      );
+  /*
+   * Legacy alias.
+   *
+   * New modules must use addSP().
+   */
 
+  return addSP(
+    amount,
+    options
+  );
 
-    if (!value) {
-
-      return snapshot();
-
-    }
-
-
-    state.xp +=
-      value;
-
-
-    state.lifetime
-      .xpEarned +=
-      value;
-
-
-    if (
-      options.gameId
-    ) {
-
-      ensureGame(
-        options.gameId
-      ).xpEarned +=
-        value;
-
-    }
-
-
-    updateLevel(
-      state,
-      true
-    );
-
-
-    return save();
-
-  }
-
+}
 
   function recordClick(
     amount = 1
@@ -1914,14 +1997,24 @@ const oldBridge =
 
     sync,
 
-    creditMem,
+    /*
+ * Canonical progression
+ */
 
-    spendMem,
+addSP,
 
-    addXP,
 
-    recordClick,
+/*
+ * Legacy compatibility
+ */
 
+creditMem,
+
+spendMem,
+
+addXP,
+
+recordClick,
     submitGameResult,
 
     addSkin,
