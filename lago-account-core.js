@@ -46,6 +46,18 @@ const DUM_REGEN_SECONDS =
   120;
 
 
+const HEIST_BASE_CHANCE =
+  0.35;
+
+
+const HEIST_MIN_CHANCE =
+  0.10;
+
+
+const HEIST_MAX_CHANCE =
+  0.75;
+
+
 const defaults = {
 
   schemaVersion:
@@ -328,7 +340,21 @@ skins:
     ];
 
   }
+function clamp(
+  value,
+  min,
+  max
+) {
 
+  return Math.min(
+    max,
+    Math.max(
+      min,
+      Number(value) || 0
+    )
+  );
+
+}
 
   function sanitize(
     input = {}
