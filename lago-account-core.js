@@ -339,7 +339,26 @@ skins:
       )
     ];
 
-  }
+   }
+
+
+function clamp(
+  value,
+  min,
+  max
+) {
+
+  return Math.min(
+    max,
+    Math.max(
+      min,
+      Number(value) || 0
+    )
+  );
+
+}
+
+
 function resolveLifeStatus(
   value,
   max = 100
