@@ -2332,6 +2332,66 @@ function consumeTapDum(
 
 }
 
+/*
+ * =========================================================
+ * TAP LAGO AUTO
+ * =========================================================
+ *
+ * Canonical Tap Lago AUTO progression.
+ *
+ * AUTO Level:
+ *
+ * 0 = 0 SP / sec
+ * 1 = 1 SP / sec
+ * 2 = 2 SP / sec
+ * ...
+ *
+ * SP is still earned through gameplay.
+ * AUTO does not create free DUM.
+ */
+
+function getTapAutoState() {
+
+  const game =
+    ensureGame(
+      "tap-lago"
+    );
+
+
+  const level =
+    Math.min(
+      10,
+
+      Math.max(
+        0,
+
+        Math.floor(
+          Number(
+            game.autoLevel
+          ) || 0
+        )
+      )
+    );
+
+
+  /*
+   * Keep canonical value normalized.
+   */
+  game.autoLevel =
+    level;
+
+
+  return {
+
+    level,
+
+    spPerSecond:
+      level
+
+  };
+
+}
+  
   /*
  * =========================================================
  * LAGO LIFE — ACCOUNT CONDITION
@@ -3248,10 +3308,11 @@ refreshDumEnergy,
 
 consumeTapDum,
 
+getTapAutoState,
+
 /*
  * Lago Life
  */
-
 getLifeStatus,
 
 setLife,
