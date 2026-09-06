@@ -1450,16 +1450,25 @@ if (
         xp;
 
 
-      state.lifetime
-        .xpEarned +=
-        xp;
+     state.lifetime
+  .xpEarned +=
+  xp;
 
 
-      updateLevel(
-        state,
-        true
-      );
+/*
+ * XP is only a compatibility mirror.
+ * Every XP reward is also canonical SP.
+ */
 
+state.lifetime
+  .spEarned +=
+  xp;
+
+
+updateLevel(
+  state,
+  true
+);
     }
 
 
@@ -1489,11 +1498,20 @@ if (
 
       if (xp) {
 
-        game.xpEarned +=
-          xp;
+  game.xpEarned +=
+    xp;
 
-      }
 
+  game.spEarned =
+    Math.max(
+      0,
+      Number(
+        game.spEarned
+      ) || 0
+    ) +
+    xp;
+
+}
     }
 
 
@@ -2778,20 +2796,39 @@ state.games[id].dumSpent =
 
     if (safeXP) {
 
-      state.xp +=
-        safeXP;
+  /*
+   * Legacy "xp" input is treated
+   * as canonical SP during migration.
+   */
+
+  state.xp +=
+    safeXP;
 
 
-      state.lifetime
-        .xpEarned +=
-        safeXP;
+  state.lifetime
+    .xpEarned +=
+    safeXP;
 
 
-      game.xpEarned +=
-        safeXP;
+  state.lifetime
+    .spEarned +=
+    safeXP;
 
-    }
 
+  game.xpEarned +=
+    safeXP;
+
+
+  game.spEarned =
+    Math.max(
+      0,
+      Number(
+        game.spEarned
+      ) || 0
+    ) +
+    safeXP;
+
+}
 
     updateLevel(
       state,
