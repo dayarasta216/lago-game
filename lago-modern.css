@@ -2200,3 +2200,214 @@ and
   }
 
 }
+
+/* =========================================================
+   R0.5B4.2C — COMPACT PLAY HUD
+   ========================================================= */
+
+.lago-statbar {
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+  flex:
+    0
+    0
+    auto;
+}
+
+
+.lago-stat-card {
+
+  min-height: 0;
+
+  padding:
+    7px
+    11px;
+}
+
+
+.lago-stat-label {
+
+  font-size: 7px;
+}
+
+
+.lago-stat-value {
+
+  margin-top: 2px;
+
+  font-size: 18px;
+}
+
+
+.lago-progress-meta {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 8px;
+}
+
+
+.lago-progress-meta
+.lago-side-title {
+
+  margin-bottom: 0;
+}
+
+
+.lago-level-chip {
+
+  flex: 0 0 auto;
+
+  padding:
+    4px
+    7px;
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .08
+    );
+
+  border:
+    1px solid
+    rgba(
+      204,
+      255,
+      0,
+      .22
+    );
+
+  color:
+    var(--lago-lime);
+
+  font-size: 7px;
+
+  font-weight: 1000;
+
+  letter-spacing: .06em;
+}
+
+
+.lago-dashboard-card {
+
+  min-height: 86px;
+}
+
+
+.lago-dashboard-row {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.lago-dashboard-icon {
+
+  width: 32px;
+
+  height: 32px;
+
+  flex: 0 0 auto;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 10px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  color:
+    var(--lago-lime);
+}
+
+
+.lago-dashboard-status {
+
+  color:
+    var(--lago-lime);
+
+  font-size: 11px;
+
+  font-weight: 1000;
+}
+
+
+.lago-dashboard-value {
+
+  color:
+    var(--lago-lime);
+
+  font-size: 24px;
+
+  font-weight: 1000;
+
+  line-height: 1;
+}
+
+
+@media
+(max-width: 560px) {
+
+  .lago-statbar {
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+    gap: 5px;
+
+  }
+
+
+  .lago-stat-card {
+
+    padding:
+      6px
+      7px;
+
+  }
+
+
+  .lago-stat-label {
+
+    font-size: 6px;
+
+  }
+
+
+  .lago-stat-value {
+
+    font-size: 15px;
+
+  }
+
+}
