@@ -416,27 +416,137 @@ account.addSP(
 
  function autoTick() {
 
-  /*
-   * Legacy passive economy disabled.
-   *
-   * AUTO will be redesigned later
-   * using only canonical Lago
-   * progression rules.
-   */
+  const account =
+    window.LAGO_ACCOUNT;
 
-  return;
+
+  /*
+   * Fail closed.
+   */
+  if (
+    !account ||
+    typeof account.getTapAutoState !==
+      "function" ||
+    typeof account.consumeTapDum !==
+      "function" ||
+    typeof account.addSP !==
+      "function"
+  ) {
+
+    return;
+
+  }
+
+
+  const auto =
+    account.getTapAutoState();
+
+
+  const rate =
+    Math.max(
+      0,
+
+      Math.floor(
+        Number(
+          auto
+            ?.spPerSecond
+        ) || 0
+      )
+    );
+
+
+  if (
+    rate <= 0
+  ) {
+
+    return;
+
+  }
+
+
+  let earned =
+    0;
+
+
+  /*
+   * Each AUTO SP behaves like
+   * one successful automatic tap.
+   *
+   * Therefore AUTO and manual Tap
+   * share the same DUM tapCounter.
+   */
+  for (
+    let i = 0;
+    i < rate;
+    i++
+  ) {
+
+    const dumResult =
+      account.consumeTapDum({
+        gameId:
+          "tap-lago"
+      });
+
+
+    if (
+      !dumResult ||
+      dumResult.allowed !==
+        true
+    ) {
+
+      break;
+
+    }
+
+
+    account.addSP(
+      1,
+      {
+        gameId:
+          "tap-lago"
+      }
+    );
+
+
+    earned++;
+
+  }
+
+
+  if (
+    earned <= 0
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * Refresh visible game/account UI.
+   *
+   * AUTO does NOT count as a
+   * physical player click.
+   */
+  runtime.render();
 
 }
-
-
 function startAuto() {
 
-  /*
-   * Do not start the old
-   * passive-income timer.
-   */
+  if (
+    autoTimer
+  ) {
 
-  return;
+    return;
+
+  }
+
+
+  autoTimer =
+    setInterval(
+      autoTick,
+      1000
+    );
 
 }
 
