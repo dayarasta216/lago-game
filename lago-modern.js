@@ -410,7 +410,7 @@ function startDumRefresh() {
       </header>
 
 
-      <!-- STATS -->
+     <!-- STATS -->
 
 <section
   class="lago-statbar"
@@ -455,18 +455,18 @@ function startDumRefresh() {
 
       <span
         class="lago-icon-slot"
-        data-lago-icon="sp"
+        data-lago-icon="power"
       ></span>
 
       <span>
-        SP
+        CLICKS
       </span>
 
     </div>
 
     <div
       class="lago-stat-value"
-      id="modernSP"
+      id="modernClicks"
     >
       0
     </div>
@@ -484,54 +484,26 @@ function startDumRefresh() {
 
       <span
         class="lago-icon-slot"
-        data-lago-icon="upgrade"
+        data-lago-icon="auto"
       ></span>
 
       <span>
-        LEVEL
+        SP / SEC
       </span>
 
     </div>
 
     <div
       class="lago-stat-value"
-      id="modernLevelStat"
+      id="modernAutoRate"
     >
-      1
-    </div>
-
-  </div>
-
-
-  <div
-    class="lago-stat-card"
-  >
-
-    <div
-      class="lago-stat-label"
-    >
-
-      <span
-        class="lago-icon-slot"
-        data-lago-icon="dum"
-      ></span>
-
-      <span>
-        TAP COST
-      </span>
-
-    </div>
-
-    <div
-      class="lago-stat-value"
-      id="modernTapCost"
-    >
-      1 DUM / 5 TAPS
+      0 SP/S
     </div>
 
   </div>
 
 </section>
+
 
 
       <!-- GAME -->
@@ -546,31 +518,51 @@ function startDumRefresh() {
           class="lago-side"
         >
 
-          <div
-            class="lago-side-card"
-          >
-
-            <div
-              class="lago-side-title"
-            >
-              NEXT LEVEL
-            </div>
-
-            <div
-  class="lago-side-big"
-  id="modernXP"
+         <div
+  class="lago-side-card"
 >
-  0 SP
-</div>
-            <div
-              class="lago-progress"
-            >
-              <i
-                id="modernProgress"
-              ></i>
-            </div>
 
-          </div>
+  <div
+    class="lago-progress-meta"
+  >
+
+    <div
+      class="lago-side-title"
+    >
+      SP PROGRESS
+    </div>
+
+    <div
+      class="lago-level-chip"
+    >
+      LEVEL
+      <span
+        id="modernLevelStat"
+      >
+        1
+      </span>
+    </div>
+
+  </div>
+
+
+  <div
+    class="lago-side-big"
+    id="modernXP"
+  >
+    0 SP
+  </div>
+
+
+  <div
+    class="lago-progress"
+  >
+    <i
+      id="modernProgress"
+    ></i>
+  </div>
+
+</div>
 
 
           <button
@@ -680,21 +672,78 @@ function startDumRefresh() {
 
 <!-- RIGHT -->
 
-<aside class="lago-side">
+<aside
+  class="lago-side lago-right-dashboard"
+>
 
-  <div class="lago-side-card">
+  <div
+    class="lago-side-card lago-dashboard-card"
+  >
 
-    <div class="lago-side-title">
-      YOUR LAGO
+    <div
+      class="lago-side-title"
+    >
+      DAILY BONUS
     </div>
 
-    <div class="lago-side-big">
-      🐌
+
+    <div
+      class="lago-dashboard-row"
+    >
+
+      <div
+        class="lago-dashboard-icon"
+      >
+        <span
+          class="lago-icon-slot"
+          data-lago-icon="daily"
+        ></span>
+      </div>
+
+
+      <div>
+
+        <div
+          class="lago-dashboard-status"
+        >
+          COMING NEXT
+        </div>
+
+        <div
+          class="lago-side-desc"
+        >
+          Daily rewards and streak.
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="lago-side-desc">
-      Name it whatever you want.
-      Nobody knows what Lago is.
+  </div>
+
+
+  <div
+    class="lago-side-card lago-dashboard-card"
+  >
+
+    <div
+      class="lago-side-title"
+    >
+      DAILY TASKS
+    </div>
+
+
+    <div
+      class="lago-dashboard-value"
+    >
+      0 / 3
+    </div>
+
+
+    <div
+      class="lago-side-desc"
+    >
+      Tap. Play. Complete tasks.
     </div>
 
   </div>
@@ -1155,7 +1204,39 @@ setTapHint();
 
 renderDumEnergy();
 
+/*
+ * Total successful Tap Lago clicks.
+ */
+$("modernClicks")
+  ?.replaceChildren(
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          game.totalClicks
+        ) || 0
+      )
+    ).toLocaleString(
+      "ru-RU"
+    )
+  );
 
+
+/*
+ * Canonical AUTO SP rate.
+ *
+ * AUTO runtime is still disabled
+ * until its DUM consumption rule
+ * is implemented.
+ */
+const autoSpPerSecond =
+  0;
+
+
+$("modernAutoRate")
+  ?.replaceChildren(
+    `${autoSpPerSecond} SP/S`
+  );
   /*
    * Account-level progress.
    */
@@ -1228,11 +1309,6 @@ $("modernLevelStat")
     String(level)
   );
 
-
-$("modernSP")
-  ?.replaceChildren(
-    String(sp)
-  );
 
 
 $("modernXP")
