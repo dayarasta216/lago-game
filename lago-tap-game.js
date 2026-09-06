@@ -613,20 +613,89 @@ function startAuto() {
   }
 
 
- function buyUpgrade(
+function buyUpgrade(
   key
 ) {
 
-  const upgrade =
-    getUpgrade(
-      key
+  /*
+   * Only canonical AUTO upgrade
+   * exists in Tap Lago now.
+   */
+  if (
+    key !==
+    "auto"
+  ) {
+
+    return false;
+
+  }
+
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  if (
+    !account ||
+    typeof account.upgradeTapAuto !==
+      "function"
+  ) {
+
+    console.error(
+      "[TAP LAGO] AUTO upgrade API is missing."
     );
 
 
-  if (!upgrade) {
+    runtime.toast(
+      "ACCOUNT CORE ERROR"
+    );
 
-    console.warn(
-      `[TAP LAGO] Unknown upgrade: ${key}`
+
+    return false;
+
+  }
+
+
+  const result =
+    account.upgradeTapAuto();
+
+
+  if (
+    result
+      ?.ok ===
+      true
+  ) {
+
+    runtime.toast(
+      `AUTO LEVEL ${result.level} · ${result.spPerSecond} SP/S`
+    );
+
+
+    runtime.beep(
+      720,
+      0.08
+    );
+
+
+    renderUpgrades();
+
+
+    runtime.render();
+
+
+    return true;
+
+  }
+
+
+  if (
+    result
+      ?.reason ===
+      "max"
+  ) {
+
+    runtime.toast(
+      "AUTO MAX LEVEL"
     );
 
     return false;
@@ -634,23 +703,38 @@ function startAuto() {
   }
 
 
-  /*
-   * Legacy energy-priced upgrades
-   * are disabled.
-   *
-   * R0.5B4.2 will introduce
-   * the canonical character/game
-   * upgrade rules.
-   */
+  if (
+    result
+      ?.reason ===
+      "level"
+  ) {
+
+    runtime.toast(
+      `NEED LEVEL ${result.requiredLevel} · ${result.requiredSp} SP`
+    );
+
+    return false;
+
+  }
+
+
+  if (
+    result
+      ?.reason ===
+      "dum"
+  ) {
+
+    runtime.toast(
+      `NEED ${result.dumCost} DUM`
+    );
+
+    return false;
+
+  }
+
 
   runtime.toast(
-    "UPGRADES ВРЕМЕННО ОТКЛЮЧЕНЫ"
-  );
-
-
-  runtime.beep(
-    90,
-    0.08
+    "AUTO UPGRADE FAILED"
   );
 
 
@@ -658,113 +742,153 @@ function startAuto() {
 
 }
 
-  function renderUpgrades() {
+ function renderUpgrades() {
 
-    const list =
-      document.getElementById(
-        "upgradeList"
-      );
-
-
-    if (!list) {
-
-      return;
-
-    }
+  const list =
+    document.getElementById(
+      "upgradeList"
+    );
 
 
-    const current =
-      state();
+  if (!list) {
 
-
-    list.innerHTML =
-      UPGRADES
-        .map(
-          upgrade => {
-
-            const level =
-              current.upgrades
-                ?.[upgrade.key] ||
-              0;
-
-
-            const cost =
-              upgradeCost(
-                upgrade
-              );
-
-
-            const maxed =
-              level >=
-              upgrade.max;
-
-
-            return `
-              <div class="card">
-
-                <div>
-
-                  <div
-                    style="font-size:20px"
-                  >
-                    ${upgrade.icon}
-                    <b>
-                      ${upgrade.name}
-                    </b>
-                  </div>
-
-                  <div class="desc">
-                    ${upgrade.desc}
-
-                    <br>
-
-                    Уровень:
-                    ${level}/${upgrade.max}
-                  </div>
-
-                </div>
-
-                <button
-                  class="buy"
-                  data-up="${upgrade.key}"
-                disabled
-                >
-                 ${
-  maxed
-    ? "MAX"
-    : "SOON"
-}
-                </button>
-
-              </div>
-            `;
-
-          }
-        )
-        .join("");
-
-
-    list
-      .querySelectorAll(
-        "[data-up]"
-      )
-      .forEach(
-        button => {
-
-          button.onclick =
-            () => {
-
-              buyUpgrade(
-                button.dataset.up
-              );
-
-            };
-
-        }
-      );
+    return;
 
   }
 
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  if (
+    !account ||
+    typeof account
+      .getTapAutoUpgradeState !==
+      "function"
+  ) {
+
+    list.innerHTML =
+      `
+        <div class="card">
+          ACCOUNT CORE ERROR
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  const auto =
+    account
+      .getTapAutoUpgradeState();
+
+
+  const nextRate =
+    auto.maxed
+
+      ? auto.spPerSecond
+
+      : auto.nextLevel;
+
+
+  list.innerHTML =
+    `
+      <div class="card">
+
+        <div>
+
+          <div
+            style="font-size:20px"
+          >
+            🤖
+            <b>
+              AUTO SP / SEC
+            </b>
+          </div>
+
+
+          <div class="desc">
+
+            AUTO LEVEL:
+            ${auto.level}/${auto.maxLevel}
+
+            <br>
+
+            CURRENT:
+            ${auto.spPerSecond} SP/S
+
+            <br>
+
+            ${
+              auto.maxed
+
+                ? "MAX LEVEL"
+
+                : `NEXT: ${nextRate} SP/S`
+            }
+
+            ${
+              auto.maxed
+
+                ? ""
+
+                : `
+                  <br>
+                  REQUIRES:
+                  LEVEL ${auto.requiredLevel}
+                  / ${auto.requiredSp} SP
+
+                  <br>
+                  COST:
+                  ${auto.dumCost} DUM
+                `
+            }
+
+          </div>
+
+        </div>
+
+
+        <button
+          class="buy"
+          data-up="auto"
+          ${
+            auto.maxed
+              ? "disabled"
+              : ""
+          }
+        >
+
+          ${
+            auto.maxed
+              ? "MAX"
+              : `${auto.dumCost} DUM`
+          }
+
+        </button>
+
+      </div>
+    `;
+
+
+  list
+    .querySelector(
+      '[data-up="auto"]'
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        buyUpgrade(
+          "auto"
+        );
+
+      }
+    );
+
+}
 
   function openUpgrades() {
 
