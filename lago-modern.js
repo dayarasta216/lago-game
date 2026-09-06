@@ -1229,8 +1229,38 @@ $("modernClicks")
  * until its DUM consumption rule
  * is implemented.
  */
-const autoSpPerSecond =
+let autoSpPerSecond =
   0;
+
+
+try {
+
+  const auto =
+    window.LAGO_ACCOUNT
+      ?.getTapAutoState
+      ?.();
+
+
+  autoSpPerSecond =
+    Math.max(
+      0,
+
+      Math.floor(
+        Number(
+          auto
+            ?.spPerSecond
+        ) || 0
+      )
+    );
+
+} catch (error) {
+
+  console.warn(
+    "[LAGO MODERN] Could not read AUTO rate:",
+    error
+  );
+
+}
 
 
 $("modernAutoRate")
