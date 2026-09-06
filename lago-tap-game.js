@@ -38,18 +38,18 @@
 
  /*
  * =========================================================
- * TAP SCORE / UPGRADES
+ * LEGACY TAP UPGRADES
  *
- * IMPORTANT:
+ * Old clicker economy is being
+ * decommissioned.
  *
- * current.energy is now ONLY a
- * legacy storage field for local
- * Tap Lago Score.
+ * Real economy:
  *
- * It is NOT account DUM Energy.
+ * DUM  = gameplay stamina
+ * SP   = permanent progression
+ * $LAGO = Solana token
  *
- * Real DUM lives only in:
- * window.LAGO_ACCOUNT.energy
+ * No additional Tap currency exists.
  * =========================================================
  */
   
@@ -59,7 +59,7 @@
       key: "click",
       icon: "🚀",
       name: "УСИЛЕНИЕ КЛИКА",
-    desc: "+1 TAP SCORE за каждый клик",
+   desc: "+1 SP за каждый успешный клик",
       base: 25,
       max: 50,
 
@@ -75,7 +75,7 @@
       key: "auto",
       icon: "🤖",
       name: "АВТОКЛИКЕР",
-      desc: "+1 TAP SCORE каждую секунду",
+    desc: "AUTO временно отключён",
       base: 80,
       max: 50,
 
@@ -91,7 +91,7 @@
       key: "shield",
       icon: "🛡️",
       name: "ЗАЩИТА",
-      desc: "-10% потерь при краже",
+    desc: "Будет перенесено в HEIST",
       base: 120,
       max: 9,
 
@@ -317,24 +317,6 @@
     );
 
 
-  /*
- * Local Tap Lago Score.
- *
- * Legacy field name "energy"
- * stays temporarily for save
- * compatibility.
- *
- * This value is NOT DUM.
- */
-current.energy =
-  Math.max(
-    0,
-    Number(
-      current.energy
-    ) || 0
-  ) +
-  gain;
-
 
 /*
  * Keep old Tap statistics alive
@@ -410,130 +392,28 @@ account.addSP(
 
   function steal() {
 
-    const current =
-      state();
+  /*
+   * Old local steal economy
+   * is permanently disabled.
+   *
+   * Real player raids arrive
+   * in R0.5D Heist Foundation.
+   */
+
+  runtime.toast(
+    "HEIST ЕЩЁ НЕ ПОДКЛЮЧЁН 🐌"
+  );
 
 
-    if (
-      current.energy < 5
-    ) {
-
-     runtime.toast(
-  "НУЖНО ХОТЯ БЫ 5 TAP SCORE 😭"
-);
+  runtime.beep(
+    120,
+    0.08
+  );
 
 
-      runtime.beep(
-        90,
-        0.1
-      );
+  return getState();
 
-
-      return getState();
-
-    }
-
-
-    const success =
-      Math.random() <
-      (
-        0.40 +
-        Math.min(
-          0.20,
-          current.shield *
-          0.02
-        )
-      );
-
-
-    const amount =
-      Math.max(
-        1,
-        Math.floor(
-          5 +
-          Math.random() *
-          Math.max(
-            10,
-            current.energy *
-            0.18
-          )
-        )
-      );
-
-
-    if (success) {
-
-      current.energy +=
-        amount;
-
-
-      current.steals++;
-
-
-     runtime.toast(
-  `👾 ОГРАБИЛ! +${amount} TAP SCORE`
-);
-
-
-      runtime.beep(
-        740,
-        0.08
-      );
-
-
-      runtime.beep(
-        920,
-        0.08
-      );
-
-    } else {
-
-      const loss =
-        Math.max(
-          1,
-          Math.floor(
-            amount *
-            (
-              1 -
-              current.shield *
-              0.1
-            )
-          )
-        );
-
-
-      current.energy =
-        Math.max(
-          0,
-          current.energy -
-          loss
-        );
-
-
-      runtime.toast(
-  `🚓 СПАЛИЛИ! -${loss} TAP SCORE`
-);
-
-      runtime.beep(
-        120,
-        0.14
-      );
-
-    }
-
-
-    runtime.checkAchievements();
-
-
-    runtime.render();
-
-
-    runtime.save();
-
-
-    return getState();
-
-  }
+}
 
 
   /*
@@ -825,20 +705,13 @@ account.addSP(
                 <button
                   class="buy"
                   data-up="${upgrade.key}"
-                  ${
-                    maxed
-                      ? "disabled"
-                      : ""
-                  }
+                disabled
                 >
-                  ${
-                    maxed
-                      ? "MAX"
-                      : "💎 " +
-                        formatNumber(
-                          cost
-                        )
-                  }
+                 ${
+  maxed
+    ? "MAX"
+    : "SOON"
+}
                 </button>
 
               </div>
