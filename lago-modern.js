@@ -584,10 +584,10 @@ function startDumRefresh() {
               </div>
 
               <div
-                class="lago-action-sub"
-              >
-                Make Lago stupider
-              </div>
+  class="lago-action-sub"
+>
+  Increase AUTO SP / SEC
+</div>
 
             </div>
 
@@ -1157,14 +1157,22 @@ setTapHint();
 
 
   if (
-    page === "shop"
-  ) {
+  page === "shop"
+) {
 
-    window.LAGO_TAP_GAME
-      ?.openUpgrades
-      ?.();
+  /*
+   * Real Shop will contain
+   * characters/items and $LAGO.
+   *
+   * AUTO Upgrade is gameplay,
+   * not the Shop.
+   */
 
-  }
+  console.info(
+    "[LAGO MODERN] Shop is not connected yet."
+  );
+
+  return;
 
 }
 
