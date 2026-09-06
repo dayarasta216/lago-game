@@ -2106,6 +2106,215 @@ function restoreDum(
 
   /*
  * =========================================================
+ * TAP LAGO — DUM COST
+ * =========================================================
+ */
+
+
+/*
+ * Tap rule:
+ *
+ * - player must have at least 1 DUM
+ * - every successful tap increments tapCounter
+ * - every 5th successful tap spends 1 DUM
+ *
+ * tapCounter:
+ * 0 → 1 → 2 → 3 → 4 → spend 1 → 0
+ */
+function consumeTapDum(
+  options = {}
+) {
+
+  /*
+   * Apply offline regeneration first,
+   * but save only once at the end.
+   */
+  refreshDumEnergy({
+    persist:
+      false
+  });
+
+
+  /*
+   * Zero DUM means Tap Lago
+   * cannot continue.
+   */
+  if (
+    state.energy.dum <= 0
+  ) {
+
+    return {
+
+      allowed:
+        false,
+
+      spent:
+        0,
+
+      dum:
+        state.energy.dum,
+
+      max:
+        state.energy.max,
+
+      tapCounter:
+        state.energy.tapCounter
+
+    };
+
+  }
+
+
+  const counter =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          state.energy
+            .tapCounter
+        ) || 0
+      )
+    );
+
+
+  const nextCounter =
+    counter + 1;
+
+
+  /*
+   * Taps 1–4:
+   * no DUM is spent yet.
+   */
+  if (
+    nextCounter < 5
+  ) {
+
+    state.energy.tapCounter =
+      nextCounter;
+
+
+    save();
+
+
+    return {
+
+      allowed:
+        true,
+
+      spent:
+        0,
+
+      dum:
+        state.energy.dum,
+
+      max:
+        state.energy.max,
+
+      tapCounter:
+        state.energy.tapCounter
+
+    };
+
+  }
+
+
+  /*
+   * Every 5th successful tap:
+   * spend exactly 1 DUM.
+   */
+  const wasFull =
+    state.energy.dum >=
+    state.energy.max;
+
+
+  state.energy.dum -=
+    1;
+
+
+  state.energy.tapCounter =
+    0;
+
+
+  state.lifetime
+    .dumSpent =
+    Math.max(
+      0,
+      Number(
+        state.lifetime
+          .dumSpent
+      ) || 0
+    ) +
+    1;
+
+
+  /*
+   * Regeneration clock begins
+   * when energy leaves MAX.
+   */
+  if (
+    wasFull ||
+    !state.energy.updatedAt
+  ) {
+
+    state.energy.updatedAt =
+      new Date()
+        .toISOString();
+
+  }
+
+
+  /*
+   * Count DUM spent specifically
+   * by Tap Lago.
+   */
+  if (
+    options.gameId
+  ) {
+
+    const game =
+      ensureGame(
+        options.gameId
+      );
+
+
+    game.dumSpent =
+      Math.max(
+        0,
+        Number(
+          game.dumSpent
+        ) || 0
+      ) +
+      1;
+
+  }
+
+
+  save();
+
+
+  return {
+
+    allowed:
+      true,
+
+    spent:
+      1,
+
+    dum:
+      state.energy.dum,
+
+    max:
+      state.energy.max,
+
+    tapCounter:
+      0
+
+  };
+
+}
+
+  /*
+ * =========================================================
  * LAGO LIFE — ACCOUNT CONDITION
  * =========================================================
  */
@@ -3018,6 +3227,7 @@ restoreDum,
 
 refreshDumEnergy,
 
+consumeTapDum,
 
 /*
  * Lago Life
