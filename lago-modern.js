@@ -501,20 +501,84 @@ function startDumRefresh() {
         >
 
           <div
-            class="lago-stat-label"
-          >
-            🧠 BRAIN
-          </div>
+  class="lago-stat-card"
+>
 
-          <div
-            class="lago-stat-value"
-            id="modernDays"
-          >
-            0
-          </div>
+  <div class="lago-stat-label">
 
-        </div>
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="sp"
+    ></span>
 
+    <span>
+      SP
+    </span>
+
+  </div>
+
+  <div
+    class="lago-stat-value"
+    id="modernSP"
+  >
+    0
+  </div>
+
+</div>
+
+
+<div
+  class="lago-stat-card"
+>
+
+  <div class="lago-stat-label">
+
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="upgrade"
+    ></span>
+
+    <span>
+      LEVEL
+    </span>
+
+  </div>
+
+  <div
+    class="lago-stat-value"
+    id="modernLevelStat"
+  >
+    1
+  </div>
+
+</div>
+
+
+<div
+  class="lago-stat-card"
+>
+
+  <div class="lago-stat-label">
+
+    <span
+      class="lago-icon-slot"
+      data-lago-icon="dum"
+    ></span>
+
+    <span>
+      TAP COST
+    </span>
+
+  </div>
+
+  <div
+    class="lago-stat-value"
+    id="modernTapCost"
+  >
+    1 DUM / 5 TAPS
+  </div>
+
+</div>
       </section>
 
 
@@ -1129,100 +1193,115 @@ setTapHint();
     game;
 
 
-  $("modernEnergy")
-    ?.replaceChildren(
-      String(
-        game.energy ?? 0
-      )
-    );
-
-
-  $("modernPower")
-    ?.replaceChildren(
-      String(
-        game.power ?? 1
-      )
-    );
-
-
  /*
  * DUM comes only from
  * Account Core.
+ *
+ * Never render legacy
+ * Tap Lago energy here.
  */
 
 renderDumEnergy();
-
-
-  $("modernDays")
-    ?.replaceChildren(
-      String(
-        game.days ?? 0
-      )
-    );
 
 
   /*
    * Account-level progress.
    */
 
-  let level = 1;
-  let xp = 0;
+ let level =
+  1;
+
+let sp =
+  0;
 
 
-  try {
+try {
 
-    const account =
-      window.LAGO
-        ?.getState
-        ?.();
+  const account =
+    window.LAGO_ACCOUNT
+      ?.getState
+      ?.() ||
+    window.LAGO
+      ?.getState
+      ?.();
 
 
-    if (account) {
+  if (account) {
 
-      level =
-        account.level || 1;
+    level =
+      Math.max(
+        1,
+        Math.floor(
+          Number(
+            account.economy
+              ?.level ??
+            account.level
+          ) || 1
+        )
+      );
 
-      xp =
-        account.xp || 0;
 
-    }
-
-  } catch (error) {
-
-    console.warn(
-      "[LAGO MODERN] Could not read account state:",
-      error
-    );
+    sp =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            account.economy
+              ?.sp ??
+            account.xp
+          ) || 0
+        )
+      );
 
   }
 
+} catch (error) {
 
-  $("modernLevel")
-    ?.replaceChildren(
-      String(level)
-    );
+  console.warn(
+    "[LAGO MODERN] Could not read account state:",
+    error
+  );
+
+}
 
 
-  $("modernXP")
+$("modernLevel")
   ?.replaceChildren(
-    `${xp} SP`
+    String(level)
   );
 
 
-  const bar =
-    $("modernProgress");
+$("modernLevelStat")
+  ?.replaceChildren(
+    String(level)
+  );
 
 
-  if (bar) {
+$("modernSP")
+  ?.replaceChildren(
+    String(sp)
+  );
 
-    bar.style.width =
-      `${Math.min(
-        100,
-        xp % 100
-      )}%`;
 
-  }
+$("modernXP")
+  ?.replaceChildren(
+    `${sp} SP`
+  );
 
+
+const bar =
+  $("modernProgress");
+
+
+if (bar) {
+
+  bar.style.width =
+    `${Math.min(
+      100,
+      sp % 100
+    )}%`;
+
+}
 
   /*
    * Speech comes from Tap Lago state,
