@@ -422,52 +422,31 @@ account.addSP(
    * =========================================================
    */
 
-  function autoTick() {
+ function autoTick() {
 
-    const current =
-      state();
+  /*
+   * Legacy passive economy disabled.
+   *
+   * AUTO will be redesigned later
+   * using only canonical Lago
+   * progression rules.
+   */
 
+  return;
 
-    if (
-      current.auto <= 0
-    ) {
-
-      return;
-
-    }
-
-
-    const gain =
-      current.auto +
-      memeAutoBonus();
+}
 
 
-    current.energy +=
-      gain;
+function startAuto() {
 
+  /*
+   * Do not start the old
+   * passive-income timer.
+   */
 
-    runtime.checkAchievements();
+  return;
 
-
-    runtime.render();
-
-  }
-
-
-  function startAuto() {
-
-    if (autoTimer) {
-      return;
-    }
-
-
-    autoTimer =
-      setInterval(
-        autoTick,
-        1000
-      );
-
-  }
+}
 
 
   function stopAuto() {
@@ -532,109 +511,50 @@ account.addSP(
   }
 
 
-  function buyUpgrade(key) {
+ function buyUpgrade(
+  key
+) {
 
-    const current =
-      state();
-
-
-    const upgrade =
-      getUpgrade(key);
-
-
-    if (!upgrade) {
-
-      console.warn(
-        `[TAP LAGO] Unknown upgrade: ${key}`
-      );
-
-      return false;
-
-    }
-
-
-    const level =
-      current.upgrades
-        ?.[upgrade.key] ||
-      0;
-
-
-    if (
-      level >=
-      upgrade.max
-    ) {
-
-      runtime.toast(
-        "MAXIMUM КРИНЖ"
-      );
-
-      return false;
-
-    }
-
-
-    const cost =
-      upgradeCost(
-        upgrade
-      );
-
-
-    if (
-      current.energy <
-      cost
-    ) {
-
-     runtime.toast(
-  "НЕ ХВАТАЕТ TAP SCORE 😭"
-);
-
-      runtime.beep(
-        90,
-        0.1
-      );
-
-
-      return false;
-
-    }
-
-
-    current.energy -=
-      cost;
-
-
-    current.upgrades[
-      upgrade.key
-    ] =
-      level + 1;
-
-
-    upgrade.apply(
-      current
+  const upgrade =
+    getUpgrade(
+      key
     );
 
 
-    runtime.beep(
-      600,
-      0.06
+  if (!upgrade) {
+
+    console.warn(
+      `[TAP LAGO] Unknown upgrade: ${key}`
     );
 
-
-    runtime.toast(
-      "АПГРЕЙД! ⬆"
-    );
-
-
-    runtime.render();
-
-
-    runtime.save();
-
-
-    return true;
+    return false;
 
   }
 
+
+  /*
+   * Legacy energy-priced upgrades
+   * are disabled.
+   *
+   * R0.5B4.2 will introduce
+   * the canonical character/game
+   * upgrade rules.
+   */
+
+  runtime.toast(
+    "UPGRADES ВРЕМЕННО ОТКЛЮЧЕНЫ"
+  );
+
+
+  runtime.beep(
+    90,
+    0.08
+  );
+
+
+  return false;
+
+}
 
   function renderUpgrades() {
 
