@@ -8,7 +8,14 @@
   }
 
 
-  let tapState = null;
+  let tapState =
+  null;
+
+
+let dumRefreshTimer =
+  null;
+
+
 const TAP_HINTS = [
 
   "TAP TAP",
@@ -161,6 +168,102 @@ function readTapState() {
 
 }
 
+/*
+ * =========================================================
+ * CANONICAL DUM ENERGY
+ * =========================================================
+ */
+
+function readDumEnergy() {
+
+  try {
+
+    if (
+      window.LAGO_ACCOUNT &&
+      typeof window.LAGO_ACCOUNT
+        .getDumEnergy ===
+        "function"
+    ) {
+
+      return window.LAGO_ACCOUNT
+        .getDumEnergy();
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "[LAGO MODERN] Could not read DUM Energy:",
+      error
+    );
+
+  }
+
+
+  return {
+
+    dum:
+      0,
+
+    max:
+      100,
+
+    tapCounter:
+      0
+
+  };
+
+}
+
+
+function renderDumEnergy() {
+
+  const energy =
+    readDumEnergy();
+
+
+  $("modernEnergy")
+    ?.replaceChildren(
+      `${Math.floor(
+        Number(
+          energy.dum
+        ) || 0
+      )} / ${Math.floor(
+        Number(
+          energy.max
+        ) || 100
+      )}`
+    );
+
+}
+
+
+/*
+ * Keep visible DUM synchronized
+ * with Account Core regeneration.
+ */
+function startDumRefresh() {
+
+  if (
+    dumRefreshTimer
+  ) {
+
+    return;
+
+  }
+
+
+  renderDumEnergy();
+
+
+  dumRefreshTimer =
+    setInterval(
+      renderDumEnergy,
+      1000
+    );
+
+}
+  
   function createUI() {
 
     if (
@@ -704,6 +807,11 @@ bind();
 update(
   tapState
 );
+
+
+startDumRefresh();
+
+
 setTapHint(
   null,
   true
@@ -1037,12 +1145,12 @@ setTapHint();
     );
 
 
-  $("modernAuto")
-    ?.replaceChildren(
-      String(
-        game.auto ?? 0
-      )
-    );
+ /*
+ * DUM comes only from
+ * Account Core.
+ */
+
+renderDumEnergy();
 
 
   $("modernDays")
