@@ -194,58 +194,184 @@
    * =========================================================
    */
 
-  function tap(event = null) {
+ function tap(
+  event = null
+) {
 
-    const current =
-      state();
-
-
-    const gain =
-      current.power +
-      memeClickBonus();
+  const account =
+    window.LAGO_ACCOUNT;
 
 
-    current.energy +=
-      gain;
+  /*
+   * Fail closed.
+   *
+   * Tap Lago must no longer fall
+   * back to the old fake DUM economy.
+   */
+  if (
+    !account ||
+    typeof account.consumeTapDum !==
+      "function" ||
+    typeof account.addSP !==
+      "function"
+  ) {
 
-
-    current.totalClicks++;
-
-
-    runtime.animateSnail();
-
-
-    runtime.setSpeech(
-      randomPhrase()
+    console.error(
+      "[TAP LAGO] Account Core DUM/SP API is missing."
     );
 
 
-    runtime.beep(
-      180 +
-      Math.random() *
-      420,
-      0.045
+    runtime.toast(
+      "ACCOUNT CORE ERROR"
     );
-
-
-   runtime.spawnFloat(
-  `+${gain} DUM`,
-  event
-);
-
-
-    runtime.checkAchievements();
-
-
-    runtime.render();
-
-
-    runtime.save();
 
 
     return getState();
 
   }
+
+
+  /*
+   * Account Core decides whether
+   * this tap is allowed and whether
+   * this is the 5th tap that costs
+   * 1 DUM.
+   */
+  const dumResult =
+    account.consumeTapDum({
+      gameId:
+        "tap-lago"
+    });
+
+
+  /*
+   * DUM = 0:
+   * no successful tap,
+   * no SP,
+   * no click progression.
+   */
+  if (
+    !dumResult ||
+    dumResult.allowed !==
+      true
+  ) {
+
+    runtime.toast(
+      "DUM ENERGY 0 😭 WAIT FOR REGEN"
+    );
+
+
+    runtime.beep(
+      90,
+      0.1
+    );
+
+
+    runtime.setSpeech(
+      "Lago is out of energy..."
+    );
+
+
+    return getState();
+
+  }
+
+
+  const current =
+    state();
+
+
+  /*
+   * Old CLICK POWER now becomes
+   * SP reward power.
+   *
+   * It no longer creates DUM.
+   */
+  const gain =
+    Math.max(
+      1,
+
+      Math.floor(
+        Number(
+          current.power
+        ) || 1
+      ) +
+
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            memeClickBonus()
+          ) || 0
+        )
+      )
+    );
+
+
+  /*
+   * Keep old Tap statistics alive
+   * during migration.
+   */
+  current.totalClicks++;
+
+
+  /*
+   * Permanent progression reward.
+   */
+  account.addSP(
+    gain,
+    {
+      gameId:
+        "tap-lago"
+    }
+  );
+
+
+  runtime.animateSnail();
+
+
+  runtime.setSpeech(
+    randomPhrase()
+  );
+
+
+  runtime.beep(
+    180 +
+    Math.random() *
+    420,
+    0.045
+  );
+
+
+  /*
+   * Show the real economy:
+   *
+   * successful tap → SP
+   * every 5th tap → -1 DUM
+   */
+  runtime.spawnFloat(
+    dumResult.spent > 0
+
+      ? `+${gain} SP · -1 DUM`
+
+      : `+${gain} SP`,
+
+    event
+  );
+
+
+  runtime.checkAchievements();
+
+
+  runtime.render();
+
+
+  runtime.save();
+
+
+  return getState();
+
+}
 
 
   /*
