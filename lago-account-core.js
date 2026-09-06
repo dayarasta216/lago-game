@@ -2391,6 +2391,275 @@ function getTapAutoState() {
   };
 
 }
+
+  /*
+ * =========================================================
+ * TAP LAGO AUTO UPGRADE
+ * =========================================================
+ *
+ * SP / LEVEL:
+ * permanent requirement only.
+ *
+ * SP is NEVER spent here.
+ *
+ * DUM:
+ * actual upgrade cost.
+ */
+
+function getTapAutoUpgradeState() {
+
+  refreshDumEnergy();
+
+
+  const auto =
+    getTapAutoState();
+
+
+  const maxLevel =
+    10;
+
+
+  const maxed =
+    auto.level >=
+    maxLevel;
+
+
+  const nextLevel =
+    maxed
+
+      ? maxLevel
+
+      : auto.level + 1;
+
+
+  /*
+   * Cost:
+   *
+   * AUTO 0 → 1 = 10 DUM
+   * AUTO 1 → 2 = 15 DUM
+   * AUTO 2 → 3 = 20 DUM
+   * ...
+   */
+  const dumCost =
+    maxed
+
+      ? 0
+
+      : 10 +
+        (
+          nextLevel - 1
+        ) * 5;
+
+
+  /*
+   * AUTO 1 requires LEVEL 2.
+   * AUTO 2 requires LEVEL 3.
+   * ...
+   */
+  const requiredLevel =
+    maxed
+
+      ? state.level
+
+      : nextLevel + 1;
+
+
+  /*
+   * Current progression model:
+   * 100 SP per account level.
+   */
+  const requiredSp =
+    maxed
+
+      ? state.economy.sp
+
+      : (
+          requiredLevel - 1
+        ) * 100;
+
+
+  const accountLevel =
+    Math.max(
+      1,
+      Math.floor(
+        Number(
+          state.economy
+            ?.level ??
+          state.level
+        ) || 1
+      )
+    );
+
+
+  const accountSp =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          state.economy
+            ?.sp ??
+          state.xp
+        ) || 0
+      )
+    );
+
+
+  const enoughLevel =
+    accountLevel >=
+    requiredLevel;
+
+
+  const enoughDum =
+    state.energy.dum >=
+    dumCost;
+
+
+  return {
+
+    level:
+      auto.level,
+
+    spPerSecond:
+      auto.spPerSecond,
+
+    maxLevel,
+
+    maxed,
+
+    nextLevel,
+
+    dumCost,
+
+    requiredLevel,
+
+    requiredSp,
+
+    accountLevel,
+
+    accountSp,
+
+    dum:
+      state.energy.dum,
+
+    enoughLevel,
+
+    enoughDum,
+
+    canUpgrade:
+      !maxed &&
+      enoughLevel &&
+      enoughDum
+
+  };
+
+}
+
+
+function upgradeTapAuto() {
+
+  const before =
+    getTapAutoUpgradeState();
+
+
+  if (
+    before.maxed
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "max",
+
+      ...before
+
+    };
+
+  }
+
+
+  if (
+    !before.enoughLevel
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "level",
+
+      ...before
+
+    };
+
+  }
+
+
+  /*
+   * SP is NOT deducted.
+   *
+   * Only DUM pays for
+   * the actual upgrade.
+   */
+  const paid =
+    spendDum(
+      before.dumCost,
+      {
+        gameId:
+          "tap-lago"
+      }
+    );
+
+
+  if (
+    !paid
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "dum",
+
+      ...getTapAutoUpgradeState()
+
+    };
+
+  }
+
+
+  const game =
+    ensureGame(
+      "tap-lago"
+    );
+
+
+  game.autoLevel =
+    before.nextLevel;
+
+
+  save();
+
+
+  return {
+
+    ok:
+      true,
+
+    reason:
+      "upgraded",
+
+    ...getTapAutoUpgradeState()
+
+  };
+
+}
   
   /*
  * =========================================================
