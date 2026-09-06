@@ -3579,6 +3579,10 @@ consumeTapDum,
 
 getTapAutoState,
 
+getTapAutoUpgradeState,
+
+upgradeTapAuto,
+
 /*
  * Lago Life
  */
