@@ -2182,6 +2182,385 @@ function markActive() {
   return save();
 
 }
+
+  /*
+ * =========================================================
+ * HEIST — FOUNDATION
+ * =========================================================
+ */
+
+
+/*
+ * Weaker Lago Life makes a target
+ * easier to raid.
+ */
+function getHeistLifeBonus(
+  status = "alive"
+) {
+
+  switch (
+    String(status)
+      .toLowerCase()
+  ) {
+
+    case "dead":
+      return 0.25;
+
+    case "dying":
+      return 0.18;
+
+    case "dumb":
+      return 0.10;
+
+    case "tired":
+      return 0.05;
+
+    default:
+      return 0;
+
+  }
+
+}
+
+
+/*
+ * Better loot is harder to steal.
+ */
+function getHeistRarityPenalty(
+  rarity = "common"
+) {
+
+  switch (
+    String(rarity)
+      .toLowerCase()
+  ) {
+
+    case "secret":
+      return 0.28;
+
+    case "mythic":
+      return 0.24;
+
+    case "legendary":
+      return 0.20;
+
+    case "epic":
+      return 0.15;
+
+    case "rare":
+      return 0.08;
+
+    default:
+      return 0;
+
+  }
+
+}
+
+
+/*
+ * Final probability is always
+ * clamped between 10% and 75%.
+ */
+function calculateHeistChance(
+  {
+    attackerSkill =
+      state.heist.skill,
+
+    attackerHeat =
+      state.heist.heat,
+
+    targetLifeStatus =
+      "alive",
+
+    targetShield =
+      0,
+
+    targetOfflineHours =
+      0,
+
+    itemRarity =
+      "common",
+
+    repeatAttempts =
+      0,
+
+    isRevenge =
+      false
+
+  } = {}
+) {
+
+  let chance =
+    HEIST_BASE_CHANCE;
+
+
+  /*
+   * Skill:
+   * +1% per level,
+   * maximum +15%.
+   */
+  chance +=
+    Math.min(
+      0.15,
+
+      Math.max(
+        0,
+        Number(
+          attackerSkill
+        ) || 0
+      ) *
+      0.01
+    );
+
+
+  /*
+   * Target condition.
+   */
+  chance +=
+    getHeistLifeBonus(
+      targetLifeStatus
+    );
+
+
+  /*
+   * Offline target bonus.
+   */
+  const offlineHours =
+    Math.max(
+      0,
+      Number(
+        targetOfflineHours
+      ) || 0
+    );
+
+
+  if (
+    offlineHours >= 120
+  ) {
+
+    chance +=
+      0.10;
+
+  } else if (
+    offlineHours >= 48
+  ) {
+
+    chance +=
+      0.05;
+
+  }
+
+
+  /*
+   * Shield:
+   * -3% per level,
+   * maximum -27%.
+   */
+  chance -=
+    Math.min(
+      0.27,
+
+      Math.max(
+        0,
+        Number(
+          targetShield
+        ) || 0
+      ) *
+      0.03
+    );
+
+
+  /*
+   * Rarity protection.
+   */
+  chance -=
+    getHeistRarityPenalty(
+      itemRarity
+    );
+
+
+  /*
+   * Revenge advantage.
+   */
+  if (
+    isRevenge
+  ) {
+
+    chance +=
+      0.08;
+
+  }
+
+
+  /*
+   * Repeated attacks against
+   * the same target become harder.
+   *
+   * -5% each,
+   * maximum -15%.
+   */
+  chance -=
+    Math.min(
+      0.15,
+
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            repeatAttempts
+          ) || 0
+        )
+      ) *
+      0.05
+    );
+
+
+  /*
+   * HEAT:
+   * 100 HEAT = maximum -20%.
+   */
+  chance -=
+    Math.min(
+      0.20,
+
+      clamp(
+        attackerHeat,
+        0,
+        100
+      ) *
+      0.002
+    );
+
+
+  return clamp(
+    chance,
+    HEIST_MIN_CHANCE,
+    HEIST_MAX_CHANCE
+  );
+
+}
+
+
+/*
+ * Scouting a player.
+ */
+function getScoutCost() {
+
+  return 2;
+
+}
+
+
+/*
+ * Base:
+ * 10 DUM
+ *
+ * Repeat:
+ * 14 → 18 → 22
+ *
+ * Revenge:
+ * 6 DUM
+ */
+function getHeistCost(
+  {
+    repeatAttempts = 0,
+    isRevenge = false
+  } = {}
+) {
+
+  if (
+    isRevenge
+  ) {
+
+    return 6;
+
+  }
+
+
+  const repeats =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          repeatAttempts
+        ) || 0
+      )
+    );
+
+
+  return (
+    10 +
+    Math.min(
+      12,
+      repeats * 4
+    )
+  );
+
+}
+
+
+/*
+ * Increase HEAT safely.
+ */
+function addHeat(
+  amount = 0
+) {
+
+  const value =
+    Math.max(
+      0,
+      Number(
+        amount
+      ) || 0
+    );
+
+
+  state.heist.heat =
+    clamp(
+      state.heist.heat +
+      value,
+      0,
+      100
+    );
+
+
+  return save();
+
+}
+
+
+/*
+ * Reduce HEAT safely.
+ *
+ * Later R0.5D can call this
+ * periodically.
+ */
+function coolHeat(
+  amount = 5
+) {
+
+  const value =
+    Math.max(
+      0,
+      Number(
+        amount
+      ) || 0
+    );
+
+
+  state.heist.heat =
+    clamp(
+      state.heist.heat -
+      value,
+      0,
+      100
+    );
+
+
+  return save();
+
+}
   
   /*
    * =========================================================
@@ -2612,6 +2991,21 @@ getLifeStatus,
 setLife,
 
 markActive,
+
+
+/*
+ * Heist foundation
+ */
+
+calculateHeistChance,
+
+getScoutCost,
+
+getHeistCost,
+
+addHeat,
+
+coolHeat,
 
 
 /*
