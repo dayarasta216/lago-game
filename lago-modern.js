@@ -412,174 +412,126 @@ function startDumRefresh() {
 
       <!-- STATS -->
 
-      <section
-        class="lago-statbar"
-      >
-
-        <div
-          class="lago-stat-card"
-        >
-
-          <div class="lago-stat-label">
-
-  <span
-    class="lago-icon-slot"
-    data-lago-icon="dum"
-  ></span>
-
-  <span>
-    DUM ENERGY
-  </span>
-
-</div>
-          <div
-            class="lago-stat-value"
-            id="modernEnergy"
-          >
-            0
-          </div>
-
-        </div>
-
-
-        <div
-          class="lago-stat-card"
-        >
-
-          <div class="lago-stat-label">
-
-  <span
-    class="lago-icon-slot"
-    data-lago-icon="power"
-  ></span>
-
-  <span>
-    CLICK POWER
-  </span>
-
-</div>
-
-          <div
-            class="lago-stat-value"
-            id="modernPower"
-          >
-            1
-          </div>
-
-        </div>
-
-
-        <div
-          class="lago-stat-card"
-        >
-
-         <div class="lago-stat-label">
-
-  <span
-    class="lago-icon-slot"
-    data-lago-icon="auto"
-  ></span>
-
-  <span>
-    PER SECOND
-  </span>
-
-</div>
-
-          <div
-            class="lago-stat-value"
-            id="modernAuto"
-          >
-            0
-          </div>
-
-        </div>
-
-
-        <div
-          class="lago-stat-card"
-        >
-
-          <div
-  class="lago-stat-card"
+<section
+  class="lago-statbar"
 >
 
-  <div class="lago-stat-label">
+  <div
+    class="lago-stat-card"
+  >
 
-    <span
-      class="lago-icon-slot"
-      data-lago-icon="sp"
-    ></span>
+    <div
+      class="lago-stat-label"
+    >
 
-    <span>
-      SP
-    </span>
+      <span
+        class="lago-icon-slot"
+        data-lago-icon="dum"
+      ></span>
+
+      <span>
+        DUM ENERGY
+      </span>
+
+    </div>
+
+    <div
+      class="lago-stat-value"
+      id="modernEnergy"
+    >
+      0 / 100
+    </div>
 
   </div>
+
 
   <div
-    class="lago-stat-value"
-    id="modernSP"
+    class="lago-stat-card"
   >
-    0
+
+    <div
+      class="lago-stat-label"
+    >
+
+      <span
+        class="lago-icon-slot"
+        data-lago-icon="sp"
+      ></span>
+
+      <span>
+        SP
+      </span>
+
+    </div>
+
+    <div
+      class="lago-stat-value"
+      id="modernSP"
+    >
+      0
+    </div>
+
   </div>
 
-</div>
-
-
-<div
-  class="lago-stat-card"
->
-
-  <div class="lago-stat-label">
-
-    <span
-      class="lago-icon-slot"
-      data-lago-icon="upgrade"
-    ></span>
-
-    <span>
-      LEVEL
-    </span>
-
-  </div>
 
   <div
-    class="lago-stat-value"
-    id="modernLevelStat"
+    class="lago-stat-card"
   >
-    1
+
+    <div
+      class="lago-stat-label"
+    >
+
+      <span
+        class="lago-icon-slot"
+        data-lago-icon="upgrade"
+      ></span>
+
+      <span>
+        LEVEL
+      </span>
+
+    </div>
+
+    <div
+      class="lago-stat-value"
+      id="modernLevelStat"
+    >
+      1
+    </div>
+
   </div>
 
-</div>
-
-
-<div
-  class="lago-stat-card"
->
-
-  <div class="lago-stat-label">
-
-    <span
-      class="lago-icon-slot"
-      data-lago-icon="dum"
-    ></span>
-
-    <span>
-      TAP COST
-    </span>
-
-  </div>
 
   <div
-    class="lago-stat-value"
-    id="modernTapCost"
+    class="lago-stat-card"
   >
-    1 DUM / 5 TAPS
+
+    <div
+      class="lago-stat-label"
+    >
+
+      <span
+        class="lago-icon-slot"
+        data-lago-icon="dum"
+      ></span>
+
+      <span>
+        TAP COST
+      </span>
+
+    </div>
+
+    <div
+      class="lago-stat-value"
+      id="modernTapCost"
+    >
+      1 DUM / 5 TAPS
+    </div>
+
   </div>
 
-</div>
-      </section>
+</section>
 
 
       <!-- GAME -->
