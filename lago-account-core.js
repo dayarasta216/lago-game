@@ -340,19 +340,71 @@ skins:
     ];
 
   }
-function clamp(
+function resolveLifeStatus(
   value,
-  min,
-  max
+  max = 100
 ) {
 
-  return Math.min(
-    max,
+  const safeMax =
     Math.max(
-      min,
-      Number(value) || 0
-    )
-  );
+      1,
+      Number(max) || 100
+    );
+
+
+  const life =
+    clamp(
+      value,
+      0,
+      safeMax
+    );
+
+
+  const percent =
+    (
+      life /
+      safeMax
+    ) *
+    100;
+
+
+  if (
+    percent <= 0
+  ) {
+
+    return "dead";
+
+  }
+
+
+  if (
+    percent <= 25
+  ) {
+
+    return "dying";
+
+  }
+
+
+  if (
+    percent <= 50
+  ) {
+
+    return "dumb";
+
+  }
+
+
+  if (
+    percent <= 75
+  ) {
+
+    return "tired";
+
+  }
+
+
+  return "alive";
 
 }
 
@@ -622,41 +674,11 @@ next.life.value =
   );
 
 
-if (
-  next.life.value <= 0
-) {
-
-  next.life.status =
-    "dead";
-
-} else if (
-  next.life.value <= 25
-) {
-
-  next.life.status =
-    "dying";
-
-} else if (
-  next.life.value <= 50
-) {
-
-  next.life.status =
-    "dumb";
-
-} else if (
-  next.life.value <= 75
-) {
-
-  next.life.status =
-    "tired";
-
-} else {
-
-  next.life.status =
-    "alive";
-
-}
-
+next.life.status =
+  resolveLifeStatus(
+    next.life.value,
+    next.life.max
+  );
 
 /*
  * =========================================================
@@ -2063,6 +2085,103 @@ function restoreDum(
   return save();
 
 }
+
+  /*
+ * =========================================================
+ * LAGO LIFE — ACCOUNT CONDITION
+ * =========================================================
+ */
+
+
+/*
+ * ALIVE
+ * TIRED
+ * DUMB
+ * DYING
+ * DEAD
+ */
+function getLifeStatus(
+  value =
+    state.life.value
+) {
+
+  return resolveLifeStatus(
+    value,
+    state.life.max
+  );
+
+}
+
+
+/*
+ * Set Life safely.
+ *
+ * Used later by inactivity,
+ * revive and gameplay systems.
+ */
+function setLife(
+  value
+) {
+
+  state.life.value =
+    clamp(
+      value,
+      0,
+      state.life.max
+    );
+
+
+  state.life.status =
+    getLifeStatus(
+      state.life.value
+    );
+
+
+  return save();
+
+}
+
+
+/*
+ * Records meaningful account
+ * activity.
+ *
+ * R0.5C will decide WHICH
+ * actions are meaningful enough
+ * to call this function.
+ */
+function markActive() {
+
+  const now =
+    new Date()
+      .toISOString();
+
+
+  state.life.lastActiveAt =
+    now;
+
+
+  /*
+   * First activity also establishes
+   * the decay reference point.
+   */
+  if (
+    !state.life.lastDecayAt
+  ) {
+
+    state.life.lastDecayAt =
+      now;
+
+  }
+
+
+  state.life.status =
+    getLifeStatus();
+
+
+  return save();
+
+}
   
   /*
    * =========================================================
@@ -2482,6 +2601,17 @@ spendDum,
 restoreDum,
 
 refreshDumEnergy,
+
+
+/*
+ * Lago Life
+ */
+
+getLifeStatus,
+
+setLife,
+
+markActive,
 
 
 /*
