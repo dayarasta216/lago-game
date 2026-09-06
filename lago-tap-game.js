@@ -291,31 +291,23 @@
 
 
   /*
-   * Old CLICK POWER now becomes
-   * SP reward power.
-   *
-   * It no longer creates DUM.
-   */
-  const gain =
-    Math.max(
-      1,
-
-      Math.floor(
-        Number(
-          current.power
-        ) || 1
-      ) +
-
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            memeClickBonus()
-          ) || 0
-        )
-      )
-    );
-
+ * =========================================================
+ * CANONICAL TAP REWARD
+ * =========================================================
+ *
+ * One successful Tap Lago action
+ * always earns exactly 1 SP.
+ *
+ * Legacy power / memes / auto
+ * must not influence permanent
+ * account progression.
+ *
+ * Future character/item bonuses
+ * will be implemented explicitly
+ * through the Character Engine.
+ */
+const gain =
+  1;
 
 
 /*
