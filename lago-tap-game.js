@@ -36,21 +36,30 @@
     runtime.getPhrases();
 
 
-  /*
-   * =========================================================
-   * UPGRADES
-   *
-   * Original economy preserved 1:1.
-   * =========================================================
-   */
-
+ /*
+ * =========================================================
+ * TAP SCORE / UPGRADES
+ *
+ * IMPORTANT:
+ *
+ * current.energy is now ONLY a
+ * legacy storage field for local
+ * Tap Lago Score.
+ *
+ * It is NOT account DUM Energy.
+ *
+ * Real DUM lives only in:
+ * window.LAGO_ACCOUNT.energy
+ * =========================================================
+ */
+  
   const UPGRADES = [
 
     {
       key: "click",
       icon: "🚀",
       name: "УСИЛЕНИЕ КЛИКА",
-     desc: "+1 DUM за каждый клик",
+    desc: "+1 TAP SCORE за каждый клик",
       base: 25,
       max: 50,
 
@@ -66,7 +75,7 @@
       key: "auto",
       icon: "🤖",
       name: "АВТОКЛИКЕР",
-     desc: "+1 DUM каждую секунду",
+      desc: "+1 TAP SCORE каждую секунду",
       base: 80,
       max: 50,
 
@@ -309,16 +318,35 @@
 
 
   /*
-   * Keep old Tap statistics alive
-   * during migration.
-   */
-  current.totalClicks++;
+ * Local Tap Lago Score.
+ *
+ * Legacy field name "energy"
+ * stays temporarily for save
+ * compatibility.
+ *
+ * This value is NOT DUM.
+ */
+current.energy =
+  Math.max(
+    0,
+    Number(
+      current.energy
+    ) || 0
+  ) +
+  gain;
 
 
-  /*
-   * Permanent progression reward.
-   */
-  account.addSP(
+/*
+ * Keep old Tap statistics alive
+ * during migration.
+ */
+current.totalClicks++;
+
+
+/*
+ * Permanent account progression.
+ */
+account.addSP(
     gain,
     {
       gameId:
@@ -390,9 +418,9 @@
       current.energy < 5
     ) {
 
-      runtime.toast(
-        "Сначала собери хотя бы 5 DUM 😭"
-      );
+     runtime.toast(
+  "НУЖНО ХОТЯ БЫ 5 TAP SCORE 😭"
+);
 
 
       runtime.beep(
@@ -442,9 +470,9 @@
       current.steals++;
 
 
-      runtime.toast(
-        `👾 ОГРАБИЛ! +${amount} DUM`
-      );
+     runtime.toast(
+  `👾 ОГРАБИЛ! +${amount} TAP SCORE`
+);
 
 
       runtime.beep(
@@ -483,23 +511,13 @@
 
 
       runtime.toast(
-        `🚓 СПАЛИЛИ! -${loss} DUM`
-      );
-
+  `🚓 СПАЛИЛИ! -${loss} TAP SCORE`
+);
 
       runtime.beep(
         120,
         0.14
       );
-
-    }
-
-
-    if (
-      current.energy <= 0
-    ) {
-
-      runtime.gameOver();
 
     }
 
@@ -686,10 +704,9 @@
       cost
     ) {
 
-      runtime.toast(
-        "Не хватает DUM 😭"
-      );
-
+     runtime.toast(
+  "НЕ ХВАТАЕТ TAP SCORE 😭"
+);
 
       runtime.beep(
         90,
