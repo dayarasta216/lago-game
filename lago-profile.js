@@ -25,11 +25,23 @@
       wallet:
         "",
 
-      walletSigned:
-        false,
+     walletSigned:
+  false,
 
-      signedAt:
-        null
+signedAt:
+  null,
+
+telegramId:
+  "",
+
+telegramUsername:
+  "",
+
+telegramName:
+  "",
+
+telegramLinked:
+  false
 
     };
 
@@ -601,32 +613,35 @@
     data-lago-icon="wallet"
   ></span>
 
-  <span>
-    CONNECT WALLET
-  </span>
+  <span
+  id="lagoConnectWalletText"
+>
+  CONNECT WALLET
+</span>
 </button>
 
-          <button
+         <button
   class="lago-profile-action"
-  id="lagoWalletSignIn"
+  id="lagoTelegramSignIn"
 >
   <span
     class="lago-icon-slot"
     data-lago-icon="profile"
   ></span>
 
-  <span>
-    SIGN IN WITH WALLET
+  <span
+    id="lagoTelegramSignInText"
+  >
+    SIGN IN WITH TELEGRAM
   </span>
 </button>
 
-          <div class="lago-profile-muted">
-            Wallet signature is currently
-            stored locally. Secure server
-            authentication will be added
-            with the Lago backend.
-          </div>
-
+        <div class="lago-profile-muted">
+  Telegram is the Lago account login.
+  Phantom is used only for Solana / $LAGO.
+  Secure Telegram initData verification
+  will be added with the Lago backend.
+</div>
         </section>
 
 
@@ -787,24 +802,30 @@ window.LAGO_UI
       );
 
 
-    overlay
-      .querySelector(
-        "#lagoConnectWallet"
-      )
-      ?.addEventListener(
-        "click",
-        connectWallet
-      );
+   overlay
+  .querySelector(
+    "#lagoConnectWallet"
+  )
+  ?.addEventListener(
+    "click",
+    toggleWallet
+  );
 
 
-    overlay
-      .querySelector(
-        "#lagoWalletSignIn"
-      )
-      ?.addEventListener(
-        "click",
-        signInWallet
-      );
+   overlay
+  .querySelector(
+    "#lagoTelegramSignIn"
+  )
+  ?.addEventListener(
+    "click",
+    signInTelegram
+  );
+
+
+document.addEventListener(
+  "lago:wallet-state",
+  render
+);
 
   }
 
@@ -914,32 +935,123 @@ window.LAGO_UI
   }
 
 
-  async function connectWallet() {
+ async function toggleWallet() {
 
-    const wallet =
-      provider();
+  const walletApi =
+    window.LAGO_WALLET;
 
 
-    if (!wallet) {
+  /*
+   * Canonical wallet adapter.
+   */
+  if (
+    walletApi &&
+    typeof walletApi.getState ===
+      "function" &&
+    typeof walletApi.connect ===
+      "function" &&
+    typeof walletApi.disconnect ===
+      "function"
+  ) {
+
+    const current =
+      walletApi.getState();
+
+
+    const result =
+      current.connected
+
+        ? await walletApi.disconnect()
+
+        : await walletApi.connect();
+
+
+    if (
+      result?.reason ===
+      "phantom_not_installed"
+    ) {
 
       alert(
         "Phantom wallet not found."
       );
 
-      return;
-
     }
 
 
-    try {
+    const next =
+      walletApi.getState();
 
-      const result =
-        await wallet.connect();
+
+    profile.wallet =
+      next.connected
+
+        ? next.publicKey
+
+        : "";
+
+
+    /*
+     * Wallet is no longer
+     * Lago authentication.
+     */
+    profile.walletSigned =
+      false;
+
+
+    save();
+
+    render();
+
+
+    return (
+      result?.ok ===
+      true
+    );
+
+  }
+
+
+  /*
+   * Temporary fallback for builds
+   * without LAGO_WALLET.
+   */
+  const wallet =
+    provider();
+
+
+  if (!wallet) {
+
+    alert(
+      "Phantom wallet not found."
+    );
+
+    return false;
+
+  }
+
+
+  try {
+
+    /*
+     * CONNECTED → DISCONNECT
+     */
+    if (
+      wallet.isConnected ||
+      profile.wallet
+    ) {
+
+      if (
+        typeof wallet.disconnect ===
+        "function"
+      ) {
+
+        await wallet.disconnect();
+
+      }
 
 
       profile.wallet =
-        result.publicKey
-          .toString();
+        "";
 
 
       profile.walletSigned =
@@ -950,97 +1062,146 @@ window.LAGO_UI
 
       render();
 
-    } catch {
 
-      return;
+      return true;
 
     }
+
+
+    /*
+     * DISCONNECTED → CONNECT
+     */
+    const result =
+      await wallet.connect();
+
+
+    profile.wallet =
+      result.publicKey
+        .toString();
+
+
+    profile.walletSigned =
+      false;
+
+
+    save();
+
+    render();
+
+
+    return true;
+
+  } catch {
+
+    return false;
+
+  }
+
+}
+
+
+/*
+ * =========================================================
+ * TELEGRAM LOGIN
+ * =========================================================
+ */
+
+function getTelegramUser() {
+
+  const tg =
+    window.Telegram
+      ?.WebApp;
+
+
+  const user =
+    tg
+      ?.initDataUnsafe
+      ?.user;
+
+
+  const initData =
+    String(
+      tg?.initData ||
+      ""
+    ).trim();
+
+
+  /*
+   * No Telegram Mini App identity:
+   * fail closed.
+   */
+  if (
+    !tg ||
+    !user ||
+    !initData
+  ) {
+
+    return null;
 
   }
 
 
-  async function signInWallet() {
+  return user;
 
-    const wallet =
-      provider();
-
-
-    if (!wallet) {
-
-      alert(
-        "Phantom wallet not found."
-      );
-
-      return;
-
-    }
+}
 
 
-    if (!profile.wallet) {
+function signInTelegram() {
 
-      await connectWallet();
-
-    }
-
-
-    if (
-      typeof wallet.signMessage !==
-      "function"
-    ) {
-
-      alert(
-        "Wallet message signing is unavailable."
-      );
-
-      return;
-
-    }
+  const user =
+    getTelegramUser();
 
 
-    try {
+  if (!user) {
 
-      const message =
-        [
-          "LAGO GAME LOGIN",
-          location.host,
-          new Date().toISOString(),
-          crypto.randomUUID()
-        ].join("\n");
+    alert(
+      "Open Lago inside Telegram to sign in."
+    );
 
-
-      const bytes =
-        new TextEncoder()
-          .encode(
-            message
-          );
-
-
-      await wallet.signMessage(
-        bytes,
-        "utf8"
-      );
-
-
-      profile.walletSigned =
-        true;
-
-
-      profile.signedAt =
-        new Date()
-          .toISOString();
-
-
-      save();
-
-      render();
-
-    } catch {
-
-      return;
-
-    }
+    return false;
 
   }
+
+
+  profile.telegramId =
+    String(
+      user.id ||
+      ""
+    );
+
+
+  profile.telegramUsername =
+    String(
+      user.username ||
+      ""
+    );
+
+
+  profile.telegramName =
+    [
+      user.first_name,
+      user.last_name
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+
+  profile.telegramLinked =
+    Boolean(
+      profile.telegramId
+    );
+
+
+  save();
+
+  render();
+
+
+  return profile
+    .telegramLinked;
+
+}
 
 
   function render() {
@@ -1122,21 +1283,118 @@ window.LAGO_UI
       );
 
 
-    overlay
-      .querySelector(
-        "#lagoWalletStatus"
+    const walletState =
+  window.LAGO_WALLET
+    ?.getState
+    ?.();
+
+
+const walletConnected =
+  walletState
+
+    ? (
+        walletState.connected ===
+          true &&
+        Boolean(
+          walletState.publicKey
+        )
       )
-      .textContent =
-      profile.walletSigned
 
-        ? `SIGNED · ${shortWallet(
-            profile.wallet
-          )}`
+    : Boolean(
+        profile.wallet
+      );
 
-        : shortWallet(
-            profile.wallet
-          );
 
+const walletAddress =
+  walletState
+
+    ? (
+        walletConnected
+
+          ? walletState.publicKey
+
+          : ""
+      )
+
+    : profile.wallet;
+
+
+overlay
+  .querySelector(
+    "#lagoWalletStatus"
+  )
+  .textContent =
+  shortWallet(
+    walletAddress
+  );
+
+
+const walletButton =
+  overlay.querySelector(
+    "#lagoConnectWallet"
+  );
+
+
+const walletButtonText =
+  overlay.querySelector(
+    "#lagoConnectWalletText"
+  );
+
+
+if (walletButton) {
+
+  walletButton.dataset.connected =
+    walletConnected
+      ? "true"
+      : "false";
+
+}
+
+
+if (walletButtonText) {
+
+  walletButtonText.textContent =
+    walletConnected
+
+      ? "DISCONNECT WALLET"
+
+      : "CONNECT WALLET";
+
+}
+
+
+const telegramButton =
+  overlay.querySelector(
+    "#lagoTelegramSignIn"
+  );
+
+
+const telegramButtonText =
+  overlay.querySelector(
+    "#lagoTelegramSignInText"
+  );
+
+
+if (telegramButtonText) {
+
+  telegramButtonText.textContent =
+    profile.telegramLinked
+
+      ? "TELEGRAM CONNECTED"
+
+      : "SIGN IN WITH TELEGRAM";
+
+}
+
+
+if (telegramButton) {
+
+  telegramButton.dataset.connected =
+    profile.telegramLinked
+      ? "true"
+      : "false";
+
+}
 
     const daily =
       overlay.querySelector(
