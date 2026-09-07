@@ -184,6 +184,24 @@ const treasuryWallet =
       account
         .getTapAutoUpgradeState();
 
+const wallet =
+  window.LAGO_WALLET
+    ?.getState
+    ?.();
+
+
+const payerWallet =
+  cleanString(
+    wallet
+      ?.publicKey
+  );
+
+
+const tokenIdentity =
+  window.LAGO_TOKEN_CONFIG
+    ?.getIdentity
+    ?.();
+    
 
     if (
       !auto ||
@@ -277,8 +295,21 @@ const treasuryWallet =
 
         payment: {
 
-          chain:
-            CHAIN,
+         chain:
+  CHAIN,
+
+network:
+  cleanString(
+    tokenIdentity
+      ?.network
+  ) || null,
+
+tokenSymbol:
+  TOKEN_SYMBOL,
+
+payerWallet:
+  payerWallet || null,
+          
 
           tokenSymbol:
             TOKEN_SYMBOL,
@@ -388,6 +419,18 @@ const treasuryWallet =
       quote.chain ===
         CHAIN &&
 
+      quote.network ===
+  request.payment
+    .network &&
+
+cleanString(
+  quote.payerWallet
+) ===
+  cleanString(
+    request.payment
+      .payerWallet
+  ) &&
+
       cleanString(
         quote.tokenMint
       ) &&
@@ -444,6 +487,84 @@ const treasuryWallet =
 
     }
 
+    const wallet =
+  window.LAGO_WALLET
+    ?.getState
+    ?.();
+
+
+if (
+  !wallet
+    ?.installed
+) {
+
+  return {
+
+    ok:
+      false,
+
+    reason:
+      "wallet_not_installed",
+
+    request:
+      built.request
+
+  };
+
+}
+
+
+if (
+  wallet.connected !==
+    true ||
+  !wallet.publicKey
+) {
+
+  return {
+
+    ok:
+      false,
+
+    reason:
+      "wallet_not_connected",
+
+    request:
+      built.request
+
+  };
+
+}
+
+
+if (
+  wallet.networkReady !==
+    true
+) {
+
+  return {
+
+    ok:
+      false,
+
+    reason:
+      "network_not_ready",
+
+    request:
+      built.request
+
+  };
+
+}
+
+
+/*
+ * Bind purchase request to
+ * the wallet that will pay.
+ */
+built.request
+  .payment
+  .payerWallet =
+  wallet.publicKey;
 
     const config =
       getConfigurationStatus();
