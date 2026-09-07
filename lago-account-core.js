@@ -71,6 +71,8 @@ const TAP_AUTO_FREE_DUM_COST =
 
 
 const HEIST_BASE_CHANCE =
+  0.35;
+
 
 const HEIST_MIN_CHANCE =
   0.10;
