@@ -226,6 +226,54 @@ social: {
 
 },
 
+ /*
+ * =========================================================
+ * ACCOUNT AUTH / IDENTITY
+ * =========================================================
+ *
+ * Telegram = account login.
+ * Phantom = payment wallet.
+ *
+ * Server verification arrives later.
+ */
+auth: {
+
+  provider:
+    "",
+
+  telegramId:
+    "",
+
+  telegramUsername:
+    "",
+
+  telegramDisplayName:
+    "",
+
+  telegramLinked:
+    false,
+
+  /*
+   * Client MUST NOT set this true.
+   * Only verified backend auth
+   * will be allowed to do that.
+   */
+  telegramVerified:
+    false,
+
+  telegramLinkedAt:
+    null,
+
+  walletPublicKey:
+    "",
+
+  walletLinked:
+    false,
+
+  walletLinkedAt:
+    null
+
+}, 
 
 inventory: {
 
@@ -857,7 +905,110 @@ next.social.blocked =
     next.social.blocked
   );
 
+/*
+ * =========================================================
+ * AUTH / IDENTITY
+ * =========================================================
+ */
 
+next.auth = {
+
+  ...clone(
+    defaults.auth
+  ),
+
+  ...(
+    input.auth &&
+    typeof input.auth ===
+      "object" &&
+    !Array.isArray(
+      input.auth
+    )
+
+      ? input.auth
+      : {}
+  )
+
+};
+
+
+next.auth.provider =
+  String(
+    next.auth.provider ||
+    ""
+  ).trim();
+
+
+next.auth.telegramId =
+  String(
+    next.auth.telegramId ||
+    ""
+  ).trim();
+
+
+next.auth.telegramUsername =
+  String(
+    next.auth.telegramUsername ||
+    ""
+  ).trim();
+
+
+next.auth.telegramDisplayName =
+  String(
+    next.auth.telegramDisplayName ||
+    ""
+  ).trim();
+
+
+next.auth.telegramLinked =
+  Boolean(
+    next.auth.telegramLinked &&
+    next.auth.telegramId
+  );
+
+
+/*
+ * Never trust a persisted
+ * client-side "verified" flag.
+ *
+ * Backend verification will later
+ * hydrate authoritative auth state.
+ */
+next.auth.telegramVerified =
+  false;
+
+
+next.auth.telegramLinkedAt =
+  typeof next.auth
+    .telegramLinkedAt ===
+    "string"
+
+    ? next.auth.telegramLinkedAt
+    : null;
+
+
+next.auth.walletPublicKey =
+  String(
+    next.auth.walletPublicKey ||
+    ""
+  ).trim();
+
+
+next.auth.walletLinked =
+  Boolean(
+    next.auth.walletLinked &&
+    next.auth.walletPublicKey
+  );
+
+
+next.auth.walletLinkedAt =
+  typeof next.auth
+    .walletLinkedAt ===
+    "string"
+
+    ? next.auth.walletLinkedAt
+    : null;
+    
 /*
  * =========================================================
  * INVENTORY
@@ -3956,6 +4107,288 @@ state.games[id].dumSpent =
 
   }
 
+  /*
+ * =========================================================
+ * ACCOUNT IDENTITY
+ * =========================================================
+ */
+
+function isSolanaPublicKey(
+  value
+) {
+
+  const text =
+    String(
+      value ?? ""
+    ).trim();
+
+
+  return (
+
+    text.length >= 32 &&
+
+    text.length <= 44 &&
+
+    /^[1-9A-HJ-NP-Za-km-z]+$/
+      .test(text)
+
+  );
+
+}
+
+
+function getAuthIdentity() {
+
+  return clone(
+    state.auth
+  );
+
+}
+
+
+/*
+ * Local Telegram identity intake.
+ *
+ * IMPORTANT:
+ * telegramVerified stays FALSE.
+ *
+ * Real Telegram initData validation
+ * will happen on the Lago backend.
+ */
+function linkTelegramIdentity(
+  {
+    id = "",
+    username = "",
+    displayName = ""
+  } = {}
+) {
+
+  const telegramId =
+    String(
+      id ?? ""
+    ).trim();
+
+
+  if (
+    !telegramId ||
+    !/^\d+$/.test(
+      telegramId
+    )
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "invalid_telegram_id"
+
+    };
+
+  }
+
+
+  const previousTelegramId =
+    state.auth.telegramId;
+
+
+  /*
+   * A completely different Telegram
+   * user must NEVER inherit another
+   * locally bound wallet.
+   */
+  if (
+    previousTelegramId &&
+    previousTelegramId !==
+      telegramId
+  ) {
+
+    state.auth.walletPublicKey =
+      "";
+
+
+    state.auth.walletLinked =
+      false;
+
+
+    state.auth.walletLinkedAt =
+      null;
+
+  }
+
+
+  state.auth.provider =
+    "telegram";
+
+
+  state.auth.telegramId =
+    telegramId;
+
+
+  state.auth.telegramUsername =
+    String(
+      username ?? ""
+    ).trim();
+
+
+  state.auth.telegramDisplayName =
+    String(
+      displayName ?? ""
+    ).trim();
+
+
+  state.auth.telegramLinked =
+    true;
+
+
+  /*
+   * Fail closed:
+   * browser cannot self-verify Telegram.
+   */
+  state.auth.telegramVerified =
+    false;
+
+
+  state.auth.telegramLinkedAt =
+    new Date()
+      .toISOString();
+
+
+  save();
+
+
+  return {
+
+    ok:
+      true,
+
+    identity:
+      getAuthIdentity()
+
+  };
+
+}
+
+
+/*
+ * Bind a CONNECTED public wallet
+ * to the current Telegram account.
+ *
+ * Disconnecting Phantom later does
+ * NOT remove this account binding.
+ */
+function linkWalletIdentity(
+  publicKey
+) {
+
+  if (
+    state.auth.telegramLinked !==
+      true ||
+    !state.auth.telegramId
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "telegram_required"
+
+    };
+
+  }
+
+
+  const wallet =
+    String(
+      publicKey ?? ""
+    ).trim();
+
+
+  if (
+    !isSolanaPublicKey(
+      wallet
+    )
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "invalid_wallet"
+
+    };
+
+  }
+
+
+  /*
+   * Never silently replace
+   * an already bound wallet.
+   */
+  if (
+    state.auth.walletLinked &&
+    state.auth.walletPublicKey &&
+    state.auth.walletPublicKey !==
+      wallet
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "wallet_mismatch",
+
+      expectedWallet:
+        state.auth.walletPublicKey,
+
+      connectedWallet:
+        wallet
+
+    };
+
+  }
+
+
+  state.auth.walletPublicKey =
+    wallet;
+
+
+  state.auth.walletLinked =
+    true;
+
+
+  if (
+    !state.auth.walletLinkedAt
+  ) {
+
+    state.auth.walletLinkedAt =
+      new Date()
+        .toISOString();
+
+  }
+
+
+  save();
+
+
+  return {
+
+    ok:
+      true,
+
+    identity:
+      getAuthIdentity()
+
+  };
+
+}
 
   /*
    * =========================================================
@@ -4101,10 +4534,15 @@ recordClick,
 
     selectSkin,
 
-    setLanguage,
+    getAuthIdentity,
 
-    setCountry
+linkTelegramIdentity,
 
+linkWalletIdentity,
+
+setLanguage,
+
+setCountry
   };
 
 
