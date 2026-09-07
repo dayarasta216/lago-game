@@ -523,44 +523,61 @@ function startDumRefresh() {
 >
 
   <div
-    class="lago-progress-meta"
-  >
-
-    <div
-      class="lago-side-title"
-    >
-      SP PROGRESS
-    </div>
-
-    <div
-      class="lago-level-chip"
-    >
-      LEVEL
-      <span
-        id="modernLevelStat"
-      >
-        1
-      </span>
-    </div>
-
-  </div>
-
+  class="lago-progress-meta"
+>
 
   <div
-    class="lago-side-big"
-    id="modernXP"
+    class="lago-side-title"
   >
-    0 SP
+    SP BALANCE
   </div>
-
 
   <div
-    class="lago-progress"
+    class="lago-level-chip"
   >
-    <i
-      id="modernProgress"
-    ></i>
+    LEVEL
+    <span
+      id="modernLevelStat"
+    >
+      1
+    </span>
   </div>
+
+</div>
+
+
+<div
+  class="lago-side-big"
+  id="modernSPBalance"
+>
+  0 SP
+</div>
+
+
+<div
+  class="lago-progress-caption"
+>
+
+  <span>
+    LEVEL PROGRESS
+  </span>
+
+  <span
+    id="modernLevelProgressText"
+  >
+    0 / 100 SP
+  </span>
+
+</div>
+
+
+<div
+  class="lago-progress"
+>
+  <i
+    id="modernProgress"
+  ></i>
+</div>
 
 </div>
 
@@ -1281,57 +1298,116 @@ $("modernAutoRate")
    * Account-level progress.
    */
 
- let level =
+let level =
   1;
 
-let sp =
+let spBalance =
+  0;
+
+let lifetimeSp =
   0;
 
 
 try {
 
-  const account =
+  const spState =
     window.LAGO_ACCOUNT
-      ?.getState
-      ?.() ||
-    window.LAGO
-      ?.getState
+      ?.getSPState
       ?.();
 
 
-  if (account) {
+  if (spState) {
 
     level =
       Math.max(
         1,
         Math.floor(
           Number(
-            account.economy
-              ?.level ??
-            account.level
+            spState.level
           ) || 1
         )
       );
 
 
-    sp =
+    spBalance =
       Math.max(
         0,
         Math.floor(
           Number(
-            account.economy
-              ?.sp ??
-            account.xp
+            spState.balance
           ) || 0
         )
       );
+
+
+    lifetimeSp =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            spState.lifetimeEarned
+          ) || 0
+        )
+      );
+
+  } else {
+
+    const account =
+      window.LAGO_ACCOUNT
+        ?.getState
+        ?.() ||
+      window.LAGO
+        ?.getState
+        ?.();
+
+
+    if (account) {
+
+      level =
+        Math.max(
+          1,
+          Math.floor(
+            Number(
+              account.economy
+                ?.level ??
+              account.level
+            ) || 1
+          )
+        );
+
+
+      spBalance =
+        Math.max(
+          0,
+          Math.floor(
+            Number(
+              account.economy
+                ?.sp ??
+              account.xp
+            ) || 0
+          )
+        );
+
+
+      lifetimeSp =
+        Math.max(
+          spBalance,
+          Math.floor(
+            Number(
+              account.lifetime
+                ?.spEarned
+            ) || 0
+          )
+        );
+
+    }
 
   }
 
 } catch (error) {
 
   console.warn(
-    "[LAGO MODERN] Could not read account state:",
+    "[LAGO MODERN] Could not read SP/LEVEL state:",
     error
   );
 
@@ -1350,10 +1426,21 @@ $("modernLevelStat")
   );
 
 
-
-$("modernXP")
+$("modernSPBalance")
   ?.replaceChildren(
-    `${sp} SP`
+    `${spBalance.toLocaleString(
+      "ru-RU"
+    )} SP`
+  );
+
+
+const levelProgress =
+  lifetimeSp % 100;
+
+
+$("modernLevelProgressText")
+  ?.replaceChildren(
+    `${levelProgress} / 100 SP`
   );
 
 
@@ -1364,10 +1451,7 @@ const bar =
 if (bar) {
 
   bar.style.width =
-    `${Math.min(
-      100,
-      sp % 100
-    )}%`;
+    `${levelProgress}%`;
 
 }
 
