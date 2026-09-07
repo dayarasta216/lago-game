@@ -250,10 +250,13 @@ skins:
    * Canonical R0.5 counters.
    */
   spEarned:
-    0,
+  0,
 
-  dumSpent:
-    0,
+spSpent:
+  0,
+
+dumSpent:
+  0,
 
   dumRegenerated:
     0,
@@ -974,6 +977,7 @@ next.skins =
 
 next.lifetime.spEarned =
   Math.max(
+
     next.economy.sp,
 
     Number(
@@ -981,6 +985,16 @@ next.lifetime.spEarned =
     ) || 0,
 
     next.lifetime.xpEarned
+
+  );
+
+
+next.lifetime.spSpent =
+  Math.max(
+    0,
+    Number(
+      next.lifetime.spSpent
+    ) || 0
   );
 
 
@@ -1266,14 +1280,27 @@ const oldBridge =
       );
 
 
-    const next =
-      Math.floor(
-        (
-          Number(
-            target.xp
-          ) || 0
-        ) / 100
-      ) + 1;
+    /*
+ * LEVEL is permanent progression.
+ *
+ * Spending current SP balance
+ * must NEVER reduce LEVEL.
+ */
+const lifetimeSp =
+  Math.max(
+    0,
+    Number(
+      target.lifetime
+        ?.spEarned ??
+      target.xp
+    ) || 0
+  );
+
+
+const next =
+  Math.floor(
+    lifetimeSp / 100
+  ) + 1;
 
 
    target.level =
@@ -1689,6 +1716,196 @@ function addSP(
 
 }
 
+/*
+ * =========================================================
+ * SP BALANCE — SPENDABLE GAME CURRENCY
+ * =========================================================
+ *
+ * economy.sp
+ * = current spendable SP balance.
+ *
+ * lifetime.spEarned
+ * = permanent progression history.
+ *
+ * Spending SP must NEVER reduce
+ * lifetime.spEarned or LEVEL.
+ */
+
+function getSPState() {
+
+  return {
+
+    balance:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.economy
+              ?.sp
+          ) || 0
+        )
+      ),
+
+    lifetimeEarned:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.lifetime
+              ?.spEarned
+          ) || 0
+        )
+      ),
+
+    lifetimeSpent:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.lifetime
+              ?.spSpent
+          ) || 0
+        )
+      ),
+
+    level:
+      Math.max(
+        1,
+        Math.floor(
+          Number(
+            state.economy
+              ?.level ??
+            state.level
+          ) || 1
+        )
+      )
+
+  };
+
+}
+
+
+function canSpendSP(
+  amount = 0
+) {
+
+  const value =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          amount
+        ) || 0
+      )
+    );
+
+
+  return (
+    state.economy.sp >=
+    value
+  );
+
+}
+
+
+function spendSP(
+  amount = 0,
+  options = {}
+) {
+
+  const value =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          amount
+        ) || 0
+      )
+    );
+
+
+  if (!value) {
+
+    return true;
+
+  }
+
+
+  if (
+    state.economy.sp <
+    value
+  ) {
+
+    return false;
+
+  }
+
+
+  /*
+   * Spend only CURRENT balance.
+   */
+  state.economy.sp -=
+    value;
+
+
+  /*
+   * XP temporarily remains a
+   * compatibility mirror of
+   * current SP balance.
+   */
+  state.xp =
+    state.economy.sp;
+
+
+  /*
+   * Permanent progression
+   * does NOT go backwards.
+   */
+  state.lifetime.spSpent =
+    Math.max(
+      0,
+      Number(
+        state.lifetime.spSpent
+      ) || 0
+    ) +
+    value;
+
+
+  if (
+    options.gameId
+  ) {
+
+    const game =
+      ensureGame(
+        options.gameId
+      );
+
+
+    game.spSpent =
+      Math.max(
+        0,
+        Number(
+          game.spSpent
+        ) || 0
+      ) +
+      value;
+
+  }
+
+
+  /*
+   * Do NOT call updateLevel().
+   *
+   * LEVEL is based on
+   * lifetime.spEarned.
+   */
+  save();
+
+
+  return true;
+
+}
+  
   /*
  * =========================================================
  * DUM ENERGY — CANONICAL STAMINA
@@ -3560,10 +3777,11 @@ state.games[id].dumSpent =
 
 addSP,
 
+getSPState,
 
-/*
- * Canonical DUM Energy
- */
+canSpendSP,
+
+spendSP,
 
 getDumEnergy,
 
