@@ -14,6 +14,12 @@
    * treating the wallet as login.
    */
 
+const backend =
+  window.LAGO_AUTH_BACKEND
+    ?.getState
+    ?.() ||
+  {};
+  
   const VERSION =
     1;
 
@@ -51,6 +57,14 @@
 
     return {
 
+      backendAuthenticated:
+  backend.authenticated ===
+    true,
+
+accountId:
+  backend.accountId ||
+  "",
+      
       initData,
 
       user: {
@@ -136,8 +150,10 @@
           true,
 
       telegramVerified:
-        identity.telegramVerified ===
-          true,
+  backend.authenticated ===
+    true ||
+  identity.telegramVerified ===
+    true,
 
       telegramId:
         identity.telegramId ||
@@ -217,6 +233,8 @@
 
       return {
 
+
+        
         ok:
           false,
 
@@ -234,6 +252,39 @@
         true ||
       !wallet.publicKey
     ) {
+
+      const backend =
+  window.LAGO_AUTH_BACKEND;
+
+
+if (
+  backend
+    ?.getState
+    ?.()
+    ?.authenticated ===
+      true &&
+  typeof backend.bindWallet ===
+    "function"
+) {
+
+  const result =
+    await backend
+      .bindWallet(
+        wallet.publicKey
+      );
+
+
+  emit(
+    result?.ok
+      ? "wallet-server-bound"
+      : result?.reason ||
+        "wallet-bind-failed"
+  );
+
+
+  return result;
+
+}
 
       return {
 
@@ -269,6 +320,55 @@
 
   async function signInWithTelegram() {
 
+const backend =
+  window.LAGO_AUTH_BACKEND;
+
+
+if (
+  backend &&
+  typeof backend
+    .signInWithTelegram ===
+    "function" &&
+  backend
+    .getConfigStatus
+    ?.()
+    ?.ready === true
+) {
+
+  const result =
+    await backend
+      .signInWithTelegram();
+
+
+  if (
+    result?.ok
+  ) {
+
+    emit(
+      "telegram-verified"
+    );
+
+
+    return {
+
+      ok:
+        true,
+
+      verified:
+        true,
+
+      state:
+        getState()
+
+    };
+
+  }
+
+
+  return result;
+
+}
+    
     const context =
       getTelegramContext();
 
