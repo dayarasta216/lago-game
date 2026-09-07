@@ -1156,7 +1156,7 @@ setTapHint();
   }
 
 
-  if (
+ if (
   page === "shop"
 ) {
 
@@ -1176,7 +1176,9 @@ setTapHint();
 
 }
 
-  function update(
+}
+
+function update(
   nextTapState = null
 ) {
 
