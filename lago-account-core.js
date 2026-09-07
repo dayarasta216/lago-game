@@ -46,9 +46,31 @@ const DUM_REGEN_SECONDS =
   120;
 
 
-const HEIST_BASE_CHANCE =
-  0.35;
+/*
+ * TAP LAGO AUTO — FREE GRIND PATH
+ *
+ * Intentionally expensive.
+ *
+ * Paid $LAGO purchase / upgrade
+ * arrives later in R0.5E.
+ */
+const TAP_AUTO_MAX_LEVEL =
+  10;
 
+
+const TAP_AUTO_FREE_BASE_LIFETIME_SP =
+  30000;
+
+
+const TAP_AUTO_FREE_BASE_SP_COST =
+  25000;
+
+
+const TAP_AUTO_FREE_DUM_COST =
+  100;
+
+
+const HEIST_BASE_CHANCE =
 
 const HEIST_MIN_CHANCE =
   0.10;
@@ -1905,6 +1927,203 @@ function spendSP(
   return true;
 
 }
+
+  /*
+ * =========================================================
+ * ATOMIC GAMEPLAY RESOURCE COST
+ * =========================================================
+ *
+ * Shared foundation for:
+ * AUTO
+ * HEIST
+ * mini-game helpers
+ * gameplay purchases
+ *
+ * SP + DUM are checked first,
+ * then spent together and saved once.
+ */
+function spendGameplayResources(
+  {
+    sp = 0,
+    dum = 0,
+    gameId = ""
+  } = {}
+) {
+
+  refreshDumEnergy({
+    persist:
+      false
+  });
+
+
+  const spCost =
+    Math.max(
+      0,
+      Math.floor(
+        Number(sp) || 0
+      )
+    );
+
+
+  const dumCost =
+    Math.max(
+      0,
+      Math.floor(
+        Number(dum) || 0
+      )
+    );
+
+
+  if (
+    state.economy.sp <
+    spCost
+  ) {
+
+    return {
+      ok:
+        false,
+      reason:
+        "sp",
+      spCost,
+      dumCost,
+      sp:
+        state.economy.sp,
+      dum:
+        state.energy.dum
+    };
+
+  }
+
+
+  if (
+    state.energy.dum <
+    dumCost
+  ) {
+
+    return {
+      ok:
+        false,
+      reason:
+        "dum",
+      spCost,
+      dumCost,
+      sp:
+        state.economy.sp,
+      dum:
+        state.energy.dum
+    };
+
+  }
+
+
+  const wasFull =
+    state.energy.dum >=
+    state.energy.max;
+
+
+  state.economy.sp -=
+    spCost;
+
+
+  /*
+   * XP is still temporary
+   * compatibility mirror
+   * of CURRENT SP balance.
+   */
+  state.xp =
+    state.economy.sp;
+
+
+  state.lifetime.spSpent =
+    Math.max(
+      0,
+      Number(
+        state.lifetime.spSpent
+      ) || 0
+    ) +
+    spCost;
+
+
+  state.energy.dum -=
+    dumCost;
+
+
+  state.lifetime.dumSpent =
+    Math.max(
+      0,
+      Number(
+        state.lifetime.dumSpent
+      ) || 0
+    ) +
+    dumCost;
+
+
+  if (
+    dumCost > 0 &&
+    (
+      wasFull ||
+      !state.energy.updatedAt
+    )
+  ) {
+
+    state.energy.updatedAt =
+      new Date()
+        .toISOString();
+
+  }
+
+
+  const id =
+    String(
+      gameId || ""
+    ).trim();
+
+
+  if (id) {
+
+    const game =
+      ensureGame(id);
+
+
+    game.spSpent =
+      Math.max(
+        0,
+        Number(
+          game.spSpent
+        ) || 0
+      ) +
+      spCost;
+
+
+    game.dumSpent =
+      Math.max(
+        0,
+        Number(
+          game.dumSpent
+        ) || 0
+      ) +
+      dumCost;
+
+  }
+
+
+  save();
+
+
+  return {
+    ok:
+      true,
+    reason:
+      "spent",
+    spCost,
+    dumCost,
+    sp:
+      state.economy.sp,
+    dum:
+      state.energy.dum
+  };
+
+}
   
   /*
  * =========================================================
@@ -2575,10 +2794,9 @@ function getTapAutoState() {
     );
 
 
-  const level =
-    Math.min(
-      10,
-
+ const level =
+  Math.min(
+    TAP_AUTO_MAX_LEVEL,
       Math.max(
         0,
 
@@ -2609,20 +2827,20 @@ function getTapAutoState() {
 
 }
 
-  /*
+ /*
  * =========================================================
  * TAP LAGO AUTO UPGRADE
  * =========================================================
  *
- * SP / LEVEL:
- * permanent requirement only.
+ * FREE:
+ * high lifetime progression
+ * + spendable SP
+ * + full DUM bar
  *
- * SP is NEVER spent here.
- *
- * DUM:
- * actual upgrade cost.
+ * PREMIUM:
+ * real $LAGO
+ * implemented in R0.5E
  */
-
 function getTapAutoUpgradeState() {
 
   refreshDumEnergy();
@@ -2633,7 +2851,7 @@ function getTapAutoUpgradeState() {
 
 
   const maxLevel =
-    10;
+    TAP_AUTO_MAX_LEVEL;
 
 
   const maxed =
@@ -2643,87 +2861,69 @@ function getTapAutoUpgradeState() {
 
   const nextLevel =
     maxed
-
       ? maxLevel
-
       : auto.level + 1;
 
 
-  /*
-   * Cost:
-   *
-   * AUTO 0 → 1 = 10 DUM
-   * AUTO 1 → 2 = 15 DUM
-   * AUTO 2 → 3 = 20 DUM
-   * ...
-   */
+  const multiplier =
+    maxed
+      ? 0
+      : Math.pow(
+          2,
+          nextLevel - 1
+        );
+
+
+  const requiredLifetimeSp =
+    maxed
+      ? state.lifetime.spEarned
+      : Math.floor(
+          TAP_AUTO_FREE_BASE_LIFETIME_SP *
+          multiplier
+        );
+
+
+  const spCost =
+    maxed
+      ? 0
+      : Math.floor(
+          TAP_AUTO_FREE_BASE_SP_COST *
+          multiplier
+        );
+
+
   const dumCost =
     maxed
-
       ? 0
-
-      : 10 +
-        (
-          nextLevel - 1
-        ) * 5;
+      : TAP_AUTO_FREE_DUM_COST;
 
 
-  /*
-   * AUTO 1 requires LEVEL 2.
-   * AUTO 2 requires LEVEL 3.
-   * ...
-   */
   const requiredLevel =
     maxed
-
       ? state.level
-
-      : nextLevel + 1;
-
-
-  /*
-   * Current progression model:
-   * 100 SP per account level.
-   */
-  const requiredSp =
-    maxed
-
-      ? state.economy.sp
-
-      : (
-          requiredLevel - 1
-        ) * 100;
+      : Math.floor(
+          requiredLifetimeSp /
+          100
+        ) + 1;
 
 
-  const accountLevel =
-    Math.max(
-      1,
-      Math.floor(
-        Number(
-          state.economy
-            ?.level ??
-          state.level
-        ) || 1
-      )
-    );
+  const spState =
+    getSPState();
 
 
-  const accountSp =
-    Math.max(
-      0,
-      Math.floor(
-        Number(
-          state.economy
-            ?.sp ??
-          state.xp
-        ) || 0
-      )
-    );
+  const enoughLifetime =
+    spState.lifetimeEarned >=
+    requiredLifetimeSp;
 
 
   const enoughLevel =
-    accountLevel >=
+    spState.level >=
     requiredLevel;
+
+
+  const enoughSp =
+    spState.balance >=
+    spCost;
 
 
   const enoughDum =
@@ -2745,27 +2945,47 @@ function getTapAutoUpgradeState() {
 
     nextLevel,
 
-    dumCost,
+    requiredLifetimeSp,
 
     requiredLevel,
 
-    requiredSp,
+    spCost,
 
-    accountLevel,
+    dumCost,
 
-    accountSp,
+    accountLevel:
+      spState.level,
+
+    accountSp:
+      spState.balance,
+
+    lifetimeSp:
+      spState.lifetimeEarned,
 
     dum:
       state.energy.dum,
 
+    enoughLifetime,
+
     enoughLevel,
+
+    enoughSp,
 
     enoughDum,
 
-    canUpgrade:
+    canUpgradeFree:
       !maxed &&
+      enoughLifetime &&
       enoughLevel &&
-      enoughDum
+      enoughSp &&
+      enoughDum,
+
+    /*
+     * Never simulate paid
+     * $LAGO purchase locally.
+     */
+    canUpgradeWithLago:
+      false
 
   };
 
@@ -2783,69 +3003,57 @@ function upgradeTapAuto() {
   ) {
 
     return {
-
       ok:
         false,
-
       reason:
         "max",
-
       ...before
-
     };
 
   }
 
 
   if (
+    !before.enoughLifetime ||
     !before.enoughLevel
   ) {
 
     return {
-
       ok:
         false,
-
       reason:
-        "level",
-
+        "progress",
       ...before
-
     };
 
   }
 
 
-  /*
-   * SP is NOT deducted.
-   *
-   * Only DUM pays for
-   * the actual upgrade.
-   */
-  const paid =
-    spendDum(
-      before.dumCost,
-      {
-        gameId:
-          "tap-lago"
-      }
-    );
-
-
   if (
-    !paid
+    !before.enoughSp
   ) {
 
     return {
-
       ok:
         false,
+      reason:
+        "sp",
+      ...before
+    };
 
+  }
+
+
+  if (
+    !before.enoughDum
+  ) {
+
+    return {
+      ok:
+        false,
       reason:
         "dum",
-
-      ...getTapAutoUpgradeState()
-
+      ...before
     };
 
   }
@@ -2857,23 +3065,58 @@ function upgradeTapAuto() {
     );
 
 
+  const previousAutoLevel =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          game.autoLevel
+        ) || 0
+      )
+    );
+
+
   game.autoLevel =
     before.nextLevel;
 
 
-  save();
+  const paid =
+    spendGameplayResources({
+      sp:
+        before.spCost,
+      dum:
+        before.dumCost,
+      gameId:
+        "tap-lago"
+    });
+
+
+  if (
+    !paid?.ok
+  ) {
+
+    game.autoLevel =
+      previousAutoLevel;
+
+
+    return {
+      ok:
+        false,
+      reason:
+        paid?.reason ||
+        "payment",
+      ...getTapAutoUpgradeState()
+    };
+
+  }
 
 
   return {
-
     ok:
       true,
-
     reason:
       "upgraded",
-
     ...getTapAutoUpgradeState()
-
   };
 
 }
@@ -3447,7 +3690,10 @@ function coolHeat(
         xpEarned:
   0,
 
-spEarned:
+ spEarned:
+  0,
+
+spSpent:
   0,
 
 dumSpent:
@@ -3473,6 +3719,15 @@ state.games[id].spEarned =
         .spEarned ??
       state.games[id]
         .xpEarned
+    ) || 0
+  );
+
+    state.games[id].spSpent =
+  Math.max(
+    0,
+    Number(
+      state.games[id]
+        .spSpent
     ) || 0
   );
 
@@ -3783,8 +4038,9 @@ canSpendSP,
 
 spendSP,
 
-getDumEnergy,
+spendGameplayResources,
 
+getDumEnergy,
 canSpendDum,
 
 spendDum,
