@@ -255,8 +255,14 @@
 "CONNECT WALLET":
   "ПОДКЛЮЧИТЬ КОШЕЛЁК",
 
-"SIGN IN WITH WALLET":
-  "ВОЙТИ ЧЕРЕЗ КОШЕЛЁК",
+"DISCONNECT WALLET":
+  "ОТКЛЮЧИТЬ КОШЕЛЁК",
+
+"SIGN IN WITH TELEGRAM":
+  "ВОЙТИ ЧЕРЕЗ TELEGRAM",
+
+"TELEGRAM CONNECTED":
+  "TELEGRAM ПОДКЛЮЧЁН",
 
 "SETTINGS":
   "НАСТРОЙКИ",
