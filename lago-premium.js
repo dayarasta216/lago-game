@@ -37,22 +37,16 @@
    * until the real mint / treasury /
    * backend endpoints are fixed.
    */
-  const PAYMENT_CONFIG =
-    Object.freeze({
+ const PAYMENT_CONFIG =
+  Object.freeze({
 
-      tokenMint:
-        "",
+    quoteEndpoint:
+      "",
 
-      treasuryWallet:
-        "",
+    verifyEndpoint:
+      ""
 
-      quoteEndpoint:
-        "",
-
-      verifyEndpoint:
-        ""
-
-    });
+  });
 
 
   function cleanString(
@@ -100,16 +94,26 @@
 
   function getConfigurationStatus() {
 
-    const tokenMint =
-      cleanString(
-        PAYMENT_CONFIG.tokenMint
-      );
+   const tokenStatus =
+  window.LAGO_TOKEN_CONFIG
+    ?.validateIdentity
+    ?.();
 
 
-    const treasuryWallet =
-      cleanString(
-        PAYMENT_CONFIG.treasuryWallet
-      );
+const tokenMint =
+  cleanString(
+    tokenStatus
+      ?.identity
+      ?.mint
+  );
+
+
+const treasuryWallet =
+  cleanString(
+    tokenStatus
+      ?.identity
+      ?.treasuryWallet
+  );
 
 
     const quoteEndpoint =
@@ -127,12 +131,12 @@
     return {
 
       configured:
-        Boolean(
-          tokenMint &&
-          treasuryWallet &&
-          quoteEndpoint &&
-          verifyEndpoint
-        ),
+  Boolean(
+    tokenStatus
+      ?.ready === true &&
+    quoteEndpoint &&
+    verifyEndpoint
+  ),
 
       chain:
         CHAIN,
