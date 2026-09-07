@@ -757,16 +757,75 @@ function buyUpgrade(
  * No fake balance.
  * No client-side AUTO grant.
  */
-function buyAutoWithLago() {
+async function buyAutoWithLago() {
 
+  const premium =
+    window.LAGO_PREMIUM;
+
+
+  if (
+    !premium ||
+    typeof premium.beginTapAutoPurchase !==
+      "function"
+  ) {
+
+    runtime.toast(
+      "$LAGO PAYMENT SYSTEM NOT READY"
+    );
+
+    return false;
+
+  }
+
+
+  const result =
+    await premium
+      .beginTapAutoPurchase();
+
+
+  if (
+    result?.reason ===
+    "max"
+  ) {
+
+    runtime.toast(
+      "AUTO MAX LEVEL"
+    );
+
+    return false;
+
+  }
+
+
+  if (
+    result?.reason ===
+      "payment_not_configured" ||
+    result?.reason ===
+      "payment_backend_not_connected"
+  ) {
+
+    runtime.toast(
+      "$LAGO + PHANTOM SECURE CHECKOUT COMING IN R0.5E"
+    );
+
+
+    runtime.beep(
+      110,
+      0.06
+    );
+
+
+    return false;
+
+  }
+
+
+  /*
+   * There is deliberately no
+   * successful client-side unlock.
+   */
   runtime.toast(
-    "$LAGO + PHANTOM PAYMENT COMING IN R0.5E"
-  );
-
-
-  runtime.beep(
-    110,
-    0.06
+    "$LAGO PURCHASE NOT VERIFIED"
   );
 
 
