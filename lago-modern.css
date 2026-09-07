@@ -2450,3 +2450,195 @@ span:last-child {
   white-space: nowrap;
 
 }
+
+/* =========================================================
+   R0.5B4.2E4 — DUAL AUTO PURCHASE
+   ========================================================= */
+
+.lago-auto-upgrade-card {
+
+  display: block;
+
+}
+
+
+.lago-auto-upgrade-head {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 10px;
+
+}
+
+
+.lago-auto-upgrade-title {
+
+  font-size: 20px;
+
+  font-weight: 1000;
+
+}
+
+
+.lago-auto-rate {
+
+  flex: 0 0 auto;
+
+  padding: 8px 10px;
+
+  border: 1px solid
+    rgba(255,255,255,.15);
+
+  background:
+    rgba(255,255,255,.05);
+
+  font-size: 15px;
+
+  font-weight: 1000;
+
+  white-space: nowrap;
+
+}
+
+
+.lago-auto-next {
+
+  margin-bottom: 10px;
+
+  font-size: 10px;
+
+  font-weight: 1000;
+
+  letter-spacing: .06em;
+
+  color:
+    rgba(255,255,255,.7);
+
+}
+
+
+.lago-auto-routes {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+
+}
+
+
+.lago-auto-route {
+
+  min-width: 0;
+
+  padding: 12px;
+
+  border: 1px solid
+    rgba(255,255,255,.12);
+
+  background:
+    rgba(255,255,255,.025);
+
+}
+
+
+.lago-auto-route-premium {
+
+  border-color:
+    rgba(255,215,90,.38);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,215,90,.07),
+      rgba(255,255,255,.02)
+    );
+
+}
+
+
+.lago-auto-route-title {
+
+  margin-bottom: 8px;
+
+  font-size: 13px;
+
+  font-weight: 1000;
+
+  letter-spacing: .05em;
+
+}
+
+
+.lago-auto-route
+.buy {
+
+  width: 100%;
+
+  margin-top: 12px;
+
+}
+
+
+.lago-auto-lago-buy {
+
+  border-color:
+    rgba(255,215,90,.55);
+
+}
+
+
+.lago-auto-coming {
+
+  margin-top: 7px;
+
+  text-align: center;
+
+  font-size: 7px;
+
+  font-weight: 900;
+
+  letter-spacing: .05em;
+
+  color:
+    rgba(255,255,255,.35);
+
+}
+
+
+.lago-auto-max {
+
+  padding: 14px;
+
+  text-align: center;
+
+  border: 1px solid
+    rgba(255,255,255,.12);
+
+  font-size: 12px;
+
+  font-weight: 1000;
+
+}
+
+
+@media (
+  max-width: 620px
+) {
+
+  .lago-auto-routes {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+}
