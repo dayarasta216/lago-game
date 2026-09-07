@@ -827,6 +827,11 @@ document.addEventListener(
   render
 );
 
+    document.addEventListener(
+  "lago:auth-state",
+  render
+);
+
   }
 
 
@@ -1425,6 +1430,50 @@ const telegramButtonText =
   overlay.querySelector(
     "#lagoTelegramSignInText"
   );
+
+
+const authState =
+  window.LAGO_AUTH
+    ?.getState
+    ?.();
+
+
+const telegramLinked =
+  authState
+
+    ? authState.telegramLinked ===
+        true
+
+    : profile.telegramLinked ===
+        true;
+
+
+if (
+  telegramButtonText
+) {
+
+  telegramButtonText.textContent =
+    telegramLinked
+
+      ? "TELEGRAM CONNECTED"
+
+      : "SIGN IN WITH TELEGRAM";
+
+}
+
+
+if (
+  telegramButton
+) {
+
+  telegramButton.dataset.connected =
+    telegramLinked
+
+      ? "true"
+
+      : "false";
+
+}
 
 
 if (telegramButtonText) {
