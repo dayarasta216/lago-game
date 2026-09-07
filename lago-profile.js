@@ -981,6 +981,30 @@ document.addEventListener(
     const next =
       walletApi.getState();
 
+    if (
+  next.connected &&
+  next.publicKey &&
+  window.LAGO_AUTH
+    ?.bindConnectedWallet
+) {
+
+  const binding =
+    await window.LAGO_AUTH
+      .bindConnectedWallet();
+
+
+  if (
+    binding?.reason ===
+    "wallet_mismatch"
+  ) {
+
+    alert(
+      "Another Phantom wallet is already linked to this Lago account."
+    );
+
+  }
+
+}
 
     profile.wallet =
       next.connected
@@ -1146,13 +1170,37 @@ function getTelegramUser() {
 }
 
 
-function signInTelegram() {
+async function signInTelegram() {
 
-  const user =
-    getTelegramUser();
+  const auth =
+    window.LAGO_AUTH;
 
 
-  if (!user) {
+  if (
+    !auth ||
+    typeof auth
+      .signInWithTelegram !==
+      "function"
+  ) {
+
+    alert(
+      "Lago authentication is not ready."
+    );
+
+    return false;
+
+  }
+
+
+  const result =
+    await auth
+      .signInWithTelegram();
+
+
+  if (
+    result?.reason ===
+    "telegram_context_missing"
+  ) {
 
     alert(
       "Open Lago inside Telegram to sign in."
@@ -1163,34 +1211,39 @@ function signInTelegram() {
   }
 
 
-  profile.telegramId =
-    String(
-      user.id ||
-      ""
+  if (!result?.ok) {
+
+    alert(
+      "Telegram sign in failed."
     );
+
+    return false;
+
+  }
+
+
+  /*
+   * Keep old Profile fields
+   * only as temporary UI compatibility.
+   */
+  const authState =
+    auth.getState();
+
+
+  profile.telegramId =
+    authState.telegramId;
 
 
   profile.telegramUsername =
-    String(
-      user.username ||
-      ""
-    );
+    authState.telegramUsername;
 
 
   profile.telegramName =
-    [
-      user.first_name,
-      user.last_name
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
+    authState.telegramDisplayName;
 
 
   profile.telegramLinked =
-    Boolean(
-      profile.telegramId
-    );
+    authState.telegramLinked;
 
 
   save();
@@ -1198,8 +1251,7 @@ function signInTelegram() {
   render();
 
 
-  return profile
-    .telegramLinked;
+  return true;
 
 }
 
