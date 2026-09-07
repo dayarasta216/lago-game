@@ -745,7 +745,36 @@ function buyUpgrade(
 
 }
 
- function renderUpgrades() {
+  /*
+ * =========================================================
+ * PREMIUM AUTO PURCHASE
+ * =========================================================
+ *
+ * Real $LAGO purchase is intentionally
+ * fail-closed until R0.5E.
+ *
+ * No localStorage unlock.
+ * No fake balance.
+ * No client-side AUTO grant.
+ */
+function buyAutoWithLago() {
+
+  runtime.toast(
+    "$LAGO + PHANTOM PAYMENT COMING IN R0.5E"
+  );
+
+
+  runtime.beep(
+    110,
+    0.06
+  );
+
+
+  return false;
+
+}
+
+function renderUpgrades() {
 
   const list =
     document.getElementById(
@@ -754,7 +783,9 @@ function buyUpgrade(
 
 
   if (!list) {
+
     return;
+
   }
 
 
@@ -788,106 +819,192 @@ function buyUpgrade(
 
   const nextRate =
     auto.maxed
+
       ? auto.spPerSecond
+
       : auto.nextLevel;
 
 
   list.innerHTML =
     `
-      <div class="card">
+      <div
+        class="card lago-auto-upgrade-card"
+      >
 
-        <div>
+        <div
+          class="lago-auto-upgrade-head"
+        >
 
-          <div
-            style="font-size:20px"
-          >
-            🤖
-            <b>
-              AUTO SP / SEC
-            </b>
+          <div>
+
+            <div
+              class="lago-auto-upgrade-title"
+            >
+              🤖 AUTO SP / SEC
+            </div>
+
+            <div
+              class="desc"
+            >
+              AUTO LEVEL
+              ${auto.level}/${auto.maxLevel}
+            </div>
+
           </div>
 
 
-          <div class="desc">
-
-            AUTO LEVEL:
-            ${auto.level}/${auto.maxLevel}
-
-            <br>
-
-            CURRENT:
-            ${auto.spPerSecond} SP/S
-
-            <br>
-
-            ${
-              auto.maxed
-                ? "MAX LEVEL"
-                : `NEXT: ${nextRate} SP/S`
-            }
-
-            ${
-              auto.maxed
-                ? ""
-                : `
-                  <br><br>
-
-                  FREE GRIND:
-
-                  <br>
-
-                  REQUIRES:
-                  LEVEL ${auto.requiredLevel}
-
-                  <br>
-
-                  LIFETIME:
-                  ${formatNumber(
-                    auto.requiredLifetimeSp
-                  )} SP
-
-                  <br>
-
-                  COST:
-                  ${formatNumber(
-                    auto.spCost
-                  )} SP
-                  + ${auto.dumCost} DUM
-
-                  <br><br>
-
-                  OR BUY / UPGRADE
-                  WITH REAL $LAGO
-
-                  <br>
-
-                  PHANTOM PAYMENT:
-                  COMING IN R0.5E
-                `
-            }
-
+          <div
+            class="lago-auto-rate"
+          >
+            ${auto.spPerSecond}
+            SP/S
           </div>
 
         </div>
 
 
-        <button
-          class="buy"
-          data-up="auto"
-          ${
-            auto.maxed
-              ? "disabled"
-              : ""
-          }
-        >
+        ${
+          auto.maxed
 
-          ${
-            auto.maxed
-              ? "MAX"
-              : "FREE GRIND"
-          }
+            ? `
+              <div
+                class="lago-auto-max"
+              >
+                MAX AUTO LEVEL
+              </div>
+            `
 
-        </button>
+            : `
+              <div
+                class="lago-auto-next"
+              >
+                NEXT LEVEL:
+                ${nextRate} SP/S
+              </div>
+
+
+              <div
+                class="lago-auto-routes"
+              >
+
+                <!-- FREE PATH -->
+
+                <div
+                  class="lago-auto-route"
+                >
+
+                  <div
+                    class="lago-auto-route-title"
+                  >
+                    FREE GRIND
+                  </div>
+
+
+                  <div
+                    class="desc"
+                  >
+
+                    REQUIRES
+
+                    <br>
+
+                    LEVEL
+                    ${auto.requiredLevel}
+
+                    <br>
+
+                    ${formatNumber(
+                      auto.requiredLifetimeSp
+                    )}
+                    LIFETIME SP
+
+                    <br><br>
+
+                    COST
+
+                    <br>
+
+                    ${formatNumber(
+                      auto.spCost
+                    )}
+                    SP
+
+                    <br>
+
+                    ${auto.dumCost}
+                    DUM
+
+                  </div>
+
+
+                  <button
+                    class="buy lago-auto-free-buy"
+                    data-up="auto"
+                  >
+                    FREE GRIND
+                  </button>
+
+                </div>
+
+
+                <!-- PREMIUM PATH -->
+
+                <div
+                  class="lago-auto-route lago-auto-route-premium"
+                >
+
+                  <div
+                    class="lago-auto-route-title"
+                  >
+                    $LAGO
+                  </div>
+
+
+                  <div
+                    class="desc"
+                  >
+
+                    REAL SOLANA TOKEN
+
+                    <br>
+
+                    PHANTOM PAYMENT
+
+                    <br><br>
+
+                    LIVE $LAGO PRICE
+
+                    <br>
+
+                    CALCULATED AT CHECKOUT
+
+                    <br><br>
+
+                    NO SP GRIND
+
+                  </div>
+
+
+                  <button
+                    class="buy lago-auto-lago-buy"
+                    data-auto-lago
+                    type="button"
+                  >
+                    BUY WITH $LAGO
+                  </button>
+
+
+                  <div
+                    class="lago-auto-coming"
+                  >
+                    ON-CHAIN PAYMENT · R0.5E
+                  </div>
+
+                </div>
+
+              </div>
+            `
+        }
 
       </div>
     `;
@@ -908,8 +1025,21 @@ function buyUpgrade(
       }
     );
 
-}
 
+  list
+    .querySelector(
+      "[data-auto-lago]"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        buyAutoWithLago();
+
+      }
+    );
+
+}
   function openUpgrades() {
 
     renderUpgrades();
