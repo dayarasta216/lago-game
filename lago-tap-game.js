@@ -617,10 +617,6 @@ function buyUpgrade(
   key
 ) {
 
-  /*
-   * Only canonical AUTO upgrade
-   * exists in Tap Lago now.
-   */
   if (
     key !==
     "auto"
@@ -645,11 +641,9 @@ function buyUpgrade(
       "[TAP LAGO] AUTO upgrade API is missing."
     );
 
-
     runtime.toast(
       "ACCOUNT CORE ERROR"
     );
-
 
     return false;
 
@@ -661,27 +655,21 @@ function buyUpgrade(
 
 
   if (
-    result
-      ?.ok ===
-      true
+    result?.ok === true
   ) {
 
     runtime.toast(
       `AUTO LEVEL ${result.level} · ${result.spPerSecond} SP/S`
     );
 
-
     runtime.beep(
       720,
       0.08
     );
 
-
     renderUpgrades();
 
-
     runtime.render();
-
 
     return true;
 
@@ -689,9 +677,8 @@ function buyUpgrade(
 
 
   if (
-    result
-      ?.reason ===
-      "max"
+    result?.reason ===
+    "max"
   ) {
 
     runtime.toast(
@@ -704,13 +691,14 @@ function buyUpgrade(
 
 
   if (
-    result
-      ?.reason ===
-      "level"
+    result?.reason ===
+    "progress"
   ) {
 
     runtime.toast(
-      `NEED LEVEL ${result.requiredLevel} · ${result.requiredSp} SP`
+      `NEED LEVEL ${result.requiredLevel} · ${formatNumber(
+        result.requiredLifetimeSp
+      )} LIFETIME SP`
     );
 
     return false;
@@ -719,9 +707,24 @@ function buyUpgrade(
 
 
   if (
-    result
-      ?.reason ===
-      "dum"
+    result?.reason ===
+    "sp"
+  ) {
+
+    runtime.toast(
+      `NEED ${formatNumber(
+        result.spCost
+      )} SP`
+    );
+
+    return false;
+
+  }
+
+
+  if (
+    result?.reason ===
+    "dum"
   ) {
 
     runtime.toast(
@@ -751,9 +754,7 @@ function buyUpgrade(
 
 
   if (!list) {
-
     return;
-
   }
 
 
@@ -787,9 +788,7 @@ function buyUpgrade(
 
   const nextRate =
     auto.maxed
-
       ? auto.spPerSecond
-
       : auto.nextLevel;
 
 
@@ -823,26 +822,47 @@ function buyUpgrade(
 
             ${
               auto.maxed
-
                 ? "MAX LEVEL"
-
                 : `NEXT: ${nextRate} SP/S`
             }
 
             ${
               auto.maxed
-
                 ? ""
-
                 : `
+                  <br><br>
+
+                  FREE GRIND:
+
                   <br>
+
                   REQUIRES:
                   LEVEL ${auto.requiredLevel}
-                  / ${auto.requiredSp} SP
 
                   <br>
+
+                  LIFETIME:
+                  ${formatNumber(
+                    auto.requiredLifetimeSp
+                  )} SP
+
+                  <br>
+
                   COST:
-                  ${auto.dumCost} DUM
+                  ${formatNumber(
+                    auto.spCost
+                  )} SP
+                  + ${auto.dumCost} DUM
+
+                  <br><br>
+
+                  OR BUY / UPGRADE
+                  WITH REAL $LAGO
+
+                  <br>
+
+                  PHANTOM PAYMENT:
+                  COMING IN R0.5E
                 `
             }
 
@@ -864,7 +884,7 @@ function buyUpgrade(
           ${
             auto.maxed
               ? "MAX"
-              : `${auto.dumCost} DUM`
+              : "FREE GRIND"
           }
 
         </button>
