@@ -22,6 +22,15 @@ const DAILY_DUM_AMOUNT =
  */
 const DAILY_SKINS = [
 
+  /*
+   * Daily Reward may drop
+   * ONLY ordinary COMMON
+   * full-character skins.
+   *
+   * RARE / EPIC /
+   * LEGENDARY / MYTHIC
+   * are never random daily drops.
+   */
   {
     id:
       "lime",
@@ -37,23 +46,6 @@ const DAILY_SKINS = [
 
     weight:
       15
-  },
-
-  {
-    id:
-      "ocean",
-
-    name:
-      "Ocean Lago",
-
-    emoji:
-      "🌊",
-
-    rarity:
-      "RARE",
-
-    weight:
-      5
   }
 
 ];
