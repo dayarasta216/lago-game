@@ -5,59 +5,58 @@
     "lago_rewards_v1";
 
 
-  const REWARDS = [
+  const DAILY_SP_AMOUNT =
+  250;
 
-    {
-      id: "lime",
-      name: "Lime Lago",
-      emoji: "🟢",
-      rarity: "COMMON"
-    },
 
-    {
-      id: "ocean",
-      name: "Ocean Lago",
-      emoji: "🌊",
-      rarity: "RARE"
-    },
+const DAILY_DUM_AMOUNT =
+  20;
 
-    {
-      id: "galaxy",
-      name: "Galaxy Lago",
-      emoji: "🌌",
-      rarity: "EPIC"
-    },
 
-    {
-      id: "lava",
-      name: "Lava Lago",
-      emoji: "🔥",
-      rarity: "EPIC"
-    },
+/*
+ * Daily cosmetics are intentionally
+ * limited to COMMON / RARE.
+ *
+ * EPIC / LEGENDARY / MYTHIC
+ * are not ordinary Daily Rewards.
+ */
+const DAILY_SKINS = [
 
-    {
-      id: "gold",
-      name: "Golden Lago",
-      emoji: "👑",
-      rarity: "LEGENDARY"
-    },
+  {
+    id:
+      "lime",
 
-    {
-      id: "void",
-      name: "Void Lago",
-      emoji: "🕳️",
-      rarity: "MYTHIC"
-    },
+    name:
+      "Lime Lago",
 
-    {
-      id: "diamond",
-      name: "Diamond Lago",
-      emoji: "💎",
-      rarity: "MYTHIC"
-    }
+    emoji:
+      "🟢",
 
-  ];
+    rarity:
+      "COMMON",
 
+    weight:
+      15
+  },
+
+  {
+    id:
+      "ocean",
+
+    name:
+      "Ocean Lago",
+
+    emoji:
+      "🌊",
+
+    rarity:
+      "RARE",
+
+    weight:
+      5
+  }
+
+];
 
   function load() {
 
@@ -113,108 +112,242 @@
   }
 
 
-  function pickReward() {
+ function pickReward() {
 
-    const state =
-      getState();
-
-
-    /*
-     * Prefer skins that the
-     * player doesn't own yet.
-     */
-
-    const owned =
-      new Set(
-        window.LAGO?.getState?.()
-          ?.skins || []
-      );
+  const account =
+    window.LAGO_ACCOUNT;
 
 
-    let available =
-      REWARDS.filter(
-        reward =>
-          !owned.has(
-            reward.id
-          )
-      );
+  if (!account) {
 
-
-    /*
-     * If everything is owned,
-     * reward MEM instead.
-     */
-
-    if (
-      available.length === 0
-    ) {
-
-      return null;
-
-    }
-
-
-    /*
-     * Higher rarity is less likely.
-     */
-
-    const weighted = [];
-
-    available.forEach(
-      reward => {
-
-        let weight = 10;
-
-        if (
-          reward.rarity ===
-          "RARE"
-        )
-          weight = 6;
-
-        if (
-          reward.rarity ===
-          "EPIC"
-        )
-          weight = 3;
-
-        if (
-          reward.rarity ===
-          "LEGENDARY"
-        )
-          weight = 1;
-
-        if (
-          reward.rarity ===
-          "MYTHIC"
-        )
-          weight = .4;
-
-
-        for (
-          let i = 0;
-          i < weight * 10;
-          i++
-        ) {
-
-          weighted.push(
-            reward
-          );
-
-        }
-
-      }
-    );
-
-
-    return weighted[
-      Math.floor(
-        Math.random() *
-        weighted.length
-      )
-    ];
+    return null;
 
   }
 
+
+  const accountState =
+    account.getState?.() || {};
+
+
+  const owned =
+    new Set(
+      accountState.skins || []
+    );
+
+
+  const dumState =
+    account.getDumEnergy?.() || {
+
+      dum:
+        0,
+
+      max:
+        100
+
+    };
+
+
+  const dum =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          dumState.dum
+        ) || 0
+      )
+    );
+
+
+  const maxDum =
+    Math.max(
+      1,
+      Math.floor(
+        Number(
+          dumState.max
+        ) || 100
+      )
+    );
+
+
+  const dumMissing =
+    Math.max(
+      0,
+      maxDum - dum
+    );
+
+
+  /*
+   * SP is always available.
+   */
+  const available = [
+
+    {
+      type:
+        "sp",
+
+      id:
+        "sp-250",
+
+      amount:
+        DAILY_SP_AMOUNT,
+
+      name:
+        `+${DAILY_SP_AMOUNT} SP`,
+
+      emoji:
+        "⚡",
+
+      label:
+        "SP",
+
+      title:
+        "SP BONUS",
+
+      subtitle:
+        "Spend it on Lago upgrades and gameplay.",
+
+      weight:
+        50
+    }
+
+  ];
+
+
+  /*
+   * Do not waste Daily Reward
+   * on an almost-full DUM bar.
+   */
+  if (
+    dumMissing >=
+    10
+  ) {
+
+    const amount =
+      Math.min(
+        DAILY_DUM_AMOUNT,
+        dumMissing
+      );
+
+
+    available.push({
+
+      type:
+        "dum",
+
+      id:
+        "dum-energy",
+
+      amount,
+
+      name:
+        `+${amount} DUM`,
+
+      emoji:
+        "🔋",
+
+      label:
+        "DUM",
+
+      title:
+        "ENERGY BONUS",
+
+      subtitle:
+        "DUM Energy restored.",
+
+      weight:
+        30
+
+    });
+
+  }
+
+
+  /*
+   * Only unowned COMMON / RARE
+   * cosmetics participate.
+   */
+  DAILY_SKINS
+    .filter(
+      skin =>
+        !owned.has(
+          skin.id
+        )
+    )
+    .forEach(
+      skin =>
+        available.push({
+
+          type:
+            "skin",
+
+          ...skin,
+
+          label:
+            skin.rarity,
+
+          title:
+            "NEW LAGO",
+
+          subtitle:
+            "You unlocked a new skin!"
+
+        })
+    );
+
+
+  const totalWeight =
+    available.reduce(
+      (
+        sum,
+        reward
+      ) =>
+        sum +
+        Math.max(
+          1,
+          Number(
+            reward.weight
+          ) || 1
+        ),
+      0
+    );
+
+
+  let roll =
+    Math.random() *
+    totalWeight;
+
+
+  for (
+    const reward
+    of available
+  ) {
+
+    roll -=
+      Math.max(
+        1,
+        Number(
+          reward.weight
+        ) || 1
+      );
+
+
+    if (
+      roll <= 0
+    ) {
+
+      return reward;
+
+    }
+
+  }
+
+
+  return (
+    available[0] ||
+    null
+  );
+
+}
 
   function canClaim() {
 
@@ -231,63 +364,265 @@
 
   function claim() {
 
-    if (!canClaim())
-      return;
+  if (
+    !canClaim()
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "already_claimed"
+
+    };
+
+  }
 
 
-    const reward =
-      pickReward();
+  const account =
+    window.LAGO_ACCOUNT;
 
 
-    if (!reward) {
+  if (!account) {
 
-      /*
-       * All skins owned.
-       * Give bonus MEM instead.
-       */
+    return {
 
-      window.LAGO?.addMem?.(
-        250
-      );
+      ok:
+        false,
 
-      const data =
-        getState();
+      reason:
+        "account_unavailable"
 
-      data.lastClaim =
-        today();
+    };
 
-      save(data);
+  }
 
-      showBonus();
 
-      return;
+  const reward =
+    pickReward();
+
+
+  if (!reward) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "reward_unavailable"
+
+    };
+
+  }
+
+
+  /*
+   * =========================================================
+   * SP
+   * =========================================================
+   */
+  if (
+    reward.type ===
+    "sp"
+  ) {
+
+    if (
+      typeof account.addSP !==
+      "function"
+    ) {
+
+      return {
+
+        ok:
+          false,
+
+        reason:
+          "sp_api_unavailable"
+
+      };
 
     }
 
 
-    window.LAGO?.addSkin?.(
-      reward.id
-    );
-
-
-    const data =
-      getState();
-
-    data.lastClaim =
-      today();
-
-    data.totalClaims =
-      (data.totalClaims || 0) + 1;
-
-    save(data);
-
-
-    showReward(
-      reward
+    account.addSP(
+      reward.amount,
+      {
+        gameId:
+          "daily-reward"
+      }
     );
 
   }
 
+
+  /*
+   * =========================================================
+   * DUM
+   * =========================================================
+   */
+  else if (
+    reward.type ===
+    "dum"
+  ) {
+
+    if (
+      typeof account.restoreDum !==
+      "function"
+    ) {
+
+      return {
+
+        ok:
+          false,
+
+        reason:
+          "dum_api_unavailable"
+
+      };
+
+    }
+
+
+    account.restoreDum(
+      reward.amount
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * COMMON / RARE SKIN
+   * =========================================================
+   */
+  else if (
+    reward.type ===
+    "skin"
+  ) {
+
+    if (
+      typeof account.addSkin !==
+      "function"
+    ) {
+
+      return {
+
+        ok:
+          false,
+
+        reason:
+          "skin_api_unavailable"
+
+      };
+
+    }
+
+
+    account.addSkin(
+      reward.id
+    );
+
+  }
+
+
+  else {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "invalid_reward_type"
+
+    };
+
+  }
+
+
+  const data =
+    getState();
+
+
+  data.lastClaim =
+    today();
+
+
+  data.totalClaims =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          data.totalClaims
+        ) || 0
+      )
+    ) + 1;
+
+
+  data.lastReward = {
+
+    type:
+      reward.type,
+
+    id:
+      reward.id || "",
+
+    amount:
+      Math.max(
+        0,
+        Number(
+          reward.amount
+        ) || 0
+      ),
+
+    claimedAt:
+      new Date()
+        .toISOString()
+
+  };
+
+
+  save(
+    data
+  );
+
+
+  showReward(
+    reward
+  );
+
+
+  document.dispatchEvent(
+
+    new CustomEvent(
+      "lago:daily-reward",
+      {
+
+        detail: {
+          ...reward
+        }
+
+      }
+    )
+
+  );
+
+
+  return {
+
+    ok:
+      true,
+
+    reward: {
+      ...reward
+    }
+
+  };
+
+}
 
   function createUI() {
 
@@ -322,22 +657,22 @@
         <div
           class="lago-reward-label"
         >
-          DAILY DROP
+          DAILY REWARD
         </div>
 
         <div
           class="lago-reward-title"
           id="lagoRewardTitle"
         >
-          NEW LAGO
+          DAILY REWARD
         </div>
 
         <div
           class="lago-reward-subtitle"
           id="lagoRewardSubtitle"
         >
-          A new item has been added
-          to your collection.
+          Come back tomorrow for
+another reward.
         </div>
 
         <div
@@ -404,126 +739,92 @@
   }
 
 
-  function showReward(
-    reward
+function showReward(
+  reward
+) {
+
+  createUI();
+
+
+  document
+    .querySelector(
+      "#lagoRewardTitle"
+    )
+    .textContent =
+    reward.title ||
+    "DAILY REWARD";
+
+
+  document
+    .querySelector(
+      "#lagoRewardSubtitle"
+    )
+    .textContent =
+    reward.subtitle ||
+    "Daily reward claimed.";
+
+
+  document
+    .querySelector(
+      "#lagoRewardEmoji"
+    )
+    .textContent =
+    reward.emoji ||
+    "🎁";
+
+
+  document
+    .querySelector(
+      "#lagoRewardName"
+    )
+    .textContent =
+    reward.name ||
+    "Reward";
+
+
+  const rarity =
+    document.querySelector(
+      "#lagoRewardRarity"
+    );
+
+
+  rarity.textContent =
+    reward.label ||
+    "BONUS";
+
+
+  /*
+   * Remove visual state
+   * left from previous reward.
+   */
+  rarity.className =
+    "lago-reward-rarity";
+
+
+  if (
+    reward.type ===
+      "skin" &&
+    reward.rarity
   ) {
 
-    createUI();
-
-
-    document
-      .querySelector(
-        "#lagoRewardTitle"
-      )
-      .textContent =
-      "NEW LAGO";
-
-
-    document
-      .querySelector(
-        "#lagoRewardSubtitle"
-      )
-      .textContent =
-      "You unlocked a new skin!";
-
-
-    document
-      .querySelector(
-        "#lagoRewardEmoji"
-      )
-      .textContent =
-      reward.emoji;
-
-
-    document
-      .querySelector(
-        "#lagoRewardName"
-      )
-      .textContent =
-      reward.name;
-
-
-    const rarity =
-      document.querySelector(
-        "#lagoRewardRarity"
-      );
-
-
-    rarity.textContent =
-      reward.rarity;
-
-
-    rarity.className =
-      "lago-reward-rarity " +
+    rarity.classList.add(
       "lago-rarity-" +
-      reward.rarity.toLowerCase();
-
-
-    document
-      .querySelector(
-        "#lagoRewards"
-      )
-      .classList.add(
-        "active"
-      );
+      reward.rarity
+        .toLowerCase()
+    );
 
   }
 
 
-  function showBonus() {
+  document
+    .querySelector(
+      "#lagoRewards"
+    )
+    .classList.add(
+      "active"
+    );
 
-    createUI();
-
-
-    document
-      .querySelector(
-        "#lagoRewardTitle"
-      )
-      .textContent =
-      "FULL COLLECTION";
-
-
-    document
-      .querySelector(
-        "#lagoRewardSubtitle"
-      )
-      .textContent =
-      "You own every available skin.";
-
-
-    document
-      .querySelector(
-        "#lagoRewardEmoji"
-      )
-      .textContent =
-      "💚";
-
-
-    document
-      .querySelector(
-        "#lagoRewardName"
-      )
-      .textContent =
-      "+250 DUM";
-
-
-    document
-      .querySelector(
-        "#lagoRewardRarity"
-      )
-      .textContent =
-      "BONUS";
-
-
-    document
-      .querySelector(
-        "#lagoRewards"
-      )
-      .classList.add(
-        "active"
-      );
-
-  }
+}
 
 
   function hide() {
