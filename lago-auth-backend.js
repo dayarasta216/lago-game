@@ -39,24 +39,26 @@
    * /api/auth/logout
    * /api/account/wallet
    */
-  const CONFIG =
-    Object.freeze({
+ const CONFIG =
+  Object.freeze({
 
-      telegramLoginEndpoint:
-        "",
+    telegramLoginEndpoint:
+      "/api/auth/telegram",
 
-      sessionEndpoint:
-        "",
+    sessionEndpoint:
+      "/api/auth/session",
 
-      logoutEndpoint:
-        "",
+    logoutEndpoint:
+      "/api/auth/logout",
 
-      walletBindEndpoint:
-        ""
+    /*
+     * Disabled until Phantom
+     * ownership proof is implemented.
+     */
+    walletBindEndpoint:
+      ""
 
-    });
-
-
+  });
   const state = {
 
     backendReady:
@@ -161,29 +163,41 @@
       );
 
 
-    const ready =
-      Boolean(
+   const authReady =
+  Boolean(
 
-        telegramLoginEndpoint &&
+    telegramLoginEndpoint &&
 
-        sessionEndpoint &&
+    sessionEndpoint &&
 
-        logoutEndpoint &&
+    logoutEndpoint
 
-        walletBindEndpoint
+  );
 
-      );
+
+const walletBindingReady =
+  Boolean(
+    walletBindEndpoint
+  );
+
+
+const ready =
+  authReady;
 
 
     state.backendReady =
       ready;
 
 
-    return {
+  return {
 
-      ready,
+  ready,
 
-      telegramLoginEndpoint,
+  authReady,
+
+  walletBindingReady,
+
+  telegramLoginEndpoint,
 
       sessionEndpoint,
 
@@ -778,21 +792,21 @@
       getConfigStatus();
 
 
-    if (
-      !config.ready
-    ) {
+  if (
+  !config.walletBindingReady
+) {
 
-      return {
+  return {
 
-        ok:
-          false,
+    ok:
+      false,
 
-        reason:
-          "backend_not_configured"
+    reason:
+      "wallet_binding_not_configured"
 
-      };
+  };
 
-    }
+}
 
 
     if (
