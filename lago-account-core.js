@@ -1226,8 +1226,8 @@ updateLevel(
  * Synchronize canonical v2 progression
  * with old compatibility fields.
  */
-next.economy.sp =
-  next.xp;
+next.xp =
+  next.economy.sp;
 
 
 next.economy.level =
@@ -1498,17 +1498,17 @@ if (
     "object"
 ) {
 
-  target.economy.sp =
-    Math.max(
-      0,
-      Number(
-        target.xp
-      ) || 0
-    );
+ target.xp =
+  Math.max(
+    0,
+    Number(
+      target.economy.sp
+    ) || 0
+  );
 
 
-  target.economy.level =
-    target.level;
+target.economy.level =
+  target.level;
 
 }
 
@@ -1621,183 +1621,85 @@ if (
 
 
   /*
-   * =========================================================
-   * MEM ECONOMY
-   * =========================================================
-   */
-
-  function creditMem(
-    amount = 0,
-    options = {}
-  ) {
-
-    const value =
-      Math.max(
-        0,
-        Number(
-          amount
-        ) || 0
-      );
-
-
-    if (!value) {
-
-      return snapshot();
-
-    }
-
-
-    state.mem +=
-      value;
-
-
-    state.lifetime
-      .memEarned +=
-      value;
-
-
-    const xp =
-      Math.max(
-        0,
-        Number(
-          options.xp
-        ) || 0
-      );
-
-
-    if (xp) {
-
-      state.xp +=
-        xp;
-
-
-     state.lifetime
-  .xpEarned +=
-  xp;
-
-
-/*
- * XP is only a compatibility mirror.
- * Every XP reward is also canonical SP.
+ * =========================================================
+ * LEGACY MEM COMPATIBILITY
+ * =========================================================
+ *
+ * MEM is no longer an active currency.
+ *
+ * Old callers are redirected to SP so
+ * legacy modules cannot create or spend
+ * a second economy.
+ *
+ * Persisted mem / lifetime.mem* fields
+ * remain read-only migration history.
  */
 
-state.lifetime
-  .spEarned +=
-  xp;
+function creditMem(
+  amount = 0,
+  options = {}
+) {
 
-
-updateLevel(
-  state,
-  true
-);
-    }
-
-
-    if (
-      options.countClick ===
-      true
-    ) {
-
-      state.clicks += 1;
-
-    }
-
-
-    if (
-      options.gameId
-    ) {
-
-      const game =
-        ensureGame(
-          options.gameId
-        );
-
-
-      game.memEarned +=
-        value;
-
-
-      if (xp) {
-
-  game.xpEarned +=
-    xp;
-
-
-  game.spEarned =
+  const value =
     Math.max(
       0,
       Number(
-        game.spEarned
+        amount
       ) || 0
-    ) +
-    xp;
-
-}
-    }
+    );
 
 
-    return save();
+  if (!value) {
+
+    return snapshot();
 
   }
 
 
-  function spendMem(
-    amount = 0,
-    options = {}
+  if (
+    options.countClick ===
+    true
   ) {
 
-    const value =
-      Math.max(
-        0,
-        Number(
-          amount
-        ) || 0
-      );
-
-
-    if (!value) {
-
-      return true;
-
-    }
-
-
-    if (
-      state.mem <
-      value
-    ) {
-
-      return false;
-
-    }
-
-
-    state.mem -=
-      value;
-
-
-    state.lifetime
-      .memSpent +=
-      value;
-
-
-    if (
-      options.gameId
-    ) {
-
-      ensureGame(
-        options.gameId
-      ).memSpent += value;
-
-    }
-
-
-    save();
-
-
-    return true;
+    state.clicks += 1;
 
   }
+
+
+  return addSP(
+    value,
+    {
+      gameId:
+        options.gameId ||
+        undefined
+    }
+  );
+
+}
+
+
+function spendMem(
+  amount = 0,
+  options = {}
+) {
+
+  return spendSP(
+    amount,
+    {
+      gameId:
+        options.gameId ||
+        undefined
+    }
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * SP — CANONICAL PROGRESSION
+ * =========================================================
+ */
 
 /*
  * =========================================================
@@ -1827,26 +1729,24 @@ function addSP(
 
 
   /*
-   * Keep old XP mirror alive
-   * until every module is migrated.
-   */
+ * economy.sp is canonical.
+ *
+ * Top-level xp is only a
+ * compatibility mirror for
+ * old saves / old modules.
+ */
 
-  state.xp +=
-    value;
-
-
-  state.economy.sp =
-    state.xp;
-
-
-  state.lifetime
-    .xpEarned +=
-    value;
+state.economy.sp +=
+  value;
 
 
-  state.lifetime
-    .spEarned +=
-    value;
+state.xp =
+  state.economy.sp;
+
+
+state.lifetime
+  .spEarned +=
+  value;
 
 
   if (
@@ -1859,17 +1759,8 @@ function addSP(
       );
 
 
-    game.xpEarned =
-      Math.max(
-        0,
-        Number(
-          game.xpEarned
-        ) || 0
-      ) +
-      value;
+   game.xpEarned =
 
-
-    game.spEarned =
       Math.max(
         0,
         Number(
@@ -3898,129 +3789,130 @@ state.games[id].dumSpent =
   }
 
 
-  function submitGameResult(
-    {
-      gameId,
-      score = 0,
-      mem = 0,
-      xp = 0
-    } = {}
-  ) {
+ function submitGameResult(
+  {
+    gameId,
+    score = 0,
+    sp = 0,
 
-    const game =
-      ensureGame(
-        gameId
-      );
+    /*
+     * Legacy input alias only.
+     *
+     * New mini-games must submit `sp`.
+     */
+    xp = 0,
 
+    /*
+     * Accepted only so old callers
+     * do not crash.
+     *
+     * MEM grants are ignored.
+     */
+    mem = 0
+  } = {}
+) {
 
-    const safeScore =
-      Math.max(
-        0,
-        Number(
-          score
-        ) || 0
-      );
-
-
-    const safeMem =
-      Math.max(
-        0,
-        Number(
-          mem
-        ) || 0
-      );
-
-
-    const safeXP =
-      Math.max(
-        0,
-        Number(
-          xp
-        ) || 0
-      );
-
-
-    game.plays += 1;
-
-
-    game.lastScore =
-      safeScore;
-
-
-    game.bestScore =
-      Math.max(
-        game.bestScore || 0,
-        safeScore
-      );
-
-
-    game.lastPlayedAt =
-      new Date()
-        .toISOString();
-
-
-    if (safeMem) {
-
-      state.mem +=
-        safeMem;
-
-
-      state.lifetime
-        .memEarned +=
-        safeMem;
-
-
-      game.memEarned +=
-        safeMem;
-
-    }
-
-
-    if (safeXP) {
-
-  /*
-   * Legacy "xp" input is treated
-   * as canonical SP during migration.
-   */
-
-  state.xp +=
-    safeXP;
-
-
-  state.lifetime
-    .xpEarned +=
-    safeXP;
-
-
-  state.lifetime
-    .spEarned +=
-    safeXP;
-
-
-  game.xpEarned +=
-    safeXP;
-
-
-  game.spEarned =
-    Math.max(
-      0,
-      Number(
-        game.spEarned
-      ) || 0
-    ) +
-    safeXP;
-
-}
-
-    updateLevel(
-      state,
-      true
+  const game =
+    ensureGame(
+      gameId
     );
 
 
-    return save();
+  const safeScore =
+    Math.max(
+      0,
+      Number(
+        score
+      ) || 0
+    );
+
+
+  /*
+   * Canonical:
+   *
+   * sp wins.
+   *
+   * Legacy xp is accepted only
+   * as fallback during migration.
+   */
+  const safeSP =
+    Math.max(
+      0,
+      Number(
+        sp
+      ) ||
+      Number(
+        xp
+      ) ||
+      0
+    );
+
+
+  /*
+   * Explicitly consume the legacy
+   * argument without mutating MEM.
+   */
+  void mem;
+
+
+  game.plays += 1;
+
+
+  game.lastScore =
+    safeScore;
+
+
+  game.bestScore =
+    Math.max(
+      game.bestScore || 0,
+      safeScore
+    );
+
+
+  game.lastPlayedAt =
+    new Date()
+      .toISOString();
+
+
+  if (safeSP) {
+
+    state.economy.sp +=
+      safeSP;
+
+
+    /*
+     * Compatibility mirror only.
+     */
+    state.xp =
+      state.economy.sp;
+
+
+    state.lifetime
+      .spEarned +=
+      safeSP;
+
+
+    game.spEarned =
+      Math.max(
+        0,
+        Number(
+          game.spEarned
+        ) || 0
+      ) +
+      safeSP;
 
   }
+
+
+  updateLevel(
+    state,
+    true
+  );
+
+
+  return save();
+
+}
 
 
   /*
