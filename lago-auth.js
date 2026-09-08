@@ -531,9 +531,11 @@
 
 
         if (
-          binding?.ok !==
-            true
-        ) {
+  binding?.ok !==
+    true &&
+  binding?.reason !==
+    "wallet_binding_not_configured"
+) {
 
           return {
 
