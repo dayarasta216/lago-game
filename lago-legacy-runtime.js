@@ -557,15 +557,27 @@ window.LAGO_LEGACY_RUNTIME = {
    * unified Account / Game Core.
    */
 
-  getState() {
+getState() {
 
-    return state;
+  return state;
 
-  },
+},
 
 
-  getPhrases() {
+/*
+ * Canonical Tap snapshot adapter.
+ *
+ * lago-tap-game.js calls this
+ * through LAGO_LEGACY_RUNTIME.
+ */
+getTapState() {
 
+  return getTapGameSnapshot();
+
+},
+
+
+getPhrases() {
     return [
       ...PHRASES
     ];
