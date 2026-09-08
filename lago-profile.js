@@ -519,9 +519,9 @@ telegramLinked:
 
 </small>
               
-              <strong id="lagoProfileXP">
-                0
-              </strong>
+             <strong id="lagoProfileSP">
+  0
+</strong>
 
             </div>
 
@@ -539,9 +539,9 @@ telegramLinked:
   </span>
 
 </small>
-              <strong id="lagoProfileMEM">
-                0
-              </strong>
+              <strong id="lagoProfileDUM">
+  0
+</strong>
 
             </div>
 
@@ -1267,13 +1267,34 @@ async function signInTelegram() {
 
 
     const account =
-      window.LAGO_ACCOUNT
-        ?.getState
-        ?.() || {
-          mem: 0,
-          xp: 0,
-          level: 1
-        };
+  window.LAGO_ACCOUNT
+    ?.getState
+    ?.() || {
+
+      level:
+        1,
+
+      economy: {
+
+        sp:
+          0,
+
+        level:
+          1
+
+      },
+
+      energy: {
+
+        dum:
+          0,
+
+        max:
+          100
+
+      }
+
+    };
 
 
     const avatar =
@@ -1312,33 +1333,52 @@ async function signInTelegram() {
       profile.name;
 
 
+   overlay
+  .querySelector(
+    "#lagoProfileLevel"
+  )
+  .textContent =
+  Math.max(
+    1,
+    Math.floor(
+      Number(
+        account.economy
+          ?.level ??
+        account.level
+      ) || 1
+    )
+  );
+
+   overlay
+  .querySelector(
+    "#lagoProfileSP"
+  )
+  .textContent =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        account.economy
+          ?.sp ??
+        account.xp
+      ) || 0
+    )
+  );
+
     overlay
-      .querySelector(
-        "#lagoProfileLevel"
-      )
-      .textContent =
-      account.level;
-
-
-    overlay
-      .querySelector(
-        "#lagoProfileXP"
-      )
-      .textContent =
-      Math.floor(
-        account.xp || 0
-      );
-
-
-    overlay
-      .querySelector(
-        "#lagoProfileMEM"
-      )
-      .textContent =
-      Math.floor(
-        account.mem || 0
-      );
-
+  .querySelector(
+    "#lagoProfileDUM"
+  )
+  .textContent =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        account.energy
+          ?.dum
+      ) || 0
+    )
+  );
 
     const walletState =
   window.LAGO_WALLET
