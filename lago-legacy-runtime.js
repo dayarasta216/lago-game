@@ -73,14 +73,71 @@ function initTelegramUser(){
 initTelegramUser();
 
 function telegramShare(){
-  const score = Math.floor(state.energy);
-  const text = `🐌 LAGO — я собрал ${score} Мем-Энергии и всё ещё туплю. Попробуй побить мой рекорд!`;
-  const url = "https://t.me/share/url?url=https://t.me/&text=" + encodeURIComponent(text);
-  if(tg?.openTelegramLink) tg.openTelegramLink(url);
-  else if(navigator.share) navigator.share({title:"LAGO",text}).catch(()=>{});
-  else window.open(url,"_blank");
-}
 
+  const spState =
+    window.LAGO_ACCOUNT
+      ?.getSPState
+      ?.() || {};
+
+
+  const sp =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          spState.balance
+        ) || 0
+      )
+    );
+
+
+  const clicks =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          state.totalClicks
+        ) || 0
+      )
+    );
+
+
+  const text =
+    `🐌 LAGO — ${sp} SP, ${clicks} кликов. Улитка всё ещё не поняла зачем.`;
+
+
+  const url =
+    "https://t.me/share/url?url=https://t.me/&text=" +
+    encodeURIComponent(text);
+
+
+  if(tg?.openTelegramLink) {
+
+    tg.openTelegramLink(url);
+
+  } else if(navigator.share) {
+
+    navigator
+      .share({
+        title:
+          "LAGO",
+
+        text
+      })
+      .catch(
+        () => {}
+      );
+
+  } else {
+
+    window.open(
+      url,
+      "_blank"
+    );
+
+  }
+
+}
 /* ---------- Звук ---------- */
 
 function getAudioContext() {
@@ -348,44 +405,203 @@ function beep(
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
 function fmt(n){ return Math.floor(n).toLocaleString("ru-RU"); }
- function getTapGameSnapshot(){
+function getTapGameSnapshot(){
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  const spState =
+    account
+      ?.getSPState
+      ?.() || {};
+
+
+  const dumState =
+    account
+      ?.getDumEnergy
+      ?.() || {};
+
+
+  const autoState =
+    account
+      ?.getTapAutoState
+      ?.() || {};
+
+
   return {
-    energy: Math.floor(state.energy),
-    power: state.power,
-    auto: state.auto,
-    shield: state.shield,
-    days: state.days,
-    totalClicks: state.totalClicks,
-    steals: state.steals,
-    memesCreated: state.memesCreated,
-    upgrades: {
-      ...state.upgrades
-    },
+
+    days:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.days
+          ) || 0
+        )
+      ),
+
+    totalClicks:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.totalClicks
+          ) || 0
+        )
+      ),
+
+    steals:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.steals
+          ) || 0
+        )
+      ),
+
+    memesCreated:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            state.memesCreated
+          ) || 0
+        )
+      ),
+
+    sp:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            spState.balance
+          ) || 0
+        )
+      ),
+
+    lifetimeSp:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            spState.lifetimeEarned
+          ) || 0
+        )
+      ),
+
+    level:
+      Math.max(
+        1,
+        Math.floor(
+          Number(
+            spState.level
+          ) || 1
+        )
+      ),
+
+    dum:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            dumState.dum
+          ) || 0
+        )
+      ),
+
+    maxDum:
+      Math.max(
+        1,
+        Math.floor(
+          Number(
+            dumState.max
+          ) || 100
+        )
+      ),
+
+    autoLevel:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            autoState.level
+          ) || 0
+        )
+      ),
+
+    spPerSecond:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            autoState.spPerSecond
+          ) || 0
+        )
+      ),
+
     speech:
-      document.getElementById("cringe")
+      document
+        .getElementById(
+          "cringe"
+        )
         ?.textContent
         ?.trim() || ""
+
   };
+
 }
 function render(){
 
+ const snapshot =
+  getTapGameSnapshot();
+
+
+if ($("energy")) {
+
   $("energy").textContent =
-    fmt(state.energy);
+    fmt(
+      snapshot.dum
+    );
+
+}
+
+
+if ($("power")) {
 
   $("power").textContent =
-    fmt(state.power);
+    fmt(
+      snapshot.sp
+    );
+
+}
+
+
+if ($("auto")) {
 
   $("auto").textContent =
-    fmt(state.auto);
+    fmt(
+      snapshot.spPerSecond
+    );
+
+}
+
+
+if ($("shield")) {
 
   $("shield").textContent =
-    Math.min(
-      90,
-      state.shield * 10
-    ) + "%";
+    `LV ${snapshot.level}`;
+
+}
+
+
+if ($("days")) {
 
   $("days").textContent =
-    `🧠 Дней без тупости: ${state.days}`;
+    `🧠 Дней без тупости: ${snapshot.days}`;
+
+}
 
   window.LAGO_TAP_GAME
   ?.renderUpgrades
@@ -750,7 +966,21 @@ $("memesBtn").onclick=()=>openPanel("memesPanel");
 
 /* ---------- Достижения ---------- */
 const achievements=[
-  ["energy100","💎 ПЕРВАЯ СОТНЯ","Собрать 100 DUM",()=>state.energy>=100],
+ [
+  "energy100",
+
+  "⚡ ПЕРВАЯ СОТНЯ",
+
+  "Заработать 100 SP",
+
+  () =>
+    Number(
+      window.LAGO_ACCOUNT
+        ?.getSPState
+        ?.()
+        ?.lifetimeEarned
+    ) >= 100
+],
   ["click1000","👆 ПАЛЕЦ-БОГ","Сделать 1000 кликов",()=>state.totalClicks>=1000],
   ["meme5","🎨 МЕМ-МАГНАТ","Создать 5 мемов",()=>state.memesCreated>=5],
   ["steal10","👾 КРИПТО-ВОРО","Успешно ограбить 10 раз",()=>state.steals>=10],
