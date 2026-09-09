@@ -404,10 +404,16 @@
   display: block;
 
   width:
-    100%;
+    auto;
 
   height:
-    100%;
+    auto;
+
+  max-width:
+    72%;
+
+  max-height:
+    82%;
 
   object-fit:
     contain;
@@ -424,16 +430,66 @@
   image-rendering:
     auto;
 
-  transform:
-    translateZ(0);
-
   filter:
     drop-shadow(
-      0 11px 15px
-      rgba(0,0,0,.25)
+      0 9px 12px
+      rgba(0,0,0,.22)
     );
 }
 
+/* =========================================================
+   CHARACTER THUMBNAIL OPTICAL SCALE
+   Card geometry stays untouched.
+   ========================================================= */
+
+.lago-shop-character-image[
+  src*="comic-narek"
+] {
+  max-width:
+    70%;
+  max-height:
+    80%;
+}
+
+
+.lago-shop-character-image[
+  src*="comic-sola"
+] {
+  max-width:
+    68%;
+  max-height:
+    78%;
+}
+
+
+.lago-shop-character-image[
+  src*="comic-bambini-doc"
+] {
+  max-width:
+    70%;
+  max-height:
+    80%;
+}
+
+
+.lago-shop-character-image[
+  src*="comic-marvin"
+] {
+  max-width:
+    62%;
+  max-height:
+    84%;
+}
+
+
+.lago-shop-character-image[
+  src*="comic-farid"
+] {
+  max-width:
+    62%;
+  max-height:
+    84%;
+}
 
 /* =========================================================
    INFO
