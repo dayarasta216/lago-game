@@ -96,15 +96,33 @@ import {
 
 
 
-  function area() {
+ function area() {
 
-    return document
-      .getElementById(
-        "modernSnailArea"
-      );
+  const modernArea =
+    document.getElementById(
+      "modernSnailArea"
+    );
+
+
+  if (modernArea) {
+
+    return modernArea;
 
   }
 
+
+  const snail =
+    document.getElementById(
+      "snail"
+    );
+
+
+  return (
+    snail?.parentElement ||
+    null
+  );
+
+}
 
 
   function consumeURLToggle() {
