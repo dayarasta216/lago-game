@@ -13,8 +13,8 @@ import {
     1;
 
 
-  const MODEL_URL =
-  "./assets/model/lago.glb?v=2";
+ const MODEL_URL =
+  "./assets/model/lago.glb?v=4";
   
 
   const STORAGE_KEY =
