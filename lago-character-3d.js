@@ -14,8 +14,8 @@ import {
 
 
   const MODEL_URL =
-    "./assets/models/lago.glb?v=1";
-
+  "./assets/model/lago.glb?v=2";
+  
 
   const STORAGE_KEY =
     "lago.character3d.enabled.v1";
