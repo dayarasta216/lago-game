@@ -45,8 +45,9 @@
         rarity:
           "LEGENDARY",
 
-       asset:
-  "./assets/characters/comic-narek.svg?v=4",
+    
+  asset:
+  "./assets/characters/comic-narek(4).svg?v=5",
 
         shop:
           Object.freeze({
@@ -114,8 +115,8 @@
         rarity:
           "EPIC",
 
-        asset:
-  "./assets/characters/comic-sola.svg?v=4",
+  asset:
+  "./assets/characters/comic-sola(3).svg?v=5",
 
         shop:
           Object.freeze({
@@ -174,7 +175,7 @@
           "EPIC",
 
        asset:
-  "./assets/characters/comic-bambini-doc.svg?v=4",
+  "./assets/characters/comic-bambini-doc(3).svg?v=5",
 
 
         shop:
@@ -233,9 +234,8 @@
         rarity:
           "LEGENDARY",
 
-       asset:
-  "./assets/characters/comic-marvin.svg?v=4",
-
+     asset:
+  "./assets/characters/comic-marvin(3).svg?v=5",
 
         shop:
           Object.freeze({
@@ -293,8 +293,8 @@
         rarity:
           "LEGENDARY",
 
-        asset:
-  "./assets/characters/comic-farid.svg?v=4",
+asset:
+  "./assets/characters/comic-farid(3).svg?v=5",
 
         shop:
           Object.freeze({
