@@ -392,7 +392,16 @@
 
   }
 
+function openCollection() {
 
+  hide();
+
+
+  window.LAGO_COLLECTION
+    ?.show
+    ?.();
+
+}
 
   /*
    * =========================================================
@@ -434,18 +443,17 @@
       ownedSet();
 
 
-    if (
-      owned.has(
-        character.id
-      )
-    ) {
+   if (
+  owned.has(
+    character.id
+  )
+) {
 
-      return equipCharacter(
-        character.id
-      );
+  openCollection();
 
-    }
+  return true;
 
+}
 
     const price =
       Math.max(
@@ -575,17 +583,18 @@
     );
 
 
-    toast(
-      `${character.name} UNLOCKED`
-    );
+   toast(
+  `${character.name} UNLOCKED`
+);
 
 
-    render();
+render();
 
 
-    return true;
+openCollection();
 
-  }
+
+return true;
 
 
 
@@ -597,98 +606,45 @@
 
 
   function equipCharacter(
-    characterId
-  ) {
+  characterId
+) {
 
-    const character =
-      window.LAGO_CHARACTERS
-        ?.getById
-        ?.(
-          characterId
-        );
-
-
-    if (!character) {
-
-      return false;
-
-    }
-
-
-    if (
-      !ownedSet().has(
-        character.id
-      )
-    ) {
-
-      toast(
-        "CHARACTER LOCKED"
+  const character =
+    window.LAGO_CHARACTERS
+      ?.getById
+      ?.(
+        characterId
       );
 
-      return false;
 
-    }
+  if (!character) {
 
-
-    const ok =
-      account()
-        ?.selectSkin
-        ?.(
-          character.id
-        );
-
-
-    if (
-      ok !== true
-    ) {
-
-      toast(
-        "EQUIP FAILED"
-      );
-
-      return false;
-
-    }
-
-
-    window.LAGO_CHARACTER_RUNTIME
-      ?.apply
-      ?.();
-
-
-    document.dispatchEvent(
-
-      new CustomEvent(
-
-        "lago:character-equipped",
-
-        {
-
-          detail: {
-
-            id:
-              character.id
-
-          }
-
-        }
-
-      )
-
-    );
-
-
-    toast(
-      `${character.name} EQUIPPED`
-    );
-
-
-    render();
-
-
-    return true;
+    return false;
 
   }
+
+
+  if (
+    !ownedSet().has(
+      character.id
+    )
+  ) {
+
+    toast(
+      "CHARACTER LOCKED"
+    );
+
+    return false;
+
+  }
+
+
+  openCollection();
+
+
+  return true;
+
+}
 
 
 
@@ -803,42 +759,44 @@
       "";
 
 
-    if (
-      selected
-    ) {
+   if (
+  selected
+) {
 
-      actionHTML = `
-        <button
-          class="
-            lago-shop-action
-            equipped
-          "
-          type="button"
-          disabled
-        >
-          EQUIPPED
-        </button>
-      `;
+  actionHTML = `
+    <button
+      class="
+        lago-shop-action
+        owned
+      "
+      type="button"
+      data-shop-equip="${escapeHTML(
+        character.id
+      )}"
+    >
+      COLLECTION
+    </button>
+  `;
 
     } else if (
-      owned
-    ) {
+  owned
+) {
 
-      actionHTML = `
-        <button
-          class="
-            lago-shop-action
-            owned
-          "
-          type="button"
-          data-shop-equip="${escapeHTML(
-            character.id
-          )}"
-        >
-          EQUIP
-        </button>
-      `;
-
+  actionHTML = `
+    <button
+      class="
+        lago-shop-action
+        owned
+      "
+      type="button"
+      data-shop-equip="${escapeHTML(
+        character.id
+      )}"
+    >
+      CHOOSE
+    </button>
+  `;
+      
     } else {
 
       actionHTML = `
