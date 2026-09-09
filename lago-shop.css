@@ -404,15 +404,9 @@
   display: block;
 
   width:
-    auto;
-
-  height:
-    auto;
-
-  max-width:
     72%;
 
-  max-height:
+  height:
     82%;
 
   object-fit:
@@ -445,50 +439,40 @@
 .lago-shop-character-image[
   src*="comic-narek"
 ] {
-  max-width:
-    70%;
-  max-height:
-    80%;
+  width: 70%;
+  height: 80%;
 }
 
 
 .lago-shop-character-image[
   src*="comic-sola"
 ] {
-  max-width:
-    68%;
-  max-height:
-    78%;
+  width: 70%;
+  height: 80%;
 }
 
 
 .lago-shop-character-image[
   src*="comic-bambini-doc"
 ] {
-  max-width:
-    70%;
-  max-height:
-    80%;
+  width: 70%;
+  height: 80%;
 }
 
 
 .lago-shop-character-image[
   src*="comic-marvin"
 ] {
-  max-width:
-    62%;
-  max-height:
-    84%;
+  width: 62%;
+  height: 88%;
 }
 
 
 .lago-shop-character-image[
   src*="comic-farid"
 ] {
-  max-width:
-    62%;
-  max-height:
-    84%;
+  width: 64%;
+  height: 86%;
 }
 
 /* =========================================================
@@ -837,4 +821,70 @@
       220px;
   }
 
+}
+
+
+/* =========================================================
+   CHARACTER OPTICAL FIT
+   Keep every character inside the PLAY stage.
+   ========================================================= */
+
+
+.lago-modern-snail
+#snail[
+  data-lago-character="comic_dog_snail"
+] {
+  width:
+    88%;
+
+  height:
+    88%;
+}
+
+
+.lago-modern-snail
+#snail[
+  data-lago-character="comic_pink_snail"
+] {
+  width:
+    88%;
+
+  height:
+    88%;
+}
+
+
+.lago-modern-snail
+#snail[
+  data-lago-character="comic_cockroach"
+] {
+  width:
+    92%;
+
+  height:
+    92%;
+}
+
+
+.lago-modern-snail
+#snail[
+  data-lago-character="comic_giraffe_bird"
+] {
+  width:
+    92%;
+
+  height:
+    92%;
+}
+
+
+.lago-modern-snail
+#snail[
+  data-lago-character="comic_fennec"
+] {
+  width:
+    90%;
+
+  height:
+    90%;
 }
