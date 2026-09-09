@@ -1,379 +1,848 @@
-/* =========================================================
-   LAGO COLLECTION
-   ========================================================= */
+(() => {
+  "use strict";
 
-#lagoCollection {
-  position: fixed;
-  inset: 0;
-  z-index: 6000;
+  const VERSION =
+    2;
 
-  display: none;
 
-  flex-direction: column;
+  const LEGACY_SKINS =
+    Object.freeze([
 
-  overflow: hidden;
+      {
+        id:
+          "default",
+        name:
+          "Classic Lago",
+        emoji:
+          "🐌",
+        rarity:
+          "COMMON"
+      },
 
-  background:
-    radial-gradient(
-      circle at 50% 15%,
-      rgba(201,255,50,.07),
-      transparent 30%
-    ),
-    #07080b;
+      {
+        id:
+          "lime",
+        name:
+          "Lime",
+        emoji:
+          "🐌",
+        rarity:
+          "COMMON"
+      },
 
-  color: #fff;
+      {
+        id:
+          "ocean",
+        name:
+          "Ocean",
+        emoji:
+          "🌊",
+        rarity:
+          "RARE"
+      },
 
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
+      {
+        id:
+          "galaxy",
+        name:
+          "Galaxy",
+        emoji:
+          "🌌",
+        rarity:
+          "EPIC"
+      },
 
-#lagoCollection.active {
-  display: flex;
-}
+      {
+        id:
+          "lava",
+        name:
+          "Lava",
+        emoji:
+          "🔥",
+        rarity:
+          "EPIC"
+      },
 
-.lago-collection-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+      {
+        id:
+          "gold",
+        name:
+          "Golden Lago",
+        emoji:
+          "👑",
+        rarity:
+          "LEGENDARY"
+      },
 
-  padding:
-    calc(18px + env(safe-area-inset-top))
-    18px
-    14px;
-}
+      {
+        id:
+          "void",
+        name:
+          "Void",
+        emoji:
+          "🕳️",
+        rarity:
+          "MYTHIC"
+      },
 
-.lago-collection-back {
-  width: 42px;
-  height: 42px;
+      {
+        id:
+          "diamond",
+        name:
+          "Diamond",
+        emoji:
+          "💎",
+        rarity:
+          "MYTHIC"
+      }
 
-  border-radius: 14px;
+    ]);
 
-  border:
-    1px solid
-    rgba(255,255,255,.08);
 
-  background:
-    rgba(255,255,255,.05);
+  function getCatalog() {
 
-  color: #fff;
+    const comicCharacters =
+      (
+        window.LAGO_CHARACTERS
+          ?.getAll
+          ?.() ||
+        []
+      )
+        .map(
+          character => ({
 
-  font-size: 18px;
+            id:
+              character.id,
 
-  cursor: pointer;
-}
+            name:
+              character.name,
 
-.lago-collection-title {
-  font-size: 20px;
+            asset:
+              character.asset,
 
-  font-weight: 1000;
+            rarity:
+              character.rarity,
 
-  letter-spacing: -.05em;
-}
+            type:
+              "comic",
 
-.lago-collection-counter {
-  padding: 8px 11px;
+            series:
+              character.series
 
-  border-radius: 999px;
+          })
+        );
 
-  background:
-    rgba(201,255,50,.08);
 
-  border:
-    1px solid
-    rgba(201,255,50,.25);
+    return [
 
-  color: #c9ff32;
+      ...LEGACY_SKINS,
 
-  font-size: 9px;
+      ...comicCharacters
 
-  font-weight: 1000;
-}
+    ];
 
-.lago-collection-content {
-  flex: 1;
+  }
 
-  overflow-y: auto;
 
-  padding:
-    4px 16px
-    calc(25px + env(safe-area-inset-bottom));
-}
+  function getState() {
 
-.lago-collection-hero {
-  margin-bottom: 18px;
-
-  padding: 20px;
-
-  border-radius: 22px;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255,255,255,.055),
-      rgba(255,255,255,.018)
+    return (
+      window.LAGO
+        ?.getState
+        ?.() ||
+      {
+        skins: [],
+        selectedSkin:
+          "default"
+      }
     );
 
-  border:
-    1px solid
-    rgba(255,255,255,.08);
-
-  text-align: center;
-}
-
-.lago-collection-hero-title {
-  color:
-    rgba(255,255,255,.45);
-
-  font-size: 9px;
-
-  font-weight: 900;
-
-  letter-spacing: .14em;
-}
-
-.lago-collection-current {
-  margin-top: 12px;
-
-  font-size: 70px;
-
-  line-height: 1;
-
-  animation:
-    lagoCollectionFloat
-    3s
-    ease-in-out
-    infinite;
-}
-
-@keyframes lagoCollectionFloat {
-  0%,100% {
-    transform: translateY(3px);
   }
 
-  50% {
-    transform: translateY(-6px);
-  }
-}
 
-.lago-collection-current-name {
-  margin-top: 9px;
+  function rarityClass(
+    rarity
+  ) {
 
-  font-size: 17px;
-
-  font-weight: 1000;
-}
-
-.lago-collection-current-rarity {
-  margin-top: 5px;
-
-  color: #c9ff32;
-
-  font-size: 9px;
-
-  font-weight: 1000;
-
-  letter-spacing: .12em;
-}
-
-.lago-collection-section {
-  margin-top: 18px;
-}
-
-.lago-collection-section-title {
-  margin-bottom: 10px;
-
-  color:
-    rgba(255,255,255,.40);
-
-  font-size: 9px;
-
-  font-weight: 1000;
-
-  letter-spacing: .14em;
-}
-
-.lago-skin-grid {
-  display: grid;
-
-  grid-template-columns:
-    repeat(2, 1fr);
-
-  gap: 9px;
-}
-
-.lago-skin {
-  position: relative;
-
-  min-height: 155px;
-
-  padding: 13px;
-
-  border-radius: 18px;
-
-  background:
-    rgba(255,255,255,.035);
-
-  border:
-    1px solid
-    rgba(255,255,255,.075);
-
-  text-align: left;
-
-  cursor: pointer;
-
-  transition:
-    transform .15s ease,
-    border-color .15s ease,
-    background .15s ease;
-}
-
-.lago-skin:hover {
-  transform: translateY(-2px);
-
-  background:
-    rgba(255,255,255,.055);
-}
-
-.lago-skin.selected {
-  border-color:
-    #c9ff32;
-
-  box-shadow:
-    inset 0 0 0 1px
-    rgba(201,255,50,.10);
-}
-
-.lago-skin.locked {
-  opacity: .55;
-}
-
-.lago-skin-visual {
-  height: 85px;
-
-  display: grid;
-
-  place-items: center;
-
-  font-size: 58px;
-
-  filter:
-    drop-shadow(
-      0 12px 15px
-      rgba(0,0,0,.30)
+    return (
+      "lago-rarity-" +
+      String(
+        rarity ||
+        "COMMON"
+      )
+        .toLowerCase()
     );
-}
 
-.lago-skin-name {
-  margin-top: 6px;
-
-  color: white;
-
-  font-size: 11px;
-
-  font-weight: 950;
-}
-
-.lago-skin-rarity {
-  margin-top: 4px;
-
-  font-size: 7px;
-
-  font-weight: 1000;
-
-  letter-spacing: .10em;
-}
-
-.lago-rarity-common {
-  color: #aab2ba;
-}
-
-.lago-rarity-rare {
-  color: #55aaff;
-}
-
-.lago-rarity-epic {
-  color: #bd68ff;
-}
-
-.lago-rarity-legendary {
-  color: #ffb32e;
-}
-
-.lago-rarity-mythic {
-  color: #ff4d9a;
-}
-
-.lago-skin-lock {
-  position: absolute;
-
-  top: 10px;
-  right: 10px;
-
-  width: 26px;
-  height: 26px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 50%;
-
-  background:
-    rgba(0,0,0,.35);
-
-  font-size: 12px;
-}
-
-.lago-skin-check {
-  position: absolute;
-
-  top: 10px;
-  right: 10px;
-
-  width: 25px;
-  height: 25px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 50%;
-
-  background:
-    #c9ff32;
-
-  color: #090a0b;
-
-  font-size: 12px;
-
-  font-weight: 1000;
-}
-
-.lago-collection-empty {
-  padding: 30px 15px;
-
-  text-align: center;
-
-  color:
-    rgba(255,255,255,.35);
-
-  font-size: 11px;
-
-  line-height: 1.5;
-}
-
-@media (min-width: 700px) {
-
-  .lago-collection-content {
-    width: min(560px,100%);
-    margin: 0 auto;
   }
 
-  .lago-skin-grid {
-    grid-template-columns:
-      repeat(3,1fr);
+
+  function createVisual(
+    item,
+    {
+      current =
+        false
+    } = {}
+  ) {
+
+    if (
+      item.asset
+    ) {
+
+      return `
+        <img
+          class="${
+            current
+              ? "lago-collection-current-image"
+              : "lago-skin-image"
+          }"
+          src="${item.asset}"
+          alt="${item.name}"
+          draggable="false"
+        >
+      `;
+
+    }
+
+
+    return `
+      <span
+        class="${
+          current
+            ? "lago-collection-current-emoji"
+            : "lago-skin-emoji"
+        }"
+      >
+        ${item.emoji || "🐌"}
+      </span>
+    `;
+
   }
 
-}
+
+  function create() {
+
+    if (
+      document.getElementById(
+        "lagoCollection"
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    const page =
+      document.createElement(
+        "div"
+      );
+
+
+    page.id =
+      "lagoCollection";
+
+
+    page.innerHTML = `
+
+      <header
+        class="lago-collection-header"
+      >
+
+        <button
+          class="lago-collection-back"
+          id="lagoCollectionBack"
+          type="button"
+        >
+          ←
+        </button>
+
+
+        <div
+          class="lago-collection-title"
+        >
+          COLLECTION
+        </div>
+
+
+        <div
+          class="lago-collection-counter"
+          id="lagoCollectionCounter"
+        >
+          0
+        </div>
+
+      </header>
+
+
+      <main
+        class="lago-collection-content"
+      >
+
+        <section
+          class="lago-collection-hero"
+        >
+
+          <div
+            class="lago-collection-hero-title"
+          >
+            CURRENT CHARACTER
+          </div>
+
+
+          <div
+            class="lago-collection-current"
+            id="lagoCollectionCurrent"
+          ></div>
+
+
+          <div
+            class="lago-collection-current-name"
+            id="lagoCollectionCurrentName"
+          >
+            Classic Lago
+          </div>
+
+
+          <div
+            class="lago-collection-current-rarity"
+            id="lagoCollectionCurrentRarity"
+          >
+            COMMON
+          </div>
+
+        </section>
+
+
+        <section
+          class="lago-collection-section"
+        >
+
+          <div
+            class="lago-collection-section-title"
+          >
+            CHARACTERS
+          </div>
+
+
+          <div
+            class="lago-skin-grid"
+            id="lagoSkinGrid"
+          ></div>
+
+        </section>
+
+      </main>
+
+
+      <div
+        class="lago-collection-toast"
+        id="lagoCollectionToast"
+      ></div>
+
+    `;
+
+
+    document.body
+      .appendChild(
+        page
+      );
+
+
+    page
+      .querySelector(
+        "#lagoCollectionBack"
+      )
+      ?.addEventListener(
+        "click",
+        hide
+      );
+
+  }
+
+
+  function toast(
+    message
+  ) {
+
+    const element =
+      document.getElementById(
+        "lagoCollectionToast"
+      );
+
+
+    if (!element)
+      return;
+
+
+    element.textContent =
+      String(
+        message ||
+        ""
+      );
+
+
+    element.classList
+      .add(
+        "show"
+      );
+
+
+    clearTimeout(
+      element._timer
+    );
+
+
+    element._timer =
+      setTimeout(
+        () => {
+
+          element.classList
+            .remove(
+              "show"
+            );
+
+        },
+        1500
+      );
+
+  }
+
+
+  function equip(
+    id
+  ) {
+
+    const ok =
+      window.LAGO
+        ?.selectSkin
+        ?.(
+          id
+        );
+
+
+    if (!ok) {
+
+      toast(
+        "CHARACTER LOCKED"
+      );
+
+      return false;
+
+    }
+
+
+    window.LAGO_CHARACTER_RUNTIME
+      ?.apply
+      ?.();
+
+
+    render();
+
+
+    return true;
+
+  }
+
+
+  function render() {
+
+    create();
+
+
+    const page =
+      document.getElementById(
+        "lagoCollection"
+      );
+
+
+    if (!page)
+      return;
+
+
+    const catalog =
+      getCatalog();
+
+
+    const currentState =
+      getState();
+
+
+    const selected =
+      String(
+        currentState
+          .selectedSkin ||
+        "default"
+      );
+
+
+    const unlocked =
+      new Set([
+
+        "default",
+
+        ...(
+          Array.isArray(
+            currentState.skins
+          )
+            ? currentState.skins
+            : []
+        )
+
+      ]);
+
+
+    const ownedCount =
+      catalog
+        .filter(
+          item =>
+            unlocked.has(
+              item.id
+            )
+        )
+        .length;
+
+
+    const counter =
+      page.querySelector(
+        "#lagoCollectionCounter"
+      );
+
+
+    if (counter) {
+
+      counter.textContent =
+        `${ownedCount}/${catalog.length}`;
+
+    }
+
+
+    const selectedData =
+      catalog.find(
+        item =>
+          item.id ===
+          selected
+      ) ||
+      catalog[0];
+
+
+    const current =
+      page.querySelector(
+        "#lagoCollectionCurrent"
+      );
+
+
+    const currentName =
+      page.querySelector(
+        "#lagoCollectionCurrentName"
+      );
+
+
+    const currentRarity =
+      page.querySelector(
+        "#lagoCollectionCurrentRarity"
+      );
+
+
+    if (
+      current &&
+      selectedData
+    ) {
+
+      current.innerHTML =
+        createVisual(
+          selectedData,
+          {
+            current:
+              true
+          }
+        );
+
+    }
+
+
+    if (
+      currentName &&
+      selectedData
+    ) {
+
+      currentName.textContent =
+        selectedData.name;
+
+    }
+
+
+    if (
+      currentRarity &&
+      selectedData
+    ) {
+
+      currentRarity.textContent =
+        selectedData.rarity;
+
+
+      currentRarity.className =
+        "lago-collection-current-rarity " +
+        rarityClass(
+          selectedData.rarity
+        );
+
+    }
+
+
+    const grid =
+      page.querySelector(
+        "#lagoSkinGrid"
+      );
+
+
+    if (!grid)
+      return;
+
+
+    grid.innerHTML =
+      catalog
+        .map(
+          item => {
+
+            const owned =
+              unlocked.has(
+                item.id
+              );
+
+
+            const selectedNow =
+              selected ===
+              item.id;
+
+
+            const comic =
+              item.type ===
+              "comic";
+
+
+            return `
+
+              <button
+                type="button"
+
+                class="
+                  lago-skin
+
+                  ${
+                    selectedNow
+                      ? "selected"
+                      : ""
+                  }
+
+                  ${
+                    !owned
+                      ? "locked"
+                      : ""
+                  }
+
+                  ${
+                    comic
+                      ? "comic-character"
+                      : ""
+                  }
+                "
+
+                data-skin="${item.id}"
+              >
+
+                <div
+                  class="lago-skin-visual"
+                >
+
+                  ${
+                    createVisual(
+                      item
+                    )
+                  }
+
+                </div>
+
+
+                <div
+                  class="lago-skin-name"
+                >
+                  ${item.name}
+                </div>
+
+
+                <div
+                  class="
+                    lago-skin-rarity
+                    ${
+                      rarityClass(
+                        item.rarity
+                      )
+                    }
+                  "
+                >
+                  ${item.rarity}
+                </div>
+
+
+                ${
+                  comic
+                    ? `
+                      <div
+                        class="lago-skin-series"
+                      >
+                        COMIC 01
+                      </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  selectedNow
+                    ? `
+                      <div
+                        class="lago-skin-check"
+                      >
+                        ✓
+                      </div>
+                    `
+                    : !owned
+                      ? `
+                        <div
+                          class="lago-skin-lock"
+                        >
+                          🔒
+                        </div>
+                      `
+                      : ""
+                }
+
+              </button>
+
+            `;
+
+          }
+        )
+        .join(
+          ""
+        );
+
+
+    grid
+      .querySelectorAll(
+        "[data-skin]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              const id =
+                button.dataset.skin;
+
+
+              if (
+                !unlocked.has(
+                  id
+                )
+              ) {
+
+                const character =
+                  window.LAGO_CHARACTERS
+                    ?.getById
+                    ?.(
+                      id
+                    );
+
+
+                if (character) {
+
+                  toast(
+                    "AVAILABLE IN SHOP"
+                  );
+
+                } else {
+
+                  toast(
+                    "CHARACTER LOCKED"
+                  );
+
+                }
+
+
+                return;
+
+              }
+
+
+              equip(
+                id
+              );
+
+            }
+          );
+
+        }
+      );
+
+  }
+
+
+  function show() {
+
+    create();
+
+    render();
+
+
+    document
+      .getElementById(
+        "lagoCollection"
+      )
+      ?.classList
+      .add(
+        "active"
+      );
+
+  }
+
+
+  function hide() {
+
+    document
+      .getElementById(
+        "lagoCollection"
+      )
+      ?.classList
+      .remove(
+        "active"
+      );
+
+  }
+
+
+  document.addEventListener(
+    "lago:state",
+    render
+  );
+
+
+  window.LAGO_COLLECTION =
+    Object.freeze({
+
+      version:
+        VERSION,
+
+      show,
+
+      hide,
+
+      render,
+
+      getCatalog
+
+    });
+
+})();
