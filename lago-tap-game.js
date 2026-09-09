@@ -337,13 +337,23 @@ account.addSP(
   );
 
 
+  if (
+  window.LAGO_CHARACTER_AUDIO
+    ?.playTap
+) {
+
+  window.LAGO_CHARACTER_AUDIO
+    .playTap();
+
+} else {
+
   runtime.beep(
-    180 +
-    Math.random() *
-    420,
-    0.045
+    205,
+    0.045,
+    "sine"
   );
 
+}
 
   /*
    * Show the real economy:
