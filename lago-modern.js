@@ -1173,21 +1173,13 @@ setTapHint();
   }
 
 
- if (
+if (
   page === "shop"
 ) {
 
-  /*
-   * Real Shop will contain
-   * characters/items and $LAGO.
-   *
-   * AUTO Upgrade is gameplay,
-   * not the Shop.
-   */
-
-  console.info(
-    "[LAGO MODERN] Shop is not connected yet."
-  );
+  window.LAGO_SHOP
+    ?.show
+    ?.();
 
   return;
 
