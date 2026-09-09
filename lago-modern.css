@@ -2642,3 +2642,56 @@ span:last-child {
   }
 
 }
+
+/* =========================================================
+   LAGO 3D CHARACTER CANVAS
+   ========================================================= */
+
+
+.lago-character-3d-canvas {
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  display:
+    block;
+
+  cursor:
+    pointer;
+
+  touch-action:
+    manipulation;
+
+  user-select:
+    none;
+
+  filter:
+    drop-shadow(
+      0 20px 28px
+      rgba(0,0,0,.35)
+    )
+    drop-shadow(
+      0 0 22px
+      rgba(255,57,173,.20)
+    );
+
+}
+
+
+.lago-character-3d-canvas[
+  hidden
+] {
+
+  display:
+    none !important;
+
+}
