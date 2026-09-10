@@ -2,8 +2,8 @@
   "use strict";
 
 
-  const VERSION =
-    1;
+ const VERSION =
+  2;
 
 
   /*
@@ -46,9 +46,14 @@
           "LEGENDARY",
 
     
-asset:
+aasset:
   "./assets/characters/comic-narek(5).svg?v=8",
 
+model3d:
+  "./assets/model/comic-dog-snail.glb?v=1",
+
+shop:
+  
         shop:
           Object.freeze({
 
@@ -115,8 +120,13 @@ asset:
         rarity:
           "EPIC",
 
- asset:
+asset:
   "./assets/characters/comic-sola(4).svg?v=8",
+
+model3d:
+  "./assets/model/comic-pink-snail.glb?v=1",
+
+shop:
 
         shop:
           Object.freeze({
@@ -177,6 +187,11 @@ asset:
      asset:
   "./assets/characters/comic-bambini-doc(5).svg?v=8",
 
+model3d:
+  "./assets/model/comic-cockroach.glb?v=1",
+
+shop:
+
         shop:
           Object.freeze({
 
@@ -233,8 +248,13 @@ asset:
         rarity:
           "LEGENDARY",
 
-     asset:
+    asset:
   "./assets/characters/comic-marvin(5).svg?v=8",
+
+model3d:
+  "./assets/model/comic-giraffe-bird.glb?v=1",
+
+shop:
         
         shop:
           Object.freeze({
@@ -294,6 +314,11 @@ asset:
 
 asset:
   "./assets/characters/comic-farid(5).svg?v=8",
+
+model3d:
+  "./assets/model/comic-fennec.glb?v=3",
+
+shop:
 
         shop:
           Object.freeze({
