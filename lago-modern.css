@@ -774,16 +774,81 @@ height: 100dvh;
   isolation:
     isolate;
 
-  filter:
-    drop-shadow(
-      0 20px 28px
-      rgba(0,0,0,.35)
-    )
-    drop-shadow(
-      0 0 22px
-      rgba(255,57,173,.24)
+  z-index:
+  0;
+
+   /*
+ * =========================================================
+ * PERMANENT CHARACTER GLOW
+ * =========================================================
+ *
+ * Glow is independent from the character image.
+ * Character transforms must never make it disappear.
+ */
+
+.lago-modern-snail::before {
+
+  content:
+    "";
+
+  position:
+    absolute;
+
+  inset:
+    -16%;
+
+  z-index:
+    0;
+
+  pointer-events:
+    none;
+
+  border-radius:
+    50%;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 56%,
+
+      rgba(
+        196,
+        44,
+        255,
+        .30
+      )
+      0%,
+
+      rgba(
+        154,
+        32,
+        255,
+        .19
+      )
+      32%,
+
+      rgba(
+        122,
+        20,
+        220,
+        .09
+      )
+      52%,
+
+      transparent
+      72%
     );
+
+  opacity:
+    .78;
+
+  transform:
+    scale(1);
+
+  transform-origin:
+    center;
+
 }
+   
 .lago-modern-snail #snail {
 
   width:
@@ -812,6 +877,13 @@ height: 100dvh;
 
   transition:
     transform .12s ease;
+
+   position:
+  relative;
+
+z-index:
+  2;
+   
 }
 
 
@@ -2730,5 +2802,57 @@ span:last-child {
 
   display:
     none !important;
+
+}
+
+   /*
+ * =========================================================
+ * TAP GLOW PULSE
+ * =========================================================
+ */
+
+.lago-modern-snail.tap-glow::before {
+
+  animation:
+    lagoTapGlowPulse
+    .24s
+    ease-out;
+
+}
+
+
+@keyframes lagoTapGlowPulse {
+
+  0% {
+
+    opacity:
+      .78;
+
+    transform:
+      scale(1);
+
+  }
+
+
+  35% {
+
+    opacity:
+      1;
+
+    transform:
+      scale(1.045);
+
+  }
+
+
+  100% {
+
+    opacity:
+      .78;
+
+    transform:
+      scale(1);
+
+  }
 
 }
