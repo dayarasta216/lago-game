@@ -2867,3 +2867,94 @@ span:last-child {
   }
 
 }
+
+/*
+ * =========================================================
+ * TAP FLOAT — MODERN CHARACTER STAGE
+ * =========================================================
+ */
+
+.lago-tap-float {
+
+  position:
+    absolute;
+
+  z-index:
+    20;
+
+  pointer-events:
+    none;
+
+  color:
+    var(--lago-lime);
+
+  font-family:
+    monospace;
+
+  font-size:
+    22px;
+
+  font-weight:
+    1000;
+
+  white-space:
+    nowrap;
+
+  text-shadow:
+    2px
+    2px
+    0
+    rgba(
+      0,
+      0,
+      0,
+      .85
+    );
+
+  transform:
+    translate(
+      -50%,
+      0
+    );
+
+  animation:
+    lagoTapFloat
+    .8s
+    ease-out
+    forwards;
+
+}
+
+
+@keyframes lagoTapFloat {
+
+  0% {
+
+    opacity:
+      1;
+
+    transform:
+      translate(
+        -50%,
+        0
+      )
+      scale(.82);
+
+  }
+
+
+  100% {
+
+    opacity:
+      0;
+
+    transform:
+      translate(
+        -50%,
+        -90px
+      )
+      scale(1.12);
+
+  }
+
+}
