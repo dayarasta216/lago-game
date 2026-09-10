@@ -647,64 +647,98 @@ document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closePanel(b.
    ========================================================= */
 
 
-function spawnFloat(text, ev) {
+function spawnFloat(
+  text,
+  ev
+) {
 
+  /*
+   * Modern character stage is now
+   * the canonical visual host.
+   *
+   * snailWrap remains fallback only
+   * during migration.
+   */
   const wrap =
+    $("modernSnailArea") ||
     $("snailWrap");
 
+
   if (!wrap) {
+
     return;
+
   }
 
 
-  const r =
+  const rect =
     wrap.getBoundingClientRect();
 
 
+  const hasPointer =
+    Number.isFinite(
+      ev?.clientX
+    ) &&
+    Number.isFinite(
+      ev?.clientY
+    );
+
+
   const x =
-    ev?.clientX
-      ? ev.clientX - r.left
-      : r.width / 2;
+    hasPointer
+      ? ev.clientX -
+        rect.left
+      : rect.width /
+        2;
 
 
   const y =
-    ev?.clientY
-      ? ev.clientY - r.top
-      : r.height / 2;
+    hasPointer
+      ? ev.clientY -
+        rect.top
+      : rect.height /
+        2;
 
 
-  const f =
+  const item =
     document.createElement(
       "div"
     );
 
 
-  f.className =
-    "float";
+  item.className =
+    "lago-tap-float";
 
 
-  f.textContent =
-    text;
+  item.textContent =
+    String(
+      text ?? ""
+    );
 
 
-  f.style.left =
-    x + "px";
+  item.style.left =
+    `${x}px`;
 
 
-  f.style.top =
-    y + "px";
+  item.style.top =
+    `${y}px`;
 
 
-  wrap.appendChild(f);
+  wrap.appendChild(
+    item
+  );
 
 
-  setTimeout(
-    () => f.remove(),
+  window.setTimeout(
+    () => {
+
+      item.remove();
+
+    },
     800
   );
 
 }
-
 
 /* ---------- Создание мемов ---------- */
 const canvas=$("draw"),ctx=canvas.getContext("2d");
