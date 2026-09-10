@@ -767,20 +767,12 @@ height: 100dvh;
   align-items: center;
 
   justify-content: center;
-}
 
+  overflow:
+    visible;
 
-.lago-modern-snail #snail {
-
-  width: 100%;
-
-  height: 100%;
-
-  object-fit: contain;
-
-  user-select: none;
-
-  -webkit-user-drag: none;
+  isolation:
+    isolate;
 
   filter:
     drop-shadow(
@@ -789,48 +781,93 @@ height: 100dvh;
     )
     drop-shadow(
       0 0 22px
-      rgba(255,57,173,.28)
+      rgba(255,57,173,.24)
     );
+}
+.lago-modern-snail #snail {
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  object-fit:
+    contain;
+
+  object-position:
+    center;
+
+  user-select:
+    none;
+
+  -webkit-user-drag:
+    none;
+
+  filter:
+    none;
+
+  transform-origin:
+    50% 55%;
 
   transition:
     transform .12s ease;
 }
 
 
-.lago-modern-snail #snail.bonk {
+/*
+ * Base Lago / Lago skins need a tiny safe area.
+ * Comic characters keep their current size.
+ */
+
+.lago-modern-snail
+#snail:not(
+  [data-lago-character]
+) {
+
+  width:
+    94%;
+
+  height:
+    94%;
+}
+
+.lago-modern-snail
+#snail.bonk {
 
   animation:
-    lagoBonk
+    lagoBonkSafe
     .18s
     cubic-bezier(.2,.8,.2,1);
 }
 
 
-@keyframes lagoBonk {
+@keyframes lagoBonkSafe {
 
   0% {
     transform:
       scale(1)
-      rotate(0);
+      rotate(0deg);
   }
 
   35% {
     transform:
-      scale(1.08)
-      rotate(-4deg);
+      scale(1.035)
+      rotate(-2deg);
   }
 
   70% {
     transform:
-      scale(.95)
-      rotate(4deg);
+      scale(.985)
+      rotate(2deg);
   }
 
   100% {
     transform:
       scale(1)
-      rotate(0);
+      rotate(0deg);
   }
+
 }
 
 
