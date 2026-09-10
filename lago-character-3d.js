@@ -96,12 +96,33 @@ const MODEL_URL =
 
 
 
- function area() {
+function area() {
 
   const modernArea =
     document.getElementById(
       "modernSnailArea"
     );
+
+
+  if (modernArea) {
+
+    return modernArea;
+
+  }
+
+
+  const snail =
+    document.getElementById(
+      "snail"
+    );
+
+
+  return (
+    snail?.parentElement ||
+    null
+  );
+
+}
 
 
   if (modernArea) {
