@@ -2,8 +2,8 @@
   "use strict";
 
 
-  const VERSION =
-    3;
+ const VERSION =
+  4;
 
 
   const LAGO_CHARACTER =
@@ -16,11 +16,14 @@
         "Lago",
 
       asset:
-        "./lago-snail.png",
+  "./lago-snail.png",
 
-      rarity:
-        "ORIGINAL"
+model3d:
+  "./assets/model/lago.glb?v=4",
 
+rarity:
+  "ORIGINAL"
+      
     });
 
 
@@ -386,21 +389,197 @@
   }
 
 
-  function createCharacterImage(
-    character,
-    className
-  ) {
+  function escapeAttribute(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    );
+
+}
+
+
+function createCharacterVisual(
+  character,
+  className
+) {
+
+  const model3d =
+    typeof character
+      ?.model3d ===
+      "string"
+      ? character.model3d.trim()
+      : "";
+
+
+  /*
+   * GLB is the primary Collection visual.
+   */
+  if (model3d) {
 
     return `
-      <img
-        class="${className}"
-        src="${character.asset}"
-        alt="${character.name}"
-        draggable="false"
-      >
+      <div
+        class="${className} lago-glb-preview-host"
+        data-lago-glb-preview="${escapeAttribute(
+          model3d
+        )}"
+        role="img"
+        aria-label="${escapeAttribute(
+          character.name
+        )}"
+      ></div>
     `;
 
   }
+
+
+  /*
+   * Temporary compatibility fallback.
+   */
+  const asset =
+    typeof character
+      ?.asset ===
+      "string"
+      ? character.asset.trim()
+      : "";
+
+
+  if (!asset) {
+
+    return `
+      <div
+        class="${className} lago-character-visual-empty"
+        role="img"
+        aria-label="${escapeAttribute(
+          character.name
+        )}"
+      ></div>
+    `;
+
+  }
+
+
+  return `
+    <img
+      class="${className}"
+      src="${escapeAttribute(
+        asset
+      )}"
+      alt="${escapeAttribute(
+        character.name
+      )}"
+      draggable="false"
+    >
+  `;
+
+}
+
+
+function destroyPreviewHosts(
+  root
+) {
+
+  if (!root) {
+
+    return;
+
+  }
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        window.LAGO_CHARACTER_3D
+          ?.destroyPreview
+          ?.(
+            host
+          );
+
+      }
+    );
+
+}
+
+
+function mountPreviewHosts(
+  root
+) {
+
+  const page =
+    document.getElementById(
+      "lagoCollection"
+    );
+
+
+  /*
+   * Do not create WebGL contexts while
+   * Collection is hidden.
+   */
+  if (
+    !root ||
+    !page
+      ?.classList
+      .contains(
+        "active"
+      )
+  ) {
+
+    return;
+
+  }
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        const model3d =
+          host.dataset
+            .lagoGlbPreview;
+
+
+        if (!model3d) {
+
+          return;
+
+        }
+
+
+        window.LAGO_CHARACTER_3D
+          ?.mountPreview
+          ?.(
+            host,
+            model3d
+          );
+
+      }
+    );
+
+}
 
 
   function create() {
@@ -853,13 +1032,23 @@
 
     if (visual) {
 
-      visual.innerHTML =
-        createCharacterImage(
-          character,
-          "lago-collection-current-image"
-        );
+  destroyPreviewHosts(
+    visual
+  );
 
-    }
+
+  visual.innerHTML =
+    createCharacterVisual(
+      character,
+      "lago-collection-current-image"
+    );
+
+
+  mountPreviewHosts(
+    visual
+  );
+
+}
 
 
     if (name) {
@@ -945,8 +1134,13 @@
     }
 
 
-    grid.innerHTML =
-      catalog
+    destroyPreviewHosts(
+  grid
+);
+
+
+grid.innerHTML =
+  catalog
         .map(
           character => {
 
@@ -1005,10 +1199,10 @@
                   "
                 >
 
-                  ${createCharacterImage(
-                    character,
-                    "lago-skin-image"
-                  )}
+                  ${createCharacterVisual(
+  character,
+  "lago-skin-image"
+)}
 
                 </div>
 
@@ -1083,15 +1277,20 @@
 
           }
         )
-        .join(
-          ""
-        );
+             .join(
+        ""
+      );
 
 
+  mountPreviewHosts(
     grid
-      .querySelectorAll(
-        "[data-character]"
-      )
+  );
+
+
+  grid
+    .querySelectorAll(
+      "[data-character]"
+    )
       .forEach(
         button => {
 
@@ -1343,33 +1542,57 @@
 
   function show() {
 
-    create();
-
-    render();
+  create();
 
 
-    document
-      .getElementById(
-        "lagoCollection"
-      )
-      ?.classList.add(
-        "active"
-      );
+  /*
+   * Page must be visible before GLB previews
+   * measure their real dimensions.
+   */
+  document
+    .getElementById(
+      "lagoCollection"
+    )
+    ?.classList.add(
+      "active"
+    );
+
+
+  render();
+
+}
+
+
+function hide() {
+
+  const page =
+    document.getElementById(
+      "lagoCollection"
+    );
+
+
+  if (!page) {
+
+    return;
 
   }
 
 
-  function hide() {
+  /*
+   * Release Collection WebGL contexts.
+   * They will be recreated next time
+   * Collection is opened.
+   */
+  destroyPreviewHosts(
+    page
+  );
 
-    document
-      .getElementById(
-        "lagoCollection"
-      )
-      ?.classList.remove(
-        "active"
-      );
 
-  }
+  page.classList.remove(
+    "active"
+  );
+
+}
 
 
   /*
