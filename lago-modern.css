@@ -23,11 +23,15 @@
    HIDE OLD LAYOUT
    ========================================================= */
 
-.app > .top,
-.app > .bottom {
+/*
+ * Legacy gameplay shell is no longer rendered.
+ *
+ * Its DOM is kept temporarily only because some
+ * migration code still references legacy ids.
+ */
+.app {
   display: none !important;
 }
-
 
 /* =========================================================
    MODERN APP
