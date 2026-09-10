@@ -10,21 +10,38 @@ import {
 
 
   const VERSION =
-    1;
+    2;
 
 
-const MODEL_URL =
-  "./assets/model/lago.glb?v=4";
-  
-
-  const STORAGE_KEY =
-    "lago.character3d.enabled.v1";
+  const BASE_LAGO_MODEL =
+    "./assets/model/lago.glb?v=4";
 
 
+  const BASE_IDS =
+    new Set([
+      "default",
+      "lago"
+    ]);
+
+
+  const url =
+    new URL(
+      window.location.href
+    );
+
+
+  /*
+   * GLB is now the canonical renderer.
+   *
+   * ?lago3d=0 is only a temporary
+   * development / emergency fallback.
+   *
+   * Normal game URL requires no parameter.
+   */
   let enabled =
-    localStorage.getItem(
-      STORAGE_KEY
-    ) === "1";
+    url.searchParams.get(
+      "lago3d"
+    ) !== "0";
 
 
   let canvas =
@@ -42,23 +59,39 @@ const MODEL_URL =
   let holder =
     null;
 
-  let model =
+  let resizeObserver =
     null;
 
-  let ready =
-    false;
+  let observedHost =
+    null;
 
-  let loading =
-    false;
+  let activeModel =
+    null;
+
+  let activeModelUrl =
+    "";
+
+  let requestedModelUrl =
+    "";
+
+  let loadNonce =
+    0;
 
   let tapKick =
     0;
 
 
+  const loader =
+    new GLTFLoader();
 
-  function selectedSkin() {
 
-    return (
+  const modelCache =
+    new Map();
+
+
+  function selectedId() {
+
+    return String(
       window.LAGO
         ?.getState
         ?.()
@@ -67,22 +100,6 @@ const MODEL_URL =
     );
 
   }
-
-
-
-  function isBaseLago() {
-
-    const selected =
-      selectedSkin();
-
-
-    return (
-      selected === "default" ||
-      selected === "lago"
-    );
-
-  }
-
 
 
   function image() {
@@ -95,118 +112,114 @@ const MODEL_URL =
   }
 
 
+  function area() {
 
-function area() {
-
-  const modernArea =
-    document.getElementById(
-      "modernSnailArea"
+    return (
+      document.getElementById(
+        "modernSnailArea"
+      ) ||
+      image()
+        ?.parentElement ||
+      null
     );
-
-
-  if (modernArea) {
-
-    return modernArea;
 
   }
 
 
-  const snail =
-    document.getElementById(
-      "snail"
-    );
+  function resolveTarget() {
+
+    const id =
+      selectedId();
 
 
-  return (
-    snail?.parentElement ||
-    null
-  );
-
-}
-
-
-  function consumeURLToggle() {
-
-    const url =
-      new URL(
-        location.href
-      );
-
-
+    /*
+     * Original Lago.
+     */
     if (
-      !url.searchParams.has(
-        "lago3d"
+      BASE_IDS.has(
+        id
       )
     ) {
 
-      return;
+      return {
+
+        id:
+          "lago",
+
+        name:
+          "LAGO",
+
+        url:
+          BASE_LAGO_MODEL
+
+      };
 
     }
 
 
-    const value =
-      url.searchParams.get(
-        "lago3d"
-      );
+    /*
+     * Complete comic character.
+     */
+    const character =
+      window.LAGO_CHARACTERS
+        ?.getById
+        ?.(
+          id
+        );
 
 
     if (
-      value === "1"
+      character
+        ?.model3d
     ) {
 
-      enabled =
-        true;
+      return {
 
+        id:
+          character.id,
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        "1"
-      );
+        name:
+          character.name,
+
+        url:
+          character.model3d
+
+      };
 
     }
 
 
-   if (
-  value === "0"
-) {
+    /*
+     * Lago skins / creator characters
+     * without their own GLB still use
+     * the existing 2D fallback.
+     */
+    return null;
 
-  enabled =
-    false;
-
-
-  localStorage.removeItem(
-    STORAGE_KEY
-  );
-
-}
+  }
 
 
-}
+  function show2D(
+    show
+  ) {
 
-
-
-function show2D(
-  show
-) {
-
-    const el =
+    const element =
       image();
 
 
-    if (!el) {
+    if (!element) {
 
       return;
 
     }
 
 
-    el.style.display =
+    element.style.display =
       show
         ? ""
         : "none";
 
   }
-
 
 
   function show3D(
@@ -223,16 +236,80 @@ function show2D(
     canvas.hidden =
       !show;
 
+
+    canvas.style.display =
+      show
+        ? "block"
+        : "none";
+
   }
 
+
+  /*
+   * The Modern UI may recreate / move the
+   * character stage during migration.
+   *
+   * Always ensure that the canvas lives in
+   * #modernSnailArea when it exists.
+   */
+  function bindHost() {
+
+    const host =
+      area();
+
+
+    if (
+      !host ||
+      !canvas
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      canvas.parentElement !==
+      host
+    ) {
+
+      host.appendChild(
+        canvas
+      );
+
+    }
+
+
+    if (
+      resizeObserver &&
+      observedHost !==
+      host
+    ) {
+
+      resizeObserver.disconnect();
+
+
+      resizeObserver.observe(
+        host
+      );
+
+
+      observedHost =
+        host;
+
+    }
+
+
+    return true;
+
+  }
 
 
   function resize() {
 
     if (
       !renderer ||
-      !camera ||
-      !area()
+      !camera
     ) {
 
       return;
@@ -240,8 +317,22 @@ function show2D(
     }
 
 
+    bindHost();
+
+
+    const host =
+      area();
+
+
+    if (!host) {
+
+      return;
+
+    }
+
+
     const rect =
-      area()
+      host
         .getBoundingClientRect();
 
 
@@ -280,16 +371,13 @@ function show2D(
   }
 
 
-
   function normalizeModel(
     object
   ) {
 
     /*
-     * GLB master is Z-up.
-     *
-     * Convert once to
-     * Three.js Y-up.
+     * Current Lago GLBs are exported Z-up.
+     * Convert to Three.js Y-up.
      */
 
     object.rotation.x =
@@ -324,6 +412,11 @@ function show2D(
       );
 
 
+    /*
+     * Every character gets the same
+     * normalized visual scale.
+     */
+
     object.scale.setScalar(
       3.25 /
       largest
@@ -356,8 +449,88 @@ function show2D(
     object.position.y -=
       0.06;
 
+
+    object.updateMatrixWorld(
+      true
+    );
+
   }
 
+
+  function clearModel() {
+
+    if (
+      activeModel &&
+      holder
+    ) {
+
+      holder.remove(
+        activeModel
+      );
+
+    }
+
+
+    activeModel =
+      null;
+
+
+    activeModelUrl =
+      "";
+
+  }
+
+
+  function installModel(
+    template,
+    modelUrl
+  ) {
+
+    clearModel();
+
+
+    /*
+     * Static Lago relief GLBs can be cloned
+     * directly. Original cached template
+     * stays untouched.
+     */
+
+    activeModel =
+      template.clone(
+        true
+      );
+
+
+    activeModelUrl =
+      modelUrl;
+
+
+    holder.add(
+      activeModel
+    );
+
+
+    holder.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    holder.rotation.set(
+      0,
+      0,
+      0
+    );
+
+
+    holder.scale.set(
+      1,
+      1,
+      1
+    );
+
+  }
 
 
   function createRenderer() {
@@ -387,9 +560,36 @@ function show2D(
       true;
 
 
+    /*
+     * Critical layout properties live here
+     * instead of relying on legacy CSS.
+     */
+
+    canvas.style.position =
+      "absolute";
+
+    canvas.style.inset =
+      "0";
+
+    canvas.style.width =
+      "100%";
+
+    canvas.style.height =
+      "100%";
+
+    canvas.style.zIndex =
+      "2";
+
+    canvas.style.display =
+      "none";
+
+    canvas.style.touchAction =
+      "manipulation";
+
+
     canvas.setAttribute(
       "aria-label",
-      "Lago 3D"
+      "Lago character 3D"
     );
 
 
@@ -400,19 +600,24 @@ function show2D(
 
     renderer =
       new THREE.WebGLRenderer({
+
         canvas,
+
         alpha:
           true,
+
         antialias:
           true,
+
         powerPreference:
           "high-performance"
+
       });
 
 
     renderer.setPixelRatio(
       Math.min(
-        devicePixelRatio ||
+        window.devicePixelRatio ||
           1,
         2
       )
@@ -455,6 +660,10 @@ function show2D(
       0
     );
 
+
+    /*
+     * Neutral lighting.
+     */
 
     scene.add(
       new THREE.HemisphereLight(
@@ -513,8 +722,8 @@ function show2D(
 
 
     /*
-     * 3D Lago remains
-     * a real Tap Lago button.
+     * GLB character remains the real
+     * Tap Lago interaction surface.
      */
 
     canvas.addEventListener(
@@ -542,11 +751,19 @@ function show2D(
     );
 
 
-    new ResizeObserver(
-      resize
-    ).observe(
+    resizeObserver =
+      new ResizeObserver(
+        resize
+      );
+
+
+    resizeObserver.observe(
       host
     );
+
+
+    observedHost =
+      host;
 
 
     resize();
@@ -560,14 +777,17 @@ function show2D(
           0.001;
 
 
-        if (model) {
+        tapKick *=
+          0.82;
 
-          tapKick *=
-            0.82;
 
+        if (
+          activeModel
+        ) {
 
           /*
-           * Very light idle.
+           * Very small idle motion.
+           * The stage itself never moves.
            */
 
           holder.position.y =
@@ -587,10 +807,12 @@ function show2D(
 
 
           /*
-           * TAP squash.
+           * TAP squash is applied only
+           * to the model holder.
            */
 
           holder.scale.set(
+
             1 +
               tapKick *
               0.055,
@@ -602,6 +824,7 @@ function show2D(
             1 +
               tapKick *
               0.055
+
           );
 
         }
@@ -621,12 +844,32 @@ function show2D(
   }
 
 
-
-  function loadModel() {
+  function ensureRenderer() {
 
     if (
-      ready ||
-      loading
+      !renderer
+    ) {
+
+      return createRenderer();
+
+    }
+
+
+    bindHost();
+
+
+    return true;
+
+  }
+
+
+  function loadTarget(
+    target
+  ) {
+
+    if (
+      !target ||
+      !ensureRenderer()
     ) {
 
       return;
@@ -634,79 +877,200 @@ function show2D(
     }
 
 
+    const modelUrl =
+      target.url;
+
+
+    requestedModelUrl =
+      modelUrl;
+
+
+    /*
+     * Correct GLB is already installed.
+     */
+
     if (
-      !renderer &&
-      !createRenderer()
+      activeModel &&
+      activeModelUrl ===
+      modelUrl
     ) {
+
+      show2D(
+        false
+      );
+
+
+      show3D(
+        true
+      );
+
+
+      resize();
+
 
       return;
 
     }
 
 
-    loading =
-      true;
+    /*
+     * Never display the previous character
+     * while a new one is loading.
+     *
+     * Existing 2D asset becomes temporary
+     * loading fallback only.
+     */
+
+    show3D(
+      false
+    );
 
 
-    new GLTFLoader()
-      .load(
-
-        MODEL_URL,
-
-
-        gltf => {
-
-          model =
-            gltf.scene;
+    show2D(
+      true
+    );
 
 
-          normalizeModel(
-            model
-          );
+    /*
+     * Re-use already loaded GLBs.
+     */
+
+    if (
+      modelCache.has(
+        modelUrl
+      )
+    ) {
+
+      installModel(
+        modelCache.get(
+          modelUrl
+        ),
+        modelUrl
+      );
 
 
-          holder.add(
-            model
-          );
+      show2D(
+        false
+      );
 
 
-          loading =
-            false;
+      show3D(
+        true
+      );
 
 
-          ready =
-            true;
+      resize();
 
 
-          apply();
+      return;
 
-        },
-
-
-        undefined,
+    }
 
 
-        error => {
-
-          loading =
-            false;
+    const nonce =
+      ++loadNonce;
 
 
-          console.error(
-            "[LAGO 3D] GLB load failed",
-            error
-          );
+    loader.load(
+
+      modelUrl,
 
 
-          /*
-           * Fail-safe:
-           * never lose 2D Lago.
-           */
+      gltf => {
+
+        const template =
+          gltf.scene;
+
+
+        normalizeModel(
+          template
+        );
+
+
+        modelCache.set(
+          modelUrl,
+          template
+        );
+
+
+        /*
+         * Ignore stale asynchronous result
+         * if player already selected another
+         * character.
+         */
+
+        if (
+          nonce !==
+          loadNonce ||
+          requestedModelUrl !==
+          modelUrl ||
+          !enabled
+        ) {
+
+          return;
+
+        }
+
+
+        const current =
+          resolveTarget();
+
+
+        if (
+          !current ||
+          current.url !==
+          modelUrl
+        ) {
+
+          return;
+
+        }
+
+
+        installModel(
+          template,
+          modelUrl
+        );
+
+
+        show2D(
+          false
+        );
+
+
+        show3D(
+          true
+        );
+
+
+        resize();
+
+      },
+
+
+      undefined,
+
+
+      error => {
+
+        if (
+          requestedModelUrl ===
+          modelUrl
+        ) {
+
+          clearModel();
+
 
           show3D(
             false
           );
 
+
+          /*
+           * Fail closed to the existing
+           * 2D asset. Character never
+           * disappears completely.
+           */
 
           show2D(
             true
@@ -714,26 +1078,43 @@ function show2D(
 
         }
 
-      );
+
+        console.error(
+          "[LAGO 3D] GLB load failed:",
+          modelUrl,
+          error
+        );
+
+      }
+
+    );
 
   }
 
 
-
   function apply() {
 
-    const use3D =
-      enabled &&
-      isBaseLago();
+    bindHost();
 
 
     /*
-     * Comic character /
-     * Lago skin:
-     * keep existing 2D runtime.
+     * Development fallback:
+     * ?lago3d=0
      */
 
-    if (!use3D) {
+    if (
+      !enabled
+    ) {
+
+      requestedModelUrl =
+        "";
+
+
+      loadNonce++;
+
+
+      clearModel();
+
 
       show3D(
         false
@@ -750,12 +1131,28 @@ function show2D(
     }
 
 
+    const target =
+      resolveTarget();
+
+
     /*
-     * Keep the PNG visible
-     * while the GLB loads.
+     * Character has no GLB.
+     * Keep its 2D runtime.
      */
 
-    if (!ready) {
+    if (
+      !target
+    ) {
+
+      requestedModelUrl =
+        "";
+
+
+      loadNonce++;
+
+
+      clearModel();
+
 
       show3D(
         false
@@ -767,31 +1164,19 @@ function show2D(
       );
 
 
-      loadModel();
-
-
       return false;
 
     }
 
 
-    show2D(
-      false
+    loadTarget(
+      target
     );
-
-
-    show3D(
-      true
-    );
-
-
-    resize();
 
 
     return true;
 
   }
-
 
 
   function enable() {
@@ -800,19 +1185,12 @@ function show2D(
       true;
 
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      "1"
-    );
-
-
     apply();
 
 
     return true;
 
   }
-
 
 
   function disable() {
@@ -821,11 +1199,6 @@ function show2D(
       false;
 
 
-    localStorage.removeItem(
-      STORAGE_KEY
-    );
-
-
     apply();
 
 
@@ -834,10 +1207,10 @@ function show2D(
   }
 
 
-
-  consumeURLToggle();
-
-
+  /*
+   * Re-evaluate renderer whenever
+   * account / Collection changes.
+   */
 
   document.addEventListener(
     "lago:state",
@@ -851,11 +1224,23 @@ function show2D(
   );
 
 
+  /*
+   * Optional future Modern UI lifecycle event.
+   */
   document.addEventListener(
-    "DOMContentLoaded",
+    "lago:modern-ready",
     apply
   );
 
+
+  window.addEventListener(
+    "resize",
+    resize,
+    {
+      passive:
+        true
+    }
+  );
 
 
   window.LAGO_CHARACTER_3D =
@@ -875,7 +1260,6 @@ function show2D(
       apply
 
     });
-
 
 
   apply();
