@@ -1152,17 +1152,68 @@ $("shareBtn").onclick=telegramShare;
 
 
 /* ---------- Случайные вспышки/кринж ---------- */
-setInterval(()=>{
-  if(Math.random()<.55){
-    $("cringe").textContent=PHRASES[Math.floor(Math.random()*PHRASES.length)];
-  }
-  if(Math.random()<.15){
-    document.querySelector(".app").animate(
-      [{transform:"translateX(0)"},{transform:"translateX(-3px)"},{transform:"translateX(3px)"},{transform:"translateX(0)"}],
-      {duration:180}
-    );
-  }
-},2500);
+setInterval(
+  () => {
+
+    if (
+      Math.random() <
+      .55
+    ) {
+
+      const phrase =
+        PHRASES[
+          Math.floor(
+            Math.random() *
+            PHRASES.length
+          )
+        ];
+
+
+      const legacySpeech =
+        $("cringe");
+
+
+      if (
+        legacySpeech
+      ) {
+
+        legacySpeech.textContent =
+          phrase;
+
+      }
+
+
+      const modernSpeech =
+        $("modernSpeech");
+
+
+      if (
+        modernSpeech
+      ) {
+
+        const translated =
+          window.LAGO_LANGUAGE
+            ?.translate
+            ?.(
+              phrase
+            ) ??
+          phrase;
+
+
+        modernSpeech.textContent =
+          String(
+            translated
+          )
+            .trim()
+            .toUpperCase();
+
+      }
+
+    }
+
+  },
+  2500
+);
 
 render();
 
