@@ -3,7 +3,7 @@
 
 
  const VERSION =
-  2;
+  3;
 
 
   /*
@@ -346,6 +346,114 @@ shop:
 
             minutes:
               3000
+
+          }),
+
+
+               dailyReward:
+          false
+
+      }),
+
+
+
+      /*
+       * =====================================================
+       * МИКИ
+       * =====================================================
+       *
+       * GLB-FIRST CHARACTER.
+       *
+       * No legacy SVG/PNG asset.
+       * Shop price / rarity are intentionally
+       * not assigned yet.
+       */
+      Object.freeze({
+
+        id:
+          "comic_goose",
+
+        name:
+          "Мики",
+
+        type:
+          "comic",
+
+        model3d:
+          "./assets/model/comic-goose.glb?v=2",
+
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false
+
+          }),
+
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+
+        dailyReward:
+          false
+
+      }),
+
+
+
+      /*
+       * =====================================================
+       * ОЛЕГ
+       * =====================================================
+       *
+       * GLB-FIRST CHARACTER.
+       *
+       * No legacy SVG/PNG asset.
+       * Shop price / rarity are intentionally
+       * not assigned yet.
+       */
+      Object.freeze({
+
+        id:
+          "comic_pig",
+
+        name:
+          "Олег",
+
+        type:
+          "comic",
+
+        model3d:
+          "./assets/model/comic-pig.glb?v=2",
+
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false
+
+          }),
+
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
 
           }),
 
