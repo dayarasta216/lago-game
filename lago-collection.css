@@ -195,6 +195,10 @@
 
 
 .lago-collection-current {
+
+  position:
+    relative;
+
   height:
     210px;
 
@@ -202,15 +206,11 @@
     8px;
 
   display:
-    grid;
-
-  place-items:
-    center;
+    block;
 
   overflow:
     hidden;
 }
-
 
 .lago-collection-current-image {
   display: block;
@@ -403,14 +403,14 @@
 
 
 .lago-skin-visual {
+  position:
+    relative;
+
   height:
     108px;
 
   display:
-    grid;
-
-  place-items:
-    center;
+    block;
 
   overflow:
     hidden;
@@ -419,22 +419,42 @@
     52px;
 }
 
-
+.lago-character-card
 .lago-skin-image {
+
+  position:
+    absolute;
+
+  inset:
+    8px;
+
   display:
     block;
 
   width:
-    72%;
+    calc(
+      100% - 16px
+    ) !important;
 
   height:
-    84%;
+    calc(
+      100% - 16px
+    ) !important;
+
+  max-width:
+    none !important;
+
+  max-height:
+    none !important;
 
   object-fit:
-    contain;
+    contain !important;
 
   object-position:
-    center;
+    50% 50% !important;
+
+  transform:
+    none !important;
 
   user-select:
     none;
@@ -447,10 +467,8 @@
 
   filter:
     drop-shadow(
-      0
-      8px
-      11px
-      rgba(0,0,0,.22)
+      0 7px 10px
+      rgba(0,0,0,.20)
     );
 }
 
