@@ -13,7 +13,7 @@ import {
     1;
 
 
- const MODEL_URL =
+const MODEL_URL =
   "./assets/model/lago.glb?v=4";
   
 
