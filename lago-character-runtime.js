@@ -1,15 +1,34 @@
 (() => {
   "use strict";
 
-  const VERSION = 1;
+
+  const VERSION =
+    2;
+
 
   const DEFAULT_ASSET =
     "./lago-snail.png";
 
 
-  function getSelectedSkin() {
+  /*
+   * =========================================================
+   * CHARACTER FALLBACK RUNTIME
+   * =========================================================
+   *
+   * GLB is the primary gameplay renderer.
+   *
+   * This module manages ONLY the hidden / emergency
+   * 2D fallback image #snail.
+   *
+   * It must never decide whether 3D is visible.
+   * lago-character-3d.js owns that responsibility.
+   * =========================================================
+   */
 
-    return (
+
+  function selectedId() {
+
+    return String(
       window.LAGO
         ?.getState
         ?.()
@@ -20,16 +39,27 @@
   }
 
 
-  function resolveCharacter() {
+  function image() {
 
-    const selected =
-      getSelectedSkin();
+    return document
+      .getElementById(
+        "snail"
+      );
+
+  }
+
+
+  function character() {
+
+    const id =
+      selectedId();
+
 
     return (
       window.LAGO_CHARACTERS
         ?.getById
         ?.(
-          selected
+          id
         ) ||
       null
     );
@@ -37,55 +67,157 @@
   }
 
 
+  function validAsset(
+    value
+  ) {
+
+    return (
+      typeof value ===
+        "string" &&
+      value.trim().length >
+        0
+    );
+
+  }
+
+
   function apply() {
 
-    const image =
-      document.getElementById(
-        "snail"
-      );
+    const element =
+      image();
 
-    if (!image)
+
+    if (!element) {
+
       return false;
 
-
-    const character =
-      resolveCharacter();
+    }
 
 
-    if (character) {
+    const selected =
+      selectedId();
 
-      image.setAttribute(
-        "src",
-        character.asset
-      );
 
-      image.alt =
-        character.name;
+    const currentCharacter =
+      character();
 
-      image.dataset
+
+    /*
+     * =====================================================
+     * COMIC CHARACTER
+     * =====================================================
+     */
+
+    if (
+      currentCharacter
+    ) {
+
+      /*
+       * Existing characters may still have
+       * a temporary 2D preview asset.
+       *
+       * Future GLB-only characters do not need one.
+       */
+      const fallback =
+        validAsset(
+          currentCharacter.asset
+        )
+          ? currentCharacter.asset
+          : DEFAULT_ASSET;
+
+
+      if (
+        element.getAttribute(
+          "src"
+        ) !==
+        fallback
+      ) {
+
+        element.setAttribute(
+          "src",
+          fallback
+        );
+
+      }
+
+
+      element.alt =
+        currentCharacter.name ||
+        "Lago character";
+
+
+      element.dataset
         .lagoCharacter =
-        character.id;
+        currentCharacter.id;
 
-    } else {
 
-      image.setAttribute(
+      element.dataset
+        .lagoRenderer =
+        currentCharacter.model3d
+          ? "glb-primary"
+          : "2d";
+
+
+      return true;
+
+    }
+
+
+    /*
+     * =====================================================
+     * LAGO / LAGO SKINS
+     * =====================================================
+     *
+     * Original Lago GLB is primary for default Lago.
+     *
+     * Lago cosmetic skins may still be handled by
+     * existing 2D compatibility until their future
+     * character/skin renderer is migrated.
+     */
+
+    if (
+      element.getAttribute(
+        "src"
+      ) !==
+      DEFAULT_ASSET
+    ) {
+
+      element.setAttribute(
         "src",
         DEFAULT_ASSET
       );
 
-      image.alt =
-        "LAGO";
-
-      delete image.dataset
-        .lagoCharacter;
-
     }
+
+
+    element.alt =
+      "LAGO";
+
+
+    delete element.dataset
+      .lagoCharacter;
+
+
+    element.dataset
+      .lagoRenderer =
+      (
+        selected ===
+          "default" ||
+        selected ===
+          "lago"
+      )
+        ? "glb-primary"
+        : "2d";
 
 
     return true;
 
   }
 
+
+  /*
+   * Account / Collection changes.
+   */
 
   document.addEventListener(
     "lago:state",
@@ -94,7 +226,18 @@
 
 
   document.addEventListener(
-    "DOMContentLoaded",
+    "lago:character-equipped",
+    apply
+  );
+
+
+  /*
+   * Modern UI can move #snail into
+   * the canonical character stage.
+   */
+
+  document.addEventListener(
+    "lago:modern-ready",
     apply
   );
 
