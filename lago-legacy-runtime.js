@@ -865,31 +865,77 @@ getPhrases() {
   },
 
 
-  animateSnail() {
+ animateSnail() {
 
-    const snail =
-      $("snail");
-
-
-    if (!snail) {
-      return;
-    }
+  const snail =
+    $("snail");
 
 
-    snail.classList.remove(
-      "bonk"
+  if (!snail) {
+
+    return;
+
+  }
+
+
+  const host =
+    snail.closest(
+      ".lago-modern-snail"
     );
 
 
-    void snail.offsetWidth;
+  /*
+   * Character movement.
+   */
+
+  snail.classList.remove(
+    "bonk"
+  );
 
 
-    snail.classList.add(
-      "bonk"
+  void snail.offsetWidth;
+
+
+  snail.classList.add(
+    "bonk"
+  );
+
+
+  /*
+   * Glow pulse belongs to
+   * the stationary container,
+   * not to the moving character.
+   */
+
+  if (host) {
+
+    host.classList.remove(
+      "tap-glow"
     );
 
-  },
 
+    void host.offsetWidth;
+
+
+    host.classList.add(
+      "tap-glow"
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        host.classList.remove(
+          "tap-glow"
+        );
+
+      },
+      260
+    );
+
+  }
+
+},
 
   spawnFloat(
     text,
