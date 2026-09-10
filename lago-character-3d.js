@@ -166,25 +166,28 @@ function area() {
     }
 
 
-    if (
-      value === "0"
-    ) {
+   if (
+  value === "0"
+) {
 
-      enabled =
-        false;
-
-
-      localStorage.removeItem(
-        STORAGE_KEY
-      );
-
-    }
+  enabled =
+    false;
 
 
+  localStorage.removeItem(
+    STORAGE_KEY
+  );
 
-  function show2D(
-    show
-  ) {
+}
+
+
+}
+
+
+
+function show2D(
+  show
+) {
 
     const el =
       image();
