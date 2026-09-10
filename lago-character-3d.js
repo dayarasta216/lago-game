@@ -9,9 +9,8 @@ import {
   "use strict";
 
 
-  const VERSION =
-    2;
-
+ const VERSION =
+  3;
 
   const BASE_LAGO_MODEL =
     "./assets/model/lago.glb?v=4";
@@ -1678,24 +1677,23 @@ function mountPreview(
 
 
   window.LAGO_CHARACTER_3D =
-    Object.freeze({
+  Object.freeze({
 
-      version:
-        VERSION,
+    version:
+      VERSION,
 
-      enable,
+    enable,
 
-      disable,
+    disable,
 
-      enabled:
-        () =>
-          enabled,
+    enabled:
+      () =>
+        enabled,
 
-      apply
+    apply,
 
-    });
+    mountPreview,
 
+    destroyPreview
 
-  apply();
-
-})();
+  });
