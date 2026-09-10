@@ -607,171 +607,8 @@ if ($("days")) {
   ?.renderUpgrades
   ?.();
 
-renderMemes();
-
-  /*
-   * Publish Tap Lago state.
-   *
-   * Other UI modules must listen
-   * to this event instead of reading
-   * hidden legacy DOM elements.
-   */
-  document.dispatchEvent(
-    new CustomEvent(
-      "lago:tap-game-state",
-      {
-        detail:
-          getTapGameSnapshot()
-      }
-    )
-  );
-
-}
-function toast(msg){
-  $("toast").textContent=msg;$("toast").classList.add("on");
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("on"),1800);
-}
-function openPanel(id){$(id).classList.add("show")}
-function closePanel(id){$(id).classList.remove("show")}
-document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closePanel(b.dataset.close));
-
-/* =========================================================
-   TAP LAGO GAMEPLAY
-
-   Tap / Steal / Auto gameplay was extracted to:
-
-   lago-tap-game.js
-
-   Legacy runtime temporarily keeps only shared
-   UI helpers until the old interface is removed.
-   ========================================================= */
 
 
-function spawnFloat(
-  text,
-  ev
-) {
-
-  /*
-   * Modern character stage is now
-   * the canonical visual host.
-   *
-   * snailWrap remains fallback only
-   * during migration.
-   */
-  const wrap =
-    $("modernSnailArea") ||
-    $("snailWrap");
-
-
-  if (!wrap) {
-
-    return;
-
-  }
-
-
-  const rect =
-    wrap.getBoundingClientRect();
-
-
-  const hasPointer =
-    Number.isFinite(
-      ev?.clientX
-    ) &&
-    Number.isFinite(
-      ev?.clientY
-    );
-
-
-  const x =
-    hasPointer
-      ? ev.clientX -
-        rect.left
-      : rect.width /
-        2;
-
-
-  const y =
-    hasPointer
-      ? ev.clientY -
-        rect.top
-      : rect.height /
-        2;
-
-
-  const item =
-    document.createElement(
-      "div"
-    );
-
-
-  item.className =
-    "lago-tap-float";
-
-
-  item.textContent =
-    String(
-      text ?? ""
-    );
-
-
-  item.style.left =
-    `${x}px`;
-
-
-  item.style.top =
-    `${y}px`;
-
-
-  wrap.appendChild(
-    item
-  );
-
-
-  window.setTimeout(
-    () => {
-
-      item.remove();
-
-    },
-    800
-  );
-
-}
-
-/* ---------- Создание мемов ---------- */
-const canvas=$("draw"),ctx=canvas.getContext("2d");
-ctx.fillStyle="#170b19";ctx.fillRect(0,0,canvas.width,canvas.height);
-ctx.fillStyle="#ccff00";ctx.font="bold 34px monospace";ctx.textAlign="center";ctx.fillText("НАРИСУЙ КРИНЖ",canvas.width/2,canvas.height/2);
-let drawing=false,lastX=0,lastY=0;
-function pos(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
-canvas.addEventListener("pointerdown",e=>{drawing=true;canvas.setPointerCapture(e.pointerId);let p=pos(e);lastX=p.x;lastY=p.y});
-canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);ctx.strokeStyle=["#ff44aa","#ccff00","#00e5ff","#fff"][Math.floor(Math.random()*4)];ctx.lineWidth=12;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.stroke();lastX=p.x;lastY=p.y});
-canvas.addEventListener("pointerup",()=>drawing=false);
-$("clearDraw").onclick=()=>{
-  ctx.fillStyle="#170b19";ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#ccff00";ctx.font="bold 34px monospace";ctx.textAlign="center";ctx.fillText("НАРИСУЙ КРИНЖ",canvas.width/2,canvas.height/2);
-};
-$("memeFile").onchange=e=>{
-  const file=e.target.files?.[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=()=>{const im=new Image();im.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(im,0,0,canvas.width,canvas.height)};im.src=reader.result};
-  reader.readAsDataURL(file);
-};
-function saveMeme(){
-  const name=($("memeName").value.trim()||"МЕМ ЛАГО").slice(0,24);
-  const clickBonus=Math.floor(Math.random()*5)+1;
-  const autoBonus=Math.random()<.35 ? Math.floor(Math.random()*3)+1 : 0;
-  const data=canvas.toDataURL("image/jpeg",.55);
-  state.memes.push({id:Date.now(),name,data,clickBonus,autoBonus,created:new Date().toISOString()});
-  state.memesCreated++;
-  $("memeName").value="";
-  toast(`МЕМ СОЗДАН! +${clickBonus} к клику${autoBonus?` и +${autoBonus}/сек`:""}`);
-  beep(800,.06);beep(1100,.08);
-  checkAchievements();render();save();closePanel("createPanel");
-}
-$("saveMeme").onclick=saveMeme;
 $("createBtn").onclick=()=>openPanel("createPanel");
 /*
  * =========================================================
@@ -1041,7 +878,7 @@ function renderMemes(){
       <div class="badge">⚡ +${m.clickBonus}${m.autoBonus?` · 🤖 +${m.autoBonus}/с`:""}</div>
     </div>`).join("");
 }
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
+
 $("memesBtn").onclick=()=>openPanel("memesPanel");
 
 /* ---------- Достижения ---------- */
@@ -1096,53 +933,7 @@ $("restartBtn").onclick=()=>{
   closePanel("gameOverPanel");toast("Лаго воскрес. К сожалению.");render();save();
 };
 
-/* ---------- Solana / Phantom ---------- */
-let solanaProvider=null;
-const MEMO_PROGRAM_ID="MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
-function getProvider(){
-  if(window.phantom?.solana?.isPhantom) return window.phantom.solana;
-  if(window.solana?.isPhantom) return window.solana;
-  return null;
-}
-function shortKey(k){return k ? k.slice(0,6)+"…"+k.slice(-6):""}
-async function connectWallet(){
-  const p=getProvider();
-  if(!p){toast("Phantom не найден. Открой игру в браузере Phantom.");return}
-  try{
-    const resp=await p.connect();
-    solanaProvider=p;
-    state.wallet=resp.publicKey.toString();
-    renderWallet();
-    save();
-    toast("SOLANA КОШЕЛЁК ПОДКЛЮЧЁН 🟣");
-  }catch(e){toast("Подключение отменено")}
-}
-function renderWallet(){
-  $("walletInfo").innerHTML=state.wallet
-    ? `<div class="wallet">CONNECTED<br>${escapeHtml(state.wallet)}</div>`
-    : `<div class="hint">Кошелёк пока не подключён.</div>`;
-}
-async function writeScoreOnChain(){
-  if(!solanaProvider){await connectWallet();if(!solanaProvider)return}
-  try{
-    const connection=new solanaWeb3.Connection("https://api.mainnet-beta.solana.com","confirmed");
-    const {blockhash,lastValidBlockHeight}=await connection.getLatestBlockhash();
-    const tx=new solanaWeb3.Transaction({recentBlockhash:blockhash,feePayer:solanaProvider.publicKey});
-    const memo=`LAGO|telegram=${state.telegramUser?.id||"guest"}|energy=${Math.floor(state.energy)}|clicks=${state.totalClicks}|memes=${state.memesCreated}`;
-    tx.add(new solanaWeb3.TransactionInstruction({
-      keys:[],programId:new solanaWeb3.PublicKey(MEMO_PROGRAM_ID),
-      data:new TextEncoder().encode(memo)
-    }));
-    const signed=await solanaProvider.signAndSendTransaction(tx);
-    await connection.confirmTransaction({signature:signed.signature,blockhash,lastValidBlockHeight},"confirmed");
-    toast("РЕКОРД ЗАПИСАН В SOLANA ⛓️");
-    $("walletInfo").innerHTML+=`<div class="wallet" style="margin-top:8px">TX: ${escapeHtml(signed.signature)}</div>`;
-  }catch(e){
-    console.error(e);toast("Solana-транзакция не прошла");
-  }
-}
-$("walletBtn").onclick=()=>{renderWallet();openPanel("walletPanel")};
-$("connectWallet").onclick=connectWallet;
+
 $("onchainScore").onclick=writeScoreOnChain;
 
 /* ---------- Поделиться ---------- */
