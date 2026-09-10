@@ -181,22 +181,6 @@ function area() {
     }
 
 
-    url.searchParams.delete(
-      "lago3d"
-    );
-
-
-    history.replaceState(
-      {},
-      "",
-      url.pathname +
-      url.search +
-      url.hash
-    );
-
-  }
-
-
 
   function show2D(
     show
