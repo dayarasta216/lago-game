@@ -125,27 +125,6 @@ function area() {
 }
 
 
-  if (modernArea) {
-
-    return modernArea;
-
-  }
-
-
-  const snail =
-    document.getElementById(
-      "snail"
-    );
-
-
-  return (
-    snail?.parentElement ||
-    null
-  );
-
-}
-
-
   function consumeURLToggle() {
 
     const url =
