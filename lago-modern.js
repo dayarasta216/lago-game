@@ -1484,22 +1484,13 @@ if (bar) {
 }
 
 
-if (
-  document.readyState === "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    createUI,
-    {
-      once: true
-    }
-  );
-
-} else {
-
-  createUI();
-
-  }
+/*
+ * index.html loads this script
+ * after the legacy DOM exists.
+ *
+ * Build the canonical UI immediately,
+ * before the ES-module 3D renderer runs.
+ */
+createUI();
 
 })();
