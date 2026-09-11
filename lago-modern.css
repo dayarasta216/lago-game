@@ -806,7 +806,9 @@ height: 100dvh;
     absolute;
 
   inset:
-    -16%;
+    13%
+    7%
+    11%;
 
   z-index:
     0;
@@ -817,46 +819,46 @@ height: 100dvh;
   border-radius:
     50%;
 
+  /*
+   * One uniform light source +
+   * Gaussian blur.
+   *
+   * No gradient stops,
+   * therefore no visible rings
+   * or hard transition edge.
+   */
   background:
-    radial-gradient(
-      ellipse at 50% 56%,
+    rgba(
+      154,
+      32,
+      255,
+      .20
+    );
 
-      rgba(
-        196,
-        44,
-        255,
-        .30
-      )
-      0%,
+  filter:
+    blur(
+      58px
+    );
 
-      rgba(
-        154,
-        32,
-        255,
-        .19
-      )
-      32%,
-
-      rgba(
-        122,
-        20,
-        220,
-        .09
-      )
-      52%,
-
-      transparent
-      72%
+  -webkit-filter:
+    blur(
+      58px
     );
 
   opacity:
-    .78;
+    .62;
 
   transform:
-    scale(1);
+    scale(
+      1.08
+    );
 
   transform-origin:
     center;
+
+  will-change:
+    transform,
+    opacity;
 
 }
    
@@ -2795,14 +2797,15 @@ span:last-child {
     none;
 
   filter:
-    drop-shadow(
-      0 20px 28px
-      rgba(0,0,0,.35)
+  drop-shadow(
+    0 20px 28px
+    rgba(
+      0,
+      0,
+      0,
+      .30
     )
-    drop-shadow(
-      0 0 22px
-      rgba(255,57,173,.20)
-    );
+  );
 
 }
 
@@ -2837,10 +2840,12 @@ span:last-child {
   0% {
 
     opacity:
-      .78;
+      .62;
 
     transform:
-      scale(1);
+      scale(
+        1.08
+      );
 
   }
 
@@ -2848,10 +2853,12 @@ span:last-child {
   35% {
 
     opacity:
-      1;
+      .76;
 
     transform:
-      scale(1.045);
+      scale(
+        1.11
+      );
 
   }
 
@@ -2859,10 +2866,12 @@ span:last-child {
   100% {
 
     opacity:
-      .78;
+      .62;
 
     transform:
-      scale(1);
+      scale(
+        1.08
+      );
 
   }
 
