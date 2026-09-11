@@ -1143,80 +1143,14 @@
 
 
   /* =========================================================
-     CREATE BUTTON BRIDGE
-     ========================================================= */
-
-  function installBridge() {
-
-    const create =
-      document.getElementById(
-        "createBtn"
-      );
-
-
-    if (!create)
-      return;
-
-
-    /*
-     * We intentionally replace
-     * the old Creator action.
-     */
-
-    create.onclick =
-      event => {
-
-        event.preventDefault();
-
-        openForge();
-
-      };
-
-  }
-
-
-  /* =========================================================
      START
      ========================================================= */
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-      setTimeout(
-        installBridge,
-        500
-      );
-
-    }
-  );
 
 
   /*
    * Also catch the new
    * modern interface.
    */
-
-  document.addEventListener(
-    "click",
-    event => {
-
-      const button =
-        event.target.closest(
-          '[data-action="create"]'
-        );
-
-
-      if (button) {
-
-        event.preventDefault();
-
-        openForge();
-
-      }
-
-    }
-  );
 
 
   /*
