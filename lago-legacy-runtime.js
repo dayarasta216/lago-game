@@ -39,7 +39,7 @@ const defaultState = {
 
 let state = loadState();
 let audioCtx = null;
-let toastTimer = null;
+
 
 
 /* ---------- Хранилище ---------- */
@@ -542,12 +542,10 @@ function getTapGameSnapshot(){
       ),
 
     speech:
-      document
-        .getElementById(
-          "cringe"
-        )
-        ?.textContent
-        ?.trim() || ""
+  window.LAGO_UI
+    ?.getSpeech
+    ?.() ||
+  ""
 
   };
 
@@ -697,12 +695,15 @@ getPhrases() {
    * Feedback helpers.
    */
 
-  toast(message) {
+ toast(message) {
 
-    toast(message);
+  window.LAGO_UI
+    ?.toast
+    ?.(
+      message
+    );
 
-  },
-
+},
 
   beep(
     frequency,
@@ -719,34 +720,24 @@ getPhrases() {
   },
 
 
-  setSpeech(text) {
+ setSpeech(text) {
 
-    const speech =
-      $("cringe");
+  window.LAGO_UI
+    ?.setSpeech
+    ?.(
+      text
+    );
 
-
-    if (speech) {
-
-      speech.textContent =
-        text;
-
-    }
-
-  },
+},
 
 
  animateSnail() {
 
-  const snail =
-    $("snail");
+  window.LAGO_UI
+    ?.animateTap
+    ?.();
 
-
-  if (!snail) {
-
-    return;
-
-  }
-
+},
 
   const host =
     snail.closest(
@@ -807,18 +798,19 @@ getPhrases() {
 
 },
 
-  spawnFloat(
-    text,
-    event
-  ) {
+spawnFloat(
+  text,
+  event
+) {
 
-    spawnFloat(
+  window.LAGO_UI
+    ?.spawnFloat
+    ?.(
       text,
       event
     );
 
-  },
-
+},
 
   checkAchievements() {
 
@@ -838,22 +830,23 @@ getPhrases() {
    * Temporary legacy panels.
    */
 
-  showPanel(id) {
+ showPanel(id) {
 
-  openPanel(
-    id
-  );
+  window.LAGO_UI
+    ?.openPanel
+    ?.(
+      id
+    );
 
 },
 
-  openCreator() {
+ openCreator() {
 
-    openPanel(
-      "createPanel"
-    );
+  window.LAGO_CREATOR
+    ?.open
+    ?.();
 
-  },
-
+},
 
   share() {
 
@@ -891,7 +884,24 @@ const achievements=[
 function checkAchievements(){
   achievements.forEach(a=>{
     if(!state.achievements[a[0]] && a[3]()){
-      state.achievements[a[0]]=true;toast(`🏆 ${a[1]}`);beep(880,.08);beep(1320,.1);
+    state.achievements[a[0]] =
+  true;
+
+window.LAGO_UI
+  ?.toast
+  ?.(
+    `🏆 ${a[1]}`
+  );
+
+beep(
+  880,
+  .08
+);
+
+beep(
+  1320,
+  .1
+);
     }
   });
 }
@@ -909,14 +919,68 @@ updateDays();
 
 /* ---------- Game Over ---------- */
 function gameOver(){
-  $("gameOverPanel").classList.add("show");
-  beep(70,.3,"sawtooth");
+
+  window.LAGO_UI
+    ?.openPanel
+    ?.(
+      "gameOverPanel"
+    );
+
+  beep(
+    70,
+    .3,
+    "sawtooth"
+  );
+
 }
-$("restartBtn").onclick=()=>{
-  state.energy=10;state.power=1;state.auto=0;state.shield=0;
-  state.upgrades={click:0,auto:0,shield:0};state.lastDay=new Date().toDateString();
-  closePanel("gameOverPanel");toast("Лаго воскрес. К сожалению.");render();save();
-};
+$("restartBtn").onclick =
+  () => {
+
+    state.energy =
+      10;
+
+    state.power =
+      1;
+
+    state.auto =
+      0;
+
+    state.shield =
+      0;
+
+    state.upgrades = {
+      click:
+        0,
+      auto:
+        0,
+      shield:
+        0
+    };
+
+    state.lastDay =
+      new Date()
+        .toDateString();
+
+
+    window.LAGO_UI
+      ?.closePanel
+      ?.(
+        "gameOverPanel"
+      );
+
+
+    window.LAGO_UI
+      ?.toast
+      ?.(
+        "Лаго воскрес. К сожалению."
+      );
+
+
+    render();
+
+    save();
+
+  };
 
 
 
@@ -944,44 +1008,12 @@ setInterval(
         ];
 
 
-      const legacySpeech =
-        $("cringe");
-
-
-      if (
-        legacySpeech
-      ) {
-
-        legacySpeech.textContent =
-          phrase;
-
-      }
-
-
-      const modernSpeech =
-        $("modernSpeech");
-
-
-      if (
-        modernSpeech
-      ) {
-
-        const translated =
-          window.LAGO_LANGUAGE
-            ?.translate
-            ?.(
-              phrase
-            ) ??
-          phrase;
-
-
-        modernSpeech.textContent =
-          String(
-            translated
-          )
-            .trim()
-            .toUpperCase();
-
+window.LAGO_UI
+  ?.setSpeech
+  ?.(
+    phrase
+  );
+       
       }
 
     }
