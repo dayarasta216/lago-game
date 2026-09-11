@@ -623,16 +623,10 @@ body > .panel .input {
   </main>
 
   <nav class="bottom">
-    <button class="btn main" id="clickBtn">🍔 КЛИК!</button>
-    <button class="btn red" id="stealBtn">👾 ОГРАБИТЬ</button>
-    <button class="btn lime" id="upgradeBtn">⬆ АПГРЕЙД</button>
-    <button class="btn cyan" id="createBtn">🎨 СОЗДАТЬ МЕМ</button>
-    <button class="btn" id="memesBtn">📦 МЕМЫ</button>
-    <div class="footer-row">
-      <button class="btn" id="shareBtn">🔗 ПОДЕЛИТЬСЯ</button>
-      <button class="btn" id="walletBtn">🟣 SOLANA</button>
-    </div>
-  </nav>
+  <button class="btn main" id="clickBtn">🍔 КЛИК!</button>
+  <button class="btn red" id="stealBtn">👾 ОГРАБИТЬ</button>
+  <button class="btn lime" id="upgradeBtn">⬆ АПГРЕЙД</button>
+</nav>
 </div>
 
 <!-- Апгрейды -->
@@ -642,39 +636,6 @@ body > .panel .input {
   <div id="upgradeList"></div>
 </div></div>
 
-<!-- Мемы -->
-<div class="panel" id="memesPanel"><div class="sheet">
-  <button class="close" data-close="memesPanel">✕</button>
-  <h2>📦 МОИ МЕМЫ</h2>
-  <div class="hint">Каждый мем становится локальным уникальным апгрейдом. Бонусы сохраняются.</div>
-  <div id="memeList" class="grid" style="margin-top:10px"></div>
-</div></div>
-
-<!-- Создание мема -->
-<div class="panel" id="createPanel"><div class="sheet">
-  <button class="close" data-close="createPanel">✕</button>
-  <h2>🎨 МЕМ-ЛАБОРАТОРИЯ</h2>
-  <input class="input" id="memeName" maxlength="24" placeholder="Название мема, например ПУК-УЛЬТРА">
-  <input class="input" id="memeFile" type="file" accept="image/*">
-  <div class="hint">Или нарисуй пальцем:</div>
-  <canvas id="draw" width="600" height="360"></canvas>
-  <div style="display:flex;gap:8px;margin-top:8px">
-    <button class="btn cyan" id="clearDraw" style="flex:1">🧽 СТЕРЕТЬ</button>
-    <button class="btn main" id="saveMeme" style="flex:1;font-size:18px">💾 СОЗДАТЬ</button>
-  </div>
-  <div class="hint" style="margin-top:8px">Случайный бонус: +1–5 к клику или +1–3 автоклика/сек.</div>
-</div></div>
-
-<!-- Solana -->
-<div class="panel" id="walletPanel"><div class="sheet">
-  <button class="close" data-close="walletPanel">✕</button>
-  <h2>🟣 SOLANA</h2>
-  <p class="hint">Игра работает без кошелька. Подключение нужно для привязки Solana-адреса и записи рекорда через Memo-транзакцию.</p>
-  <button class="btn lime" id="connectWallet" style="width:100%">🔌 ПОДКЛЮЧИТЬ PHANTOM</button>
-  <div id="walletInfo" style="margin-top:10px"></div>
-  <button class="btn cyan" id="onchainScore" style="width:100%;margin-top:8px">⛓️ ЗАПИСАТЬ РЕКОРД В SOLANA</button>
-  <div class="hint" style="margin-top:8px">Внимание: on-chain запись — настоящая транзакция и требует небольшой комиссии сети.</div>
-</div></div>
 
 <!-- Game Over -->
 <div class="panel modal-center" id="gameOverPanel">
