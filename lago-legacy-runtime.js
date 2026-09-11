@@ -628,6 +628,31 @@ if ($("days")) {
  * New modules must NOT access legacy DOM directly.
  * =========================================================
  */
+
+/*
+ * Emergency 2D fallback remains tappable.
+ * The listener follows #snail when Modern UI moves it.
+ */
+image()
+  ?.addEventListener(
+    "pointerdown",
+    event => {
+
+      event.preventDefault();
+
+      window.LAGO_TAP_GAME
+        ?.tap
+        ?.(
+          event
+        );
+
+    },
+    {
+      passive:
+        false
+    }
+  );
+
 window.LAGO_LEGACY_RUNTIME =
   Object.freeze({
 
