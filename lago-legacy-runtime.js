@@ -404,7 +404,7 @@ function beep(
 
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
-function fmt(n){ return Math.floor(n).toLocaleString("ru-RU"); }
+
 function getTapGameSnapshot(){
 
   const account =
@@ -550,58 +550,16 @@ function getTapGameSnapshot(){
   };
 
 }
-function render(){
+function render() {
 
- const snapshot =
-  getTapGameSnapshot();
-
-
-if ($("energy")) {
-
-  $("energy").textContent =
-    fmt(
-      snapshot.dum
-    );
-
-}
-
-
-if ($("power")) {
-
-  $("power").textContent =
-    fmt(
-      snapshot.sp
-    );
-
-}
-
-
-if ($("auto")) {
-
-  $("auto").textContent =
-    fmt(
-      snapshot.spPerSecond
-    );
-
-}
-
-
-if ($("shield")) {
-
-  $("shield").textContent =
-    `LV ${snapshot.level}`;
-
-}
-
-
-if ($("days")) {
-
-  $("days").textContent =
-    `🧠 Дней без тупости: ${snapshot.days}`;
-
-}
-
-    window.LAGO_TAP_GAME
+  /*
+   * Legacy runtime no longer renders
+   * the application interface.
+   *
+   * Upgrade panel is the final
+   * temporary legacy UI dependency.
+   */
+  window.LAGO_TAP_GAME
     ?.renderUpgrades
     ?.();
 
