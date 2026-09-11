@@ -3,7 +3,7 @@
 
 
  const VERSION =
-  4;
+  5;
 
 
   const LAGO_CHARACTER =
@@ -1607,6 +1607,30 @@ function hide() {
     render
   );
 
+  document.addEventListener(
+  "lago:character-3d-ready",
+  () => {
+
+    const page =
+      document.getElementById(
+        "lagoCollection"
+      );
+
+
+    if (
+      page
+        ?.classList
+        .contains(
+          "active"
+        )
+    ) {
+
+      render();
+
+    }
+
+  }
+);
 
   document.addEventListener(
     "lago:character-unlocked",
