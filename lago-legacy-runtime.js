@@ -697,56 +697,9 @@ window.LAGO_LEGACY_RUNTIME =
      * UI is owned by LAGO_UI.
      */
 
-    toast(
-      message
-    ) {
+   
 
-      return window.LAGO_UI
-        ?.toast
-        ?.(
-          message
-        );
-
-    },
-
-
-    setSpeech(
-      text
-    ) {
-
-      return window.LAGO_UI
-        ?.setSpeech
-        ?.(
-          text
-        );
-
-    },
-
-
-    animateSnail() {
-
-      return window.LAGO_UI
-        ?.animateTap
-        ?.();
-
-    },
-
-
-    spawnFloat(
-      text,
-      event
-    ) {
-
-      return window.LAGO_UI
-        ?.spawnFloat
-        ?.(
-          text,
-          event
-        );
-
-    },
-
-
+   
     /*
      * Still legacy-owned for now.
      */
@@ -761,28 +714,6 @@ window.LAGO_LEGACY_RUNTIME =
     gameOver() {
 
       gameOver();
-
-    },
-
-
-    showPanel(
-      id
-    ) {
-
-      return window.LAGO_UI
-        ?.openPanel
-        ?.(
-          id
-        );
-
-    },
-
-
-    openCreator() {
-
-      return window.LAGO_CREATOR
-        ?.open
-        ?.();
 
     },
 
