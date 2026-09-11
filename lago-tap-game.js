@@ -18,19 +18,25 @@
 
 
   const runtime =
-    window.LAGO_LEGACY_RUNTIME;
+  window.LAGO_LEGACY_RUNTIME;
 
 
-  if (!runtime) {
+const ui =
+  window.LAGO_UI;
 
-    console.error(
-      "[TAP LAGO] Legacy runtime adapter is missing."
-    );
 
-    return;
+if (
+  !runtime ||
+  !ui
+) {
 
-  }
+  console.error(
+    "[TAP LAGO] Required game runtime/UI is missing."
+  );
 
+  return;
+
+}
 
   const PHRASES =
     runtime.getPhrases();
@@ -136,46 +142,6 @@
    * =========================================================
    */
 
-  function memeClickBonus() {
-
-    const current =
-      state();
-
-
-    return (
-      current.memes || []
-    ).reduce(
-      (sum, meme) =>
-        sum +
-        (
-          meme.clickBonus ||
-          0
-        ),
-      0
-    );
-
-  }
-
-
-  function memeAutoBonus() {
-
-    const current =
-      state();
-
-
-    return (
-      current.memes || []
-    ).reduce(
-      (sum, meme) =>
-        sum +
-        (
-          meme.autoBonus ||
-          0
-        ),
-      0
-    );
-
-  }
 
 
   function randomPhrase() {
@@ -276,9 +242,9 @@
     );
 
 
-    runtime.setSpeech(
-      "Lago is out of energy..."
-    );
+    ui.setSpeech(
+  "Lago is out of energy..."
+);
 
 
     return getState();
@@ -329,12 +295,12 @@ account.addSP(
   );
 
 
-  runtime.animateSnail();
+ui.animateTap();
 
 
-  runtime.setSpeech(
-    randomPhrase()
-  );
+  ui.setSpeech(
+  randomPhrase()
+);
 
 
   if (
@@ -361,15 +327,15 @@ account.addSP(
    * successful tap → SP
    * every 5th tap → -1 DUM
    */
-  runtime.spawnFloat(
-    dumResult.spent > 0
+ ui.spawnFloat(
+  dumResult.spent > 0
 
-      ? `+${gain} SP · -1 DUM`
+    ? `+${gain} SP · -1 DUM`
 
-      : `+${gain} SP`,
+    : `+${gain} SP`,
 
-    event
-  );
+  event
+);
 
 
   runtime.checkAchievements();
@@ -1109,17 +1075,16 @@ function renderUpgrades() {
     );
 
 }
-  function openUpgrades() {
+ function openUpgrades() {
 
-    renderUpgrades();
+  renderUpgrades();
 
 
-    runtime.showPanel(
-      "upgradePanel"
-    );
+  ui.openPanel(
+    "upgradePanel"
+  );
 
-  }
-
+}
 
   /*
    * =========================================================
@@ -1223,7 +1188,7 @@ function renderUpgrades() {
 
 
     version:
-      3,
+  4,
 
 
     tap,
@@ -1252,9 +1217,11 @@ function renderUpgrades() {
 
     openCreator() {
 
-      runtime.openCreator();
+  return window.LAGO_CREATOR
+    ?.open
+    ?.();
 
-    },
+},
 
 
     share() {
