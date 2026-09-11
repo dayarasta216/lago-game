@@ -10,7 +10,7 @@ import {
 
 
  const VERSION =
-  3;
+  4;
 
   const BASE_LAGO_MODEL =
     "./assets/model/lago.glb?v=4";
@@ -1606,6 +1606,14 @@ window.LAGO_CHARACTER_3D =
     version:
       VERSION,
 
+    enable,
+
+    disable,
+
+    enabled:
+      () =>
+        enabled,
+
     apply,
 
     mountPreview,
@@ -1613,3 +1621,32 @@ window.LAGO_CHARACTER_3D =
     destroyPreview
 
   });
+
+
+/*
+ * Initial canonical 3D render.
+ *
+ * lago-modern.js has already created
+ * #modernSnailArea before this module runs.
+ */
+apply();
+
+
+/*
+ * Collection may already exist before
+ * this ES module finishes loading.
+ */
+document.dispatchEvent(
+  new CustomEvent(
+    "lago:character-3d-ready",
+    {
+      detail: {
+        version:
+          VERSION
+      }
+    }
+  )
+);
+
+
+})();
