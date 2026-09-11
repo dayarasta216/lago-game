@@ -377,6 +377,10 @@
 
 
 .lago-shop-character-stage {
+
+   position:
+  relative;
+   
   height:
     190px;
 
@@ -429,6 +433,37 @@
       0 9px 12px
       rgba(0,0,0,.22)
     );
+}
+
+.lago-shop-glb-preview {
+
+  position:
+    relative;
+
+  width:
+    80%;
+
+  height:
+    90%;
+
+  overflow:
+    visible;
+
+}
+
+
+.lago-shop-glb-preview
+.lago-glb-preview-canvas {
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  display:
+    block;
+
 }
 
 /* =========================================================
