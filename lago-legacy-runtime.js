@@ -603,13 +603,12 @@ if ($("days")) {
 
 }
 
-  window.LAGO_TAP_GAME
-  ?.renderUpgrades
-  ?.();
+    window.LAGO_TAP_GAME
+    ?.renderUpgrades
+    ?.();
 
+}
 
-
-$("createBtn").onclick=()=>openPanel("createPanel");
 /*
  * =========================================================
  * TAP LAGO PUBLIC GAME API
@@ -866,20 +865,6 @@ getPhrases() {
 
 
  
-function renderMemes(){
-  if(!state.memes.length){
-    $("memeList").innerHTML=`<div class="hint" style="grid-column:1/-1;padding:20px">Пока пусто. Создай первый абсолютно бесполезный мем.</div>`;
-    return;
-  }
-  $("memeList").innerHTML=state.memes.map(m=>`
-    <div class="meme">
-      <img src="${m.data}" alt="">
-      <b>${escapeHtml(m.name)}</b>
-      <div class="badge">⚡ +${m.clickBonus}${m.autoBonus?` · 🤖 +${m.autoBonus}/с`:""}</div>
-    </div>`).join("");
-}
-
-$("memesBtn").onclick=()=>openPanel("memesPanel");
 
 /* ---------- Достижения ---------- */
 const achievements=[
@@ -934,7 +919,6 @@ $("restartBtn").onclick=()=>{
 };
 
 
-$("onchainScore").onclick=writeScoreOnChain;
 
 /* ---------- Поделиться ---------- */
 $("shareBtn").onclick=telegramShare;
