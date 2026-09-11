@@ -23,25 +23,10 @@ import {
     ]);
 
 
-  const url =
-    new URL(
-      window.location.href
-    );
-
-
-  /*
-   * GLB is now the canonical renderer.
-   *
-   * ?lago3d=0 is only a temporary
-   * development / emergency fallback.
-   *
-   * Normal game URL requires no parameter.
-   */
-  let enabled =
-    url.searchParams.get(
-      "lago3d"
-    ) !== "0";
-
+/*
+ * GLB is the canonical character renderer.
+ * There are no public URL switches.
+ */
 
   let canvas =
     null;
@@ -999,13 +984,11 @@ import {
          */
 
         if (
-          nonce !==
-          loadNonce ||
-          requestedModelUrl !==
-          modelUrl ||
-          !enabled
-        ) {
-
+  nonce !==
+  loadNonce ||
+  requestedModelUrl !==
+  modelUrl
+) {
           return;
 
         }
@@ -1530,38 +1513,6 @@ function mountPreview(
     bindHost();
 
 
-    /*
-     * Development fallback:
-     * ?lago3d=0
-     */
-
-    if (
-      !enabled
-    ) {
-
-      requestedModelUrl =
-        "";
-
-
-      loadNonce++;
-
-
-      clearModel();
-
-
-      show3D(
-        false
-      );
-
-
-      show2D(
-        true
-      );
-
-
-      return false;
-
-    }
 
 
     const target =
@@ -1612,32 +1563,6 @@ function mountPreview(
   }
 
 
-  function enable() {
-
-    enabled =
-      true;
-
-
-    apply();
-
-
-    return true;
-
-  }
-
-
-  function disable() {
-
-    enabled =
-      false;
-
-
-    apply();
-
-
-    return true;
-
-  }
 
 
   /*
@@ -1675,20 +1600,11 @@ function mountPreview(
     }
   );
 
-
-  window.LAGO_CHARACTER_3D =
+window.LAGO_CHARACTER_3D =
   Object.freeze({
 
     version:
       VERSION,
-
-    enable,
-
-    disable,
-
-    enabled:
-      () =>
-        enabled,
 
     apply,
 
