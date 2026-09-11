@@ -284,7 +284,7 @@
           "./assets/characters/comic-farid(5).svg?v=8",
 
         model3d:
-          "./assets/model/comic-fennec.glb?v=3",
+          "./assets/model/comic-fennec.glb
 
         shop:
           Object.freeze({
@@ -337,7 +337,7 @@
           "comic",
 
         model3d:
-          "./assets/model/comic-goose.glb?v=2",
+          "./assets/model/comic-goose.glb
 
         shop:
           Object.freeze({
