@@ -10,8 +10,8 @@ import {
 
 
  const VERSION =
-  4;
-
+  5;
+  
   const BASE_LAGO_MODEL =
     "./assets/model/lago.glb?v=4";
 
@@ -1605,14 +1605,6 @@ window.LAGO_CHARACTER_3D =
 
     version:
       VERSION,
-
-    enable,
-
-    disable,
-
-    enabled:
-      () =>
-        enabled,
 
     apply,
 
