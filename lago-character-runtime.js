@@ -2,8 +2,8 @@
   "use strict";
 
 
-  const VERSION =
-    2;
+const VERSION =
+  3;
 
 
   const DEFAULT_ASSET =
