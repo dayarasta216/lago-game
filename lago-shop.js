@@ -1020,7 +1020,7 @@ return true;
         "
       >
 
-        <div
+       <div
   class="lago-shop-character-stage"
 >
 
@@ -1029,12 +1029,11 @@ return true;
   )}
 
 </div>
-        </div>
 
 
-        <div
-          class="lago-shop-character-info"
-        >
+<div
+  class="lago-shop-character-info"
+>
 
           <div
             class="lago-shop-character-top"
