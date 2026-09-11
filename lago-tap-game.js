@@ -133,17 +133,6 @@ if (
   }
 
 
-  /*
-   * =========================================================
-   * MEME BONUSES
-   *
-   * Temporary compatibility with
-   * the old meme system.
-   * =========================================================
-   */
-
-
-
   function randomPhrase() {
 
     if (!PHRASES.length) {
@@ -196,7 +185,7 @@ if (
     );
 
 
-    runtime.toast(
+    ui.toast(
       "ACCOUNT CORE ERROR"
     );
 
