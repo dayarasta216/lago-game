@@ -220,7 +220,7 @@ if (
       true
   ) {
 
-    runtime.toast(
+    ui.toast(
       "DUM ENERGY 0 😭 WAIT FOR REGEN"
     );
 
@@ -357,7 +357,7 @@ ui.animateTap();
    * in R0.5D Heist Foundation.
    */
 
-  runtime.toast(
+  ui.toast(
     "HEIST ЕЩЁ НЕ ПОДКЛЮЧЁН 🐌"
   );
 
@@ -606,7 +606,7 @@ function buyUpgrade(
       "[TAP LAGO] AUTO upgrade API is missing."
     );
 
-    runtime.toast(
+    ui.toast(
       "ACCOUNT CORE ERROR"
     );
 
@@ -623,7 +623,7 @@ function buyUpgrade(
     result?.ok === true
   ) {
 
-    runtime.toast(
+    ui.toast(
       `AUTO LEVEL ${result.level} · ${result.spPerSecond} SP/S`
     );
 
@@ -646,7 +646,7 @@ function buyUpgrade(
     "max"
   ) {
 
-    runtime.toast(
+    ui.toast(
       "AUTO MAX LEVEL"
     );
 
@@ -660,7 +660,7 @@ function buyUpgrade(
     "progress"
   ) {
 
-    runtime.toast(
+    ui.toast(
       `NEED LEVEL ${result.requiredLevel} · ${formatNumber(
         result.requiredLifetimeSp
       )} LIFETIME SP`
@@ -676,7 +676,7 @@ function buyUpgrade(
     "sp"
   ) {
 
-    runtime.toast(
+    ui.toast(
       `NEED ${formatNumber(
         result.spCost
       )} SP`
@@ -692,7 +692,7 @@ function buyUpgrade(
     "dum"
   ) {
 
-    runtime.toast(
+    ui.toast(
       `NEED ${result.dumCost} DUM`
     );
 
@@ -701,7 +701,7 @@ function buyUpgrade(
   }
 
 
-  runtime.toast(
+  ui.toast(
     "AUTO UPGRADE FAILED"
   );
 
@@ -734,7 +734,7 @@ async function buyAutoWithLago() {
       "function"
   ) {
 
-    runtime.toast(
+    ui.toast(
       "$LAGO PAYMENT SYSTEM NOT READY"
     );
 
@@ -753,7 +753,7 @@ async function buyAutoWithLago() {
     "max"
   ) {
 
-    runtime.toast(
+    ui.toast(
       "AUTO MAX LEVEL"
     );
 
@@ -769,7 +769,7 @@ async function buyAutoWithLago() {
       "payment_backend_not_connected"
   ) {
 
-    runtime.toast(
+    ui.toast(
       "$LAGO + PHANTOM SECURE CHECKOUT COMING IN R0.5E"
     );
 
@@ -789,7 +789,7 @@ async function buyAutoWithLago() {
    * There is deliberately no
    * successful client-side unlock.
    */
-  runtime.toast(
+  ui.toast(
     "$LAGO PURCHASE NOT VERIFIED"
   );
 
