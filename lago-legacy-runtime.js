@@ -628,235 +628,172 @@ if ($("days")) {
  * New modules must NOT access legacy DOM directly.
  * =========================================================
  */
+window.LAGO_LEGACY_RUNTIME =
+  Object.freeze({
 
-window.LAGO_LEGACY_RUNTIME = {
+    /*
+     * Temporary state bridge.
+     * Removed when Tap Lago gets its
+     * own canonical game state.
+     */
 
-  /*
-   * Temporary mutable state access.
-   *
-   * This exists only while the old
-   * runtime is being dismantled.
-   *
-   * Later state moves into the
-   * unified Account / Game Core.
-   */
+    getState() {
 
-getState() {
+      return state;
 
-  return state;
-
-},
+    },
 
 
-/*
- * Canonical Tap snapshot adapter.
- *
- * lago-tap-game.js calls this
- * through LAGO_LEGACY_RUNTIME.
- */
-getTapState() {
+    getTapState() {
 
-  return getTapGameSnapshot();
+      return getTapGameSnapshot();
 
-},
+    },
 
 
-getPhrases() {
-    return [
-      ...PHRASES
-    ];
+    getPhrases() {
 
-  },
+      return [
+        ...PHRASES
+      ];
 
-
-  /*
-   * Shared persistence.
-   */
-
-  save() {
-
-    save();
-
-  },
+    },
 
 
-  /*
-   * Temporary legacy renderer.
-   */
+    save() {
 
-  render() {
+      save();
 
-    render();
-
-  },
+    },
 
 
-  /*
-   * Feedback helpers.
-   */
+    render() {
 
- toast(message) {
+      render();
 
-  window.LAGO_UI
-    ?.toast
-    ?.(
-      message
-    );
+    },
 
-},
 
-  beep(
-    frequency,
-    duration,
-    type
-  ) {
+    /*
+     * Temporary audio bridge.
+     */
 
     beep(
       frequency,
       duration,
       type
-    );
+    ) {
 
-  },
+      beep(
+        frequency,
+        duration,
+        type
+      );
 
-
- setSpeech(text) {
-
-  window.LAGO_UI
-    ?.setSpeech
-    ?.(
-      text
-    );
-
-},
+    },
 
 
- animateSnail() {
+    /*
+     * UI is owned by LAGO_UI.
+     */
 
-  window.LAGO_UI
-    ?.animateTap
-    ?.();
+    toast(
+      message
+    ) {
 
-},
-
-  const host =
-    snail.closest(
-      ".lago-modern-snail"
-    );
-
-
-  /*
-   * Character movement.
-   */
-
-  snail.classList.remove(
-    "bonk"
-  );
-
-
-  void snail.offsetWidth;
-
-
-  snail.classList.add(
-    "bonk"
-  );
-
-
-  /*
-   * Glow pulse belongs to
-   * the stationary container,
-   * not to the moving character.
-   */
-
-  if (host) {
-
-    host.classList.remove(
-      "tap-glow"
-    );
-
-
-    void host.offsetWidth;
-
-
-    host.classList.add(
-      "tap-glow"
-    );
-
-
-    window.setTimeout(
-      () => {
-
-        host.classList.remove(
-          "tap-glow"
+      return window.LAGO_UI
+        ?.toast
+        ?.(
+          message
         );
 
-      },
-      260
-    );
+    },
 
-  }
 
-},
+    setSpeech(
+      text
+    ) {
 
-spawnFloat(
-  text,
-  event
-) {
+      return window.LAGO_UI
+        ?.setSpeech
+        ?.(
+          text
+        );
 
-  window.LAGO_UI
-    ?.spawnFloat
-    ?.(
+    },
+
+
+    animateSnail() {
+
+      return window.LAGO_UI
+        ?.animateTap
+        ?.();
+
+    },
+
+
+    spawnFloat(
       text,
       event
-    );
+    ) {
 
-},
+      return window.LAGO_UI
+        ?.spawnFloat
+        ?.(
+          text,
+          event
+        );
 
-  checkAchievements() {
-
-    checkAchievements();
-
-  },
-
-
-  gameOver() {
-
-    gameOver();
-
-  },
+    },
 
 
-  /*
-   * Temporary legacy panels.
-   */
+    /*
+     * Still legacy-owned for now.
+     */
 
- showPanel(id) {
+    checkAchievements() {
 
-  window.LAGO_UI
-    ?.openPanel
-    ?.(
+      checkAchievements();
+
+    },
+
+
+    gameOver() {
+
+      gameOver();
+
+    },
+
+
+    showPanel(
       id
-    );
+    ) {
 
-},
+      return window.LAGO_UI
+        ?.openPanel
+        ?.(
+          id
+        );
 
- openCreator() {
-
-  window.LAGO_CREATOR
-    ?.open
-    ?.();
-
-},
-
-  share() {
-
-    telegramShare();
-
-  }
-
-};
+    },
 
 
+    openCreator() {
+
+      return window.LAGO_CREATOR
+        ?.open
+        ?.();
+
+    },
+
+
+    share() {
+
+      telegramShare();
+
+    }
+
+  });
  
 
 /* ---------- Достижения ---------- */
@@ -990,33 +927,35 @@ $("shareBtn").onclick=telegramShare;
 /* ---------- Туториал ---------- */
 
 
-/* ---------- Случайные вспышки/кринж ---------- */
+/* ---------- Случайные фразы ---------- */
+
 setInterval(
   () => {
 
     if (
-      Math.random() <
+      Math.random() >=
       .55
     ) {
 
-      const phrase =
-        PHRASES[
-          Math.floor(
-            Math.random() *
-            PHRASES.length
-          )
-        ];
-
-
-window.LAGO_UI
-  ?.setSpeech
-  ?.(
-    phrase
-  );
-       
-      }
+      return;
 
     }
+
+
+    const phrase =
+      PHRASES[
+        Math.floor(
+          Math.random() *
+          PHRASES.length
+        )
+      ];
+
+
+    window.LAGO_UI
+      ?.setSpeech
+      ?.(
+        phrase
+      );
 
   },
   2500
