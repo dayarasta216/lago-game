@@ -2,8 +2,8 @@
   "use strict";
 
 
-  const VERSION =
-    1;
+ const VERSION =
+  2;
 
 
   /*
@@ -160,6 +160,183 @@
 
   }
 
+  function createCharacterVisual(
+  character
+) {
+
+  const model3d =
+    typeof character
+      ?.model3d ===
+      "string"
+      ? character.model3d.trim()
+      : "";
+
+
+  /*
+   * Canonical Shop visual = GLB.
+   */
+  if (
+    model3d
+  ) {
+
+    return `
+      <div
+        class="
+          lago-shop-character-image
+          lago-shop-glb-preview
+        "
+        data-lago-glb-preview="${escapeHTML(
+          model3d
+        )}"
+        role="img"
+        aria-label="${escapeHTML(
+          character.name
+        )}"
+      ></div>
+    `;
+
+  }
+
+
+  /*
+   * Temporary fallback only.
+   */
+  const asset =
+    typeof character
+      ?.asset ===
+      "string"
+      ? character.asset.trim()
+      : "";
+
+
+  if (
+    !asset
+  ) {
+
+    return `
+      <div
+        class="
+          lago-shop-character-image
+          lago-shop-character-empty
+        "
+        role="img"
+        aria-label="${escapeHTML(
+          character.name
+        )}"
+      ></div>
+    `;
+
+  }
+
+
+  return `
+    <img
+      class="lago-shop-character-image"
+      src="${escapeHTML(
+        asset
+      )}"
+      alt="${escapeHTML(
+        character.name
+      )}"
+      draggable="false"
+    >
+  `;
+
+}
+
+
+function destroyPreviewHosts(
+  root
+) {
+
+  if (
+    !root
+  ) {
+
+    return;
+
+  }
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        window.LAGO_CHARACTER_3D
+          ?.destroyPreview
+          ?.(
+            host
+          );
+
+      }
+    );
+
+}
+
+
+function mountPreviewHosts(
+  root
+) {
+
+  const page =
+    document.getElementById(
+      "lagoShop"
+    );
+
+
+  /*
+   * Never spend WebGL contexts
+   * while Shop is hidden.
+   */
+  if (
+    !root ||
+    !page
+      ?.classList
+      .contains(
+        "active"
+      )
+  ) {
+
+    return;
+
+  }
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        const model3d =
+          host.dataset
+            .lagoGlbPreview;
+
+
+        if (
+          !model3d
+        ) {
+
+          return;
+
+        }
+
+
+        window.LAGO_CHARACTER_3D
+          ?.mountPreview
+          ?.(
+            host,
+            model3d
+          );
+
+      }
+    );
+
+}
 
 
   /*
@@ -844,20 +1021,14 @@ return true;
       >
 
         <div
-          class="lago-shop-character-stage"
-        >
+  class="lago-shop-character-stage"
+>
 
-          <img
-            class="lago-shop-character-image"
-            src="${escapeHTML(
-              character.asset
-            )}"
-            alt="${escapeHTML(
-              character.name
-            )}"
-            draggable="false"
-          >
+  ${createCharacterVisual(
+    character
+  )}
 
+</div>
         </div>
 
 
@@ -996,6 +1167,9 @@ return true;
     if (!grid)
       return;
 
+    destroyPreviewHosts(
+  grid
+);
 
     const catalog =
       characters();
@@ -1053,7 +1227,9 @@ return true;
 
   }
 
-
+mountPreviewHosts(
+  grid
+);
 
   /*
    * =========================================================
@@ -1061,36 +1237,56 @@ return true;
    * =========================================================
    */
 
+function show() {
 
-  function show() {
-
-    create();
-
-    render();
+  create();
 
 
-    document
-      .getElementById(
-        "lagoShop"
-      )
-      ?.classList.add(
-        "active"
-      );
+  /*
+   * Show page first so WebGL
+   * receives real dimensions.
+   */
+  document
+    .getElementById(
+      "lagoShop"
+    )
+    ?.classList.add(
+      "active"
+    );
 
-  }
+
+  render();
+
+}
 
 
   function hide() {
 
-    document
-      .getElementById(
-        "lagoShop"
-      )
-      ?.classList.remove(
-        "active"
-      );
+  const page =
+    document.getElementById(
+      "lagoShop"
+    );
+
+
+  if (
+    !page
+  ) {
+
+    return;
 
   }
+
+
+  destroyPreviewHosts(
+    page
+  );
+
+
+  page.classList.remove(
+    "active"
+  );
+
+}
 
 
 
@@ -1118,6 +1314,30 @@ return true;
     render
   );
 
+  document.addEventListener(
+  "lago:character-3d-ready",
+  () => {
+
+    const page =
+      document.getElementById(
+        "lagoShop"
+      );
+
+
+    if (
+      page
+        ?.classList
+        .contains(
+          "active"
+        )
+    ) {
+
+      render();
+
+    }
+
+  }
+);
 
   document.addEventListener(
     "keydown",
