@@ -1088,73 +1088,7 @@ function renderUpgrades() {
   }
 
 
-  /*
-   * =========================================================
-   * LEGACY CONTROL COMPATIBILITY
-   * =========================================================
-   */
-
-  function bindLegacyControls() {
-
-    document
-      .getElementById(
-        "clickBtn"
-      )
-      ?.addEventListener(
-        "click",
-        event => {
-
-          tap(event);
-
-        }
-      );
-
-
-    document
-      .getElementById(
-        "snail"
-      )
-      ?.addEventListener(
-        "pointerdown",
-        event => {
-
-          event.preventDefault();
-
-          tap(event);
-
-        }
-      );
-
-
-    const stealButton =
-      document.getElementById(
-        "stealBtn"
-      );
-
-
-    if (stealButton) {
-
-      stealButton.onclick =
-        steal;
-
-    }
-
-
-    const upgradeButton =
-      document.getElementById(
-        "upgradeBtn"
-      );
-
-
-    if (upgradeButton) {
-
-      upgradeButton.onclick =
-        openUpgrades;
-
-    }
-
-  }
-
+  
 
   /*
    * =========================================================
@@ -1229,8 +1163,6 @@ function renderUpgrades() {
   /*
    * Initialize Mini-Game #001.
    */
-
-  bindLegacyControls();
 
 
   startAuto();
