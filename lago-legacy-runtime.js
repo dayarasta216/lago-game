@@ -29,7 +29,12 @@ const defaultState = {
   totalClicks: 0,
   steals: 0,
   memesCreated: 0,
-  upgrades: {click:0, auto:0, shield:0},
+  upgrades: {
+  click: 0,
+  auto: 0,
+  shield: 0,
+  doubleClick: 0
+},
   memes: [],
   achievements: {},
   telegramUser: null,
@@ -800,13 +805,15 @@ $("restartBtn").onclick =
       0;
 
     state.upgrades = {
-      click:
-        0,
-      auto:
-        0,
-      shield:
-        0
-    };
+  click:
+    0,
+  auto:
+    0,
+  shield:
+    0,
+  doubleClick:
+    0
+};
 
     state.lastDay =
       new Date()
