@@ -623,18 +623,23 @@ if (
  * 0 = обычный reward
  * 1 = reward ×2
  */
-const doubleClickMultiplier =
+const doubleClickUnlocked =
   Number(
     current
       ?.upgrades
       ?.doubleClick
-  ) >= 1
+  ) >= 1;
+
+
+const doubleClickMultiplier =
+  (
+    doubleClickUnlocked &&
+    !tempo.antiBot
+  )
 
     ? 2
 
     : 1;
-
-
 /*
  * Финальный SP за один
  * физический tap.
