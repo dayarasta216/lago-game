@@ -122,9 +122,6 @@ const tapIntervals =
   [];
 
 
-const DOUBLE_CLICK_COST =
-  10000;
-
   function state() {
 
     return runtime.getState();
@@ -652,14 +649,30 @@ if (
  * 0 = обычный reward
  * 1 = reward ×2
  */
+const doubleClickState =
+  window.LAGO_ACCOUNT
+    ?.getDoubleClickUpgradeState
+    ?.() || {
+
+      unlocked:
+        false,
+
+      multiplier:
+        1
+
+    };
+
+
 const doubleClickUnlocked =
-  Number(
-    current
-      ?.upgrades
-      ?.doubleClick
-  ) >= 1;
+  doubleClickState
+    .unlocked ===
+    true;
 
 
+/*
+ * Anti-bot никогда не получает
+ * DOUBLE CLICK multiplier.
+ */
 const doubleClickMultiplier =
   (
     doubleClickUnlocked &&
@@ -1074,16 +1087,74 @@ function startAuto() {
 
 function buyDoubleClick() {
 
-  const current =
-    state();
+  const account =
+    window.LAGO_ACCOUNT;
 
 
   if (
-    Number(
-      current
-        ?.upgrades
-        ?.doubleClick
-    ) >= 1
+    !account ||
+    typeof account
+      .unlockDoubleClick !==
+      "function"
+  ) {
+
+    ui.toast(
+      "ACCOUNT CORE ERROR"
+    );
+
+    return false;
+
+  }
+
+
+  const result =
+    account
+      .unlockDoubleClick();
+
+
+  /*
+   * Успешная покупка.
+   */
+  if (
+    result?.ok ===
+    true
+  ) {
+
+    ui.toast(
+      "DOUBLE CLICK UNLOCKED · TAP ×2"
+    );
+
+
+    runtime.beep(
+      880,
+      .08,
+      "sine"
+    );
+
+
+    runtime.beep(
+      1320,
+      .10,
+      "sine"
+    );
+
+
+    renderUpgrades();
+
+    publishState();
+
+
+    return true;
+
+  }
+
+
+  /*
+   * Уже куплен.
+   */
+  if (
+    result?.reason ===
+    "owned"
   ) {
 
     ui.toast(
@@ -1095,20 +1166,18 @@ function buyDoubleClick() {
   }
 
 
-  const account =
-    window.LAGO_ACCOUNT;
-
-
+  /*
+   * Не хватает SP.
+   */
   if (
-    !account
-      ?.canSpendSP
-      ?.(
-        DOUBLE_CLICK_COST
-      )
+    result?.reason ===
+    "sp"
   ) {
 
     ui.toast(
-      `NEED ${DOUBLE_CLICK_COST.toLocaleString(
+      `NEED ${Number(
+        result.spCost || 0
+      ).toLocaleString(
         "en-US"
       )} SP`
     );
@@ -1118,49 +1187,12 @@ function buyDoubleClick() {
   }
 
 
-  const spent =
-    account
-      ?.spendSP
-      ?.(
-        DOUBLE_CLICK_COST,
-        {
-          gameId:
-            "tap-lago-double-click"
-        }
-      );
-
-
-  if (
-    spent !== true
-  ) {
-
-    ui.toast(
-      "DOUBLE CLICK PURCHASE FAILED"
-    );
-
-    return false;
-
-  }
-
-
-  current.upgrades.doubleClick =
-    1;
-
-
-  runtime.save();
-
-
   ui.toast(
-    "DOUBLE CLICK UNLOCKED · TAP ×2"
+    "DOUBLE CLICK PURCHASE FAILED"
   );
 
 
-  renderUpgrades();
-
-  publishState();
-
-
-  return true;
+  return false;
 
 }
   
@@ -1392,16 +1424,36 @@ function renderUpgrades() {
     );
 
 
-  if (!list) const current =
-  state();
+ const doubleState =
+  window.LAGO_ACCOUNT
+    ?.getDoubleClickUpgradeState
+    ?.() || {
+
+      unlocked:
+        false,
+
+      multiplier:
+        1,
+
+      spCost:
+        0
+
+    };
 
 
 const doubleUnlocked =
-  Number(
-    current
-      ?.upgrades
-      ?.doubleClick
-  ) >= 1;
+  doubleState
+    .unlocked ===
+    true;
+
+
+const doubleCost =
+  Math.max(
+    0,
+    Number(
+      doubleState.spCost
+    ) || 0
+  );
 
 
 const doubleHTML =
@@ -1418,10 +1470,12 @@ const doubleHTML =
 
 
       <div
-        class="desc"
-      >
-        EACH PHYSICAL TAP EARNS ×2 SP
-      </div>
+  class="desc"
+>
+  HUMAN TAP REWARD ×2
+  <br>
+  FAST LIMIT DOES NOT GET ×2
+</div>
 
 
       ${
@@ -1441,9 +1495,9 @@ const doubleHTML =
               data-double-click
               type="button"
             >
-              UNLOCK · ${DOUBLE_CLICK_COST.toLocaleString(
-                "en-US"
-              )} SP
+             UNLOCK · ${doubleCost.toLocaleString(
+  "en-US"
+)} SP
             </button>
           `
       }
