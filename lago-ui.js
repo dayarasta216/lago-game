@@ -443,7 +443,8 @@ function animateTap() {
 
 function spawnFloat(
   text,
-  event = null
+  event = null,
+  feedback = null
 ) {
 
   const stage =
@@ -476,7 +477,10 @@ function spawnFloat(
 
 
   /*
-   * Prefer exact tap location.
+   * Если есть координата
+   * настоящего тапа —
+   * показываем feedback
+   * именно возле пальца.
    */
   if (
     Number.isFinite(
@@ -506,20 +510,6 @@ function spawnFloat(
     "lago-tap-float";
 
 
-  element.textContent =
-    String(
-      text || ""
-    );
-
-
-  /*
-   * Attach to BODY instead of character stage.
-   *
-   * This prevents:
-   * - clipping by overflow
-   * - GLB canvas covering the number
-   * - Collection/character dimensions affecting it
-   */
   element.style.left =
     `${x}px`;
 
@@ -527,6 +517,152 @@ function spawnFloat(
     `${y}px`;
 
 
+  /*
+   * Сохраняем strength в DOM,
+   * чтобы CSS мог немного
+   * усиливать MAX taps.
+   */
+  element.dataset.strength =
+    String(
+      Math.max(
+        1,
+        Math.min(
+          5,
+          Number(
+            feedback?.strength
+          ) || 1
+        )
+      )
+    );
+
+
+  /*
+   * Основное начисление.
+   */
+  const main =
+    document.createElement(
+      "div"
+    );
+
+
+  main.className =
+    "lago-tap-float-main";
+
+
+  main.textContent =
+    String(
+      text || ""
+    );
+
+
+  element.appendChild(
+    main
+  );
+
+
+  /*
+   * Вторая строка:
+   *
+   * MAX · ×1.85 · DOUBLE ×2
+   */
+  const metaParts =
+    [];
+
+
+  if (
+    feedback
+      ?.strengthLabel
+  ) {
+
+    metaParts.push(
+      feedback
+        .strengthLabel
+    );
+
+  }
+
+
+  if (
+    feedback
+      ?.tempoLabel
+  ) {
+
+    metaParts.push(
+      feedback
+        .tempoLabel
+    );
+
+  }
+
+
+  if (
+    feedback
+      ?.doubleClickLabel
+  ) {
+
+    metaParts.push(
+      feedback
+        .doubleClickLabel
+    );
+
+  }
+
+
+  /*
+   * Не пишем игроку BOT.
+   *
+   * При срабатывании ограничения
+   * просто показываем FAST LIMIT.
+   */
+  if (
+    feedback
+      ?.speedLimited
+  ) {
+
+    metaParts.length =
+      0;
+
+
+    metaParts.push(
+      "FAST LIMIT"
+    );
+
+  }
+
+
+  if (
+    metaParts.length > 0
+  ) {
+
+    const meta =
+      document.createElement(
+        "div"
+      );
+
+
+    meta.className =
+      "lago-tap-float-meta";
+
+
+    meta.textContent =
+      metaParts.join(
+        " · "
+      );
+
+
+    element.appendChild(
+      meta
+    );
+
+  }
+
+
+  /*
+   * BODY, а не GLB stage.
+   *
+   * Поэтому цифра не режется
+   * canvas / overflow.
+   */
   document.body.appendChild(
     element
   );
@@ -546,6 +682,9 @@ function spawnFloat(
   );
 
 
+  /*
+   * Emergency cleanup.
+   */
   setTimeout(
     () => {
 
@@ -554,5 +693,7 @@ function spawnFloat(
     },
     1200
   );
+
+}
 
 }
