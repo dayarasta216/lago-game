@@ -81,6 +81,9 @@ const HEIST_MIN_CHANCE =
 const HEIST_MAX_CHANCE =
   0.75;
 
+  const DOUBLE_CLICK_SP_COST =
+  10000;
+
 
 const defaults = {
 
@@ -98,7 +101,12 @@ const defaults = {
     clicks:
   0,
 
+tapUpgrades: {
 
+  doubleClick:
+    false
+
+},
 /*
  * =========================================================
  * R0.5 ACCOUNT MODEL
@@ -1882,7 +1890,152 @@ function getSPState() {
 
 }
 
+function getDoubleClickUpgradeState() {
 
+  const unlocked =
+    state
+      ?.tapUpgrades
+      ?.doubleClick ===
+      true;
+
+
+  return {
+
+    unlocked,
+
+    multiplier:
+      unlocked
+        ? 2
+        : 1,
+
+    spCost:
+      DOUBLE_CLICK_SP_COST
+
+  };
+
+}
+
+function unlockDoubleClick() {
+
+  const upgrade =
+    getDoubleClickUpgradeState();
+
+
+  /*
+   * Уже куплен.
+   */
+  if (
+    upgrade.unlocked
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "owned",
+
+      ...upgrade
+
+    };
+
+  }
+
+
+  const balance =
+    Math.max(
+      0,
+      roundSPAmount(
+        state
+          ?.sp
+          ?.balance
+      )
+    );
+
+
+  /*
+   * Не хватает SP.
+   */
+  if (
+    balance <
+    DOUBLE_CLICK_SP_COST
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "sp",
+
+      balance,
+
+      spCost:
+        DOUBLE_CLICK_SP_COST
+
+    };
+
+  }
+
+
+  /*
+   * Покупка производится одной
+   * account-транзакцией.
+   */
+  state.sp.balance =
+    roundSPAmount(
+      balance -
+      DOUBLE_CLICK_SP_COST
+    );
+
+
+  if (
+    !state.tapUpgrades ||
+    typeof state.tapUpgrades !==
+      "object"
+  ) {
+
+    state.tapUpgrades = {};
+
+  }
+
+
+  state.tapUpgrades.doubleClick =
+    true;
+
+
+  save();
+
+
+  /*
+   * Обновляем весь интерфейс аккаунта.
+   */
+  publishState?.();
+
+
+  return {
+
+    ok:
+      true,
+
+    unlocked:
+      true,
+
+    multiplier:
+      2,
+
+    spCost:
+      DOUBLE_CLICK_SP_COST,
+
+    balance:
+      state.sp.balance
+
+  };
+
+}
+  
 function canSpendSP(
   amount = 0
 ) {
@@ -4370,6 +4523,9 @@ getTapAutoUpgradeState,
 
 upgradeTapAuto,
 
+    getDoubleClickUpgradeState,
+
+unlockDoubleClick,
 /*
  * Lago Life
  */
