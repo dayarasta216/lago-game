@@ -33,7 +33,6 @@ const defaultState = {
   click: 0,
   auto: 0,
   shield: 0,
-  doubleClick: 0
 },
   memes: [],
   achievements: {},
