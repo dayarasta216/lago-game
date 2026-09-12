@@ -1,82 +1,304 @@
-
 "use strict";
 
 
 /* =========================================================
-   LAGO — вся игровая логика находится в одном HTML.
+   LAGO — LEGACY COMPATIBILITY RUNTIME
    ========================================================= */
 
-const tg = window.Telegram?.WebApp;
+const tg =
+  window.Telegram?.WebApp;
+
+
 if (tg) {
+
   tg.ready();
+
   tg.expand();
-  try { tg.setHeaderColor("#1a0a1a"); tg.setBackgroundColor("#1a0a1a"); } catch(e){}
+
+
+  try {
+
+    tg.setHeaderColor(
+      "#1a0a1a"
+    );
+
+    tg.setBackgroundColor(
+      "#1a0a1a"
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.warn(
+      "[LAGO TELEGRAM]",
+      error
+    );
+
+  }
+
 }
 
-const SAVE_KEY = "lago_brainrot_save_v1";
+
+const SAVE_KEY =
+  "lago_brainrot_save_v1";
+
+
 const PHRASES = [
-  "Я устааал...","Ты тупой?","Пук! 💨","Ой, всё!","Зачем?","Скучно...",
-  "Ещё!","Кто я?","Я улитка","Лаго тупит","Загружаюсь..."
+
+  "Я устааал...",
+
+  "Ты тупой?",
+
+  "Пук! 💨",
+
+  "Ой, всё!",
+
+  "Зачем?",
+
+  "Скучно...",
+
+  "Ещё!",
+
+  "Кто я?",
+
+  "Я улитка",
+
+  "Лаго тупит",
+
+  "Загружаюсь..."
+
 ];
 
+
 const defaultState = {
-  energy: 0,
-  power: 1,
-  auto: 0,
-  shield: 0,
-  days: 0,
-  lastDay: new Date().toDateString(),
-  totalClicks: 0,
-  steals: 0,
-  memesCreated: 0,
+
+  energy:
+    0,
+
+  power:
+    1,
+
+  auto:
+    0,
+
+  shield:
+    0,
+
+  days:
+    0,
+
+  lastDay:
+    new Date()
+      .toDateString(),
+
+  totalClicks:
+    0,
+
+  steals:
+    0,
+
+  memesCreated:
+    0,
+
   upgrades: {
-  click: 0,
-  auto: 0,
-  shield: 0,
-},
-  memes: [],
-  achievements: {},
-  telegramUser: null,
-  wallet: null,
- 
+
+    click:
+      0,
+
+    auto:
+      0,
+
+    shield:
+      0
+
+  },
+
+  memes:
+    [],
+
+  achievements:
+    {},
+
+  telegramUser:
+    null,
+
+  wallet:
+    null
+
 };
 
-let state = loadState();
-let audioCtx = null;
+
+let state =
+  loadState();
 
 
+let audioCtx =
+  null;
 
-/* ---------- Хранилище ---------- */
-function loadState(){
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
+
+
+function loadState() {
+
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!saved) return structuredClone(defaultState);
-    return deepMerge(structuredClone(defaultState), saved);
-  } catch(e){ return structuredClone(defaultState); }
-}
-function deepMerge(base, saved){
-  for(const k in saved){
-    if(saved[k] && typeof saved[k]==="object" && !Array.isArray(saved[k]) && base[k]) base[k]=deepMerge(base[k],saved[k]);
-    else base[k]=saved[k];
-  }
-  return base;
-}
-function save(){
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-}
-setInterval(save,5000);
 
-/* ---------- Telegram ---------- */
-function initTelegramUser(){
-  const u = tg?.initDataUnsafe?.user;
-  if(u){
-    state.telegramUser = {id:u.id, first_name:u.first_name||"", username:u.username||""};
-    // В реальном продакшене initData должен проверяться на сервере.
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          SAVE_KEY
+        )
+      );
+
+
+    if (
+      !saved
+    ) {
+
+      return structuredClone(
+        defaultState
+      );
+
+    }
+
+
+    return deepMerge(
+      structuredClone(
+        defaultState
+      ),
+      saved
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.warn(
+      "[LAGO LEGACY LOAD]",
+      error
+    );
+
+
+    return structuredClone(
+      defaultState
+    );
+
   }
+
 }
+
+
+function deepMerge(
+  base,
+  saved
+) {
+
+  for (
+    const key in saved
+  ) {
+
+    if (
+      saved[key] &&
+      typeof saved[key] ===
+        "object" &&
+      !Array.isArray(
+        saved[key]
+      ) &&
+      base[key]
+    ) {
+
+      base[key] =
+        deepMerge(
+          base[key],
+          saved[key]
+        );
+
+    } else {
+
+      base[key] =
+        saved[key];
+
+    }
+
+  }
+
+
+  return base;
+
+}
+
+
+function save() {
+
+  localStorage.setItem(
+    SAVE_KEY,
+    JSON.stringify(
+      state
+    )
+  );
+
+}
+
+
+setInterval(
+  save,
+  5000
+);
+
+
+/* =========================================================
+   TELEGRAM
+   ========================================================= */
+
+
+function initTelegramUser() {
+
+  const user =
+    tg
+      ?.initDataUnsafe
+      ?.user;
+
+
+  if (
+    !user
+  ) {
+
+    return;
+
+  }
+
+
+  state.telegramUser = {
+
+    id:
+      user.id,
+
+    first_name:
+      user.first_name ||
+      "",
+
+    username:
+      user.username ||
+      ""
+
+  };
+
+
+  /*
+   * Production Telegram initData
+   * verification belongs to backend.
+   */
+
+}
+
+
 initTelegramUser();
 
-function telegramShare(){
+
+function telegramShare() {
 
   const spState =
     window.LAGO_ACCOUNT
@@ -87,17 +309,16 @@ function telegramShare(){
   const sp =
     Math.max(
       0,
-      Math.floor(
-        Number(
-          spState.balance
-        ) || 0
-      )
+      Number(
+        spState.balance
+      ) || 0
     );
 
 
   const clicks =
     Math.max(
       0,
+
       Math.floor(
         Number(
           state.totalClicks
@@ -106,20 +327,44 @@ function telegramShare(){
     );
 
 
+  const formattedSP =
+    sp.toLocaleString(
+      "en-US",
+      {
+        maximumFractionDigits:
+          2
+      }
+    );
+
+
   const text =
-    `🐌 LAGO — ${sp} SP, ${clicks} кликов. Улитка всё ещё не поняла зачем.`;
+    `🐌 LAGO — ${formattedSP} SP, ${clicks} кликов. Улитка всё ещё не поняла зачем.`;
 
 
   const url =
     "https://t.me/share/url?url=https://t.me/&text=" +
-    encodeURIComponent(text);
+    encodeURIComponent(
+      text
+    );
 
 
-  if(tg?.openTelegramLink) {
+  if (
+    tg?.openTelegramLink
+  ) {
 
-    tg.openTelegramLink(url);
+    tg.openTelegramLink(
+      url
+    );
 
-  } else if(navigator.share) {
+
+    return;
+
+  }
+
+
+  if (
+    navigator.share
+  ) {
 
     navigator
       .share({
@@ -132,17 +377,24 @@ function telegramShare(){
         () => {}
       );
 
-  } else {
 
-    window.open(
-      url,
-      "_blank"
-    );
+    return;
 
   }
 
+
+  window.open(
+    url,
+    "_blank"
+  );
+
 }
-/* ---------- Звук ---------- */
+
+
+/* =========================================================
+   AUDIO
+   ========================================================= */
+
 
 function getAudioContext() {
 
@@ -151,14 +403,18 @@ function getAudioContext() {
     window.webkitAudioContext;
 
 
-  if (!AudioEngine) {
+  if (
+    !AudioEngine
+  ) {
 
     return null;
 
   }
 
 
-  if (!audioCtx) {
+  if (
+    !audioCtx
+  ) {
 
     audioCtx =
       new AudioEngine();
@@ -179,7 +435,9 @@ function unlockAudio() {
       getAudioContext();
 
 
-    if (!context) {
+    if (
+      !context
+    ) {
 
       return;
 
@@ -193,17 +451,15 @@ function unlockAudio() {
 
       context
         .resume()
-        .catch(() => {});
+        .catch(
+          () => {}
+        );
 
     }
 
 
     /*
      * iOS Safari audio unlock.
-     *
-     * A silent one-sample buffer
-     * is started directly from the
-     * user's gesture.
      */
 
     const buffer =
@@ -215,7 +471,8 @@ function unlockAudio() {
 
 
     const source =
-      context.createBufferSource();
+      context
+        .createBufferSource();
 
 
     const gain =
@@ -240,9 +497,13 @@ function unlockAudio() {
     );
 
 
-    source.start(0);
+    source.start(
+      0
+    );
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.warn(
       "[LAGO AUDIO UNLOCK]",
@@ -255,16 +516,19 @@ function unlockAudio() {
 
 
 /*
- * Safari/iOS requires audio context
- * activation from a real user gesture.
+ * Safari / iOS requires AudioContext
+ * activation from a real gesture.
  */
 
 document.addEventListener(
   "pointerdown",
   unlockAudio,
   {
-    capture: true,
-    passive: true
+    capture:
+      true,
+
+    passive:
+      true
   }
 );
 
@@ -273,8 +537,11 @@ document.addEventListener(
   "touchstart",
   unlockAudio,
   {
-    capture: true,
-    passive: true
+    capture:
+      true,
+
+    passive:
+      true
   }
 );
 
@@ -283,7 +550,8 @@ document.addEventListener(
   "keydown",
   unlockAudio,
   {
-    capture: true
+    capture:
+      true
   }
 );
 
@@ -300,72 +568,78 @@ function beep(
       getAudioContext();
 
 
-    if (!context) {
+    if (
+      !context
+    ) {
 
       return;
 
     }
 
 
-    const play = () => {
+    const play =
+      () => {
 
-      const now =
-        context.currentTime;
-
-
-      const oscillator =
-        context.createOscillator();
+        const now =
+          context.currentTime;
 
 
-      const gain =
-        context.createGain();
+        const oscillator =
+          context
+            .createOscillator();
 
 
-      oscillator.type =
-        type;
+        const gain =
+          context.createGain();
 
 
-      oscillator.frequency
-        .setValueAtTime(
-          freq,
+        oscillator.type =
+          type;
+
+
+        oscillator.frequency
+          .setValueAtTime(
+            freq,
+            now
+          );
+
+
+        gain.gain
+          .setValueAtTime(
+            .055,
+            now
+          );
+
+
+        gain.gain
+          .exponentialRampToValueAtTime(
+            .001,
+            now +
+            duration
+          );
+
+
+        oscillator.connect(
+          gain
+        );
+
+
+        gain.connect(
+          context.destination
+        );
+
+
+        oscillator.start(
           now
         );
 
 
-      gain.gain
-        .setValueAtTime(
-          .055,
-          now
+        oscillator.stop(
+          now +
+          duration
         );
 
-
-      gain.gain
-        .exponentialRampToValueAtTime(
-          .001,
-          now + duration
-        );
-
-
-      oscillator.connect(
-        gain
-      );
-
-
-      gain.connect(
-        context.destination
-      );
-
-
-      oscillator.start(
-        now
-      );
-
-
-      oscillator.stop(
-        now + duration
-      );
-
-    };
+      };
 
 
     if (
@@ -375,7 +649,9 @@ function beep(
 
       context
         .resume()
-        .then(play)
+        .then(
+          play
+        )
         .catch(
           error => {
 
@@ -395,7 +671,9 @@ function beep(
 
     play();
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.warn(
       "[LAGO AUDIO]",
@@ -406,10 +684,20 @@ function beep(
 
 }
 
-/* ---------- UI ---------- */
-const $ = id => document.getElementById(id);
 
-function getTapGameSnapshot(){
+/* =========================================================
+   LEGACY TAP STATE ADAPTER
+   ========================================================= */
+
+
+const $ =
+  id =>
+    document.getElementById(
+      id
+    );
+
+
+function getTapGameSnapshot() {
 
   const account =
     window.LAGO_ACCOUNT;
@@ -438,6 +726,7 @@ function getTapGameSnapshot(){
     days:
       Math.max(
         0,
+
         Math.floor(
           Number(
             state.days
@@ -448,6 +737,7 @@ function getTapGameSnapshot(){
     totalClicks:
       Math.max(
         0,
+
         Math.floor(
           Number(
             state.totalClicks
@@ -458,6 +748,7 @@ function getTapGameSnapshot(){
     steals:
       Math.max(
         0,
+
         Math.floor(
           Number(
             state.steals
@@ -468,6 +759,7 @@ function getTapGameSnapshot(){
     memesCreated:
       Math.max(
         0,
+
         Math.floor(
           Number(
             state.memesCreated
@@ -478,26 +770,23 @@ function getTapGameSnapshot(){
     sp:
       Math.max(
         0,
-        Math.floor(
-          Number(
-            spState.balance
-          ) || 0
-        )
+        Number(
+          spState.balance
+        ) || 0
       ),
 
     lifetimeSp:
       Math.max(
         0,
-        Math.floor(
-          Number(
-            spState.lifetimeEarned
-          ) || 0
-        )
+        Number(
+          spState.lifetimeEarned
+        ) || 0
       ),
 
     level:
       Math.max(
         1,
+
         Math.floor(
           Number(
             spState.level
@@ -508,6 +797,7 @@ function getTapGameSnapshot(){
     dum:
       Math.max(
         0,
+
         Math.floor(
           Number(
             dumState.dum
@@ -518,6 +808,7 @@ function getTapGameSnapshot(){
     maxDum:
       Math.max(
         1,
+
         Math.floor(
           Number(
             dumState.max
@@ -528,6 +819,7 @@ function getTapGameSnapshot(){
     autoLevel:
       Math.max(
         0,
+
         Math.floor(
           Number(
             autoState.level
@@ -538,6 +830,7 @@ function getTapGameSnapshot(){
     spPerSecond:
       Math.max(
         0,
+
         Math.floor(
           Number(
             autoState.spPerSecond
@@ -546,83 +839,34 @@ function getTapGameSnapshot(){
       ),
 
     speech:
-  window.LAGO_UI
-    ?.getSpeech
-    ?.() ||
-  ""
+      window.LAGO_UI
+        ?.getSpeech
+        ?.() ||
+      ""
 
   };
 
 }
-function render() {
 
-  /*
-   * Legacy runtime no longer renders
-   * the application interface.
-   *
-   * Upgrade panel is the final
-   * temporary legacy UI dependency.
-   */
-  window.LAGO_TAP_GAME
-    ?.renderUpgrades
-    ?.();
+
+/*
+ * Legacy runtime no longer renders
+ * the main game UI.
+ *
+ * lago-modern.js owns the interface.
+ */
+function render() {
 
 }
 
-/*
- * =========================================================
- * TAP LAGO PUBLIC GAME API
- * R0.3
- *
- * This is the first step toward turning the old clicker
- * into Mini-Game #001 instead of using it as the whole app.
- *
- * UI modules must call this API.
- * They must NOT simulate clicks on hidden legacy buttons.
- * =========================================================
- */
 
-/*
- * =========================================================
- * LEGACY RUNTIME ADAPTER
- * Temporary compatibility layer.
- *
- * New modules must NOT access legacy DOM directly.
- * =========================================================
- */
+/* =========================================================
+   PUBLIC LEGACY RUNTIME ADAPTER
+   ========================================================= */
 
-/*
- * Emergency 2D fallback remains tappable.
- * The listener follows #snail when Modern UI moves it.
- */
-image()
-  ?.addEventListener(
-    "pointerdown",
-    event => {
-
-      event.preventDefault();
-
-      window.LAGO_TAP_GAME
-        ?.tap
-        ?.(
-          event
-        );
-
-    },
-    {
-      passive:
-        false
-    }
-  );
 
 window.LAGO_LEGACY_RUNTIME =
   Object.freeze({
-
-    /*
-     * Temporary state bridge.
-     * Removed when Tap Lago gets its
-     * own canonical game state.
-     */
 
     getState() {
 
@@ -661,10 +905,6 @@ window.LAGO_LEGACY_RUNTIME =
     },
 
 
-    /*
-     * Temporary audio bridge.
-     */
-
     beep(
       frequency,
       duration,
@@ -679,17 +919,6 @@ window.LAGO_LEGACY_RUNTIME =
 
     },
 
-
-    /*
-     * UI is owned by LAGO_UI.
-     */
-
-   
-
-   
-    /*
-     * Still legacy-owned for now.
-     */
 
     checkAchievements() {
 
@@ -712,74 +941,205 @@ window.LAGO_LEGACY_RUNTIME =
     }
 
   });
- 
 
-/* ---------- Достижения ---------- */
-const achievements=[
- [
-  "energy100",
 
-  "⚡ ПЕРВАЯ СОТНЯ",
+/* =========================================================
+   ACHIEVEMENTS
+   ========================================================= */
 
-  "Заработать 100 SP",
 
-  () =>
-    Number(
-      window.LAGO_ACCOUNT
-        ?.getSPState
-        ?.()
-        ?.lifetimeEarned
-    ) >= 100
-],
-  ["click1000","👆 ПАЛЕЦ-БОГ","Сделать 1000 кликов",()=>state.totalClicks>=1000],
-  ["meme5","🎨 МЕМ-МАГНАТ","Создать 5 мемов",()=>state.memesCreated>=5],
-  ["steal10","👾 КРИПТО-ВОРО","Успешно ограбить 10 раз",()=>state.steals>=10],
-  ["day7","🧠 СЕМЬ ДНЕЙ БЕЗ ТУПОСТИ","Дожить 7 дней",()=>state.days>=7]
+const achievements = [
+
+  [
+
+    "energy100",
+
+    "⚡ ПЕРВАЯ СОТНЯ",
+
+    "Заработать 100 SP",
+
+    () =>
+      Number(
+        window.LAGO_ACCOUNT
+          ?.getSPState
+          ?.()
+          ?.lifetimeEarned
+      ) >=
+      100
+
+  ],
+
+
+  [
+
+    "click1000",
+
+    "👆 ПАЛЕЦ-БОГ",
+
+    "Сделать 1000 кликов",
+
+    () =>
+      state.totalClicks >=
+      1000
+
+  ],
+
+
+  [
+
+    "meme5",
+
+    "🎨 МЕМ-МАГНАТ",
+
+    "Создать 5 мемов",
+
+    () =>
+      state.memesCreated >=
+      5
+
+  ],
+
+
+  [
+
+    "steal10",
+
+    "👾 КРИПТО-ВОРО",
+
+    "Успешно ограбить 10 раз",
+
+    () =>
+      state.steals >=
+      10
+
+  ],
+
+
+  [
+
+    "day7",
+
+    "🧠 СЕМЬ ДНЕЙ БЕЗ ТУПОСТИ",
+
+    "Дожить 7 дней",
+
+    () =>
+      state.days >=
+      7
+
+  ]
+
 ];
-function checkAchievements(){
-  achievements.forEach(a=>{
-    if(!state.achievements[a[0]] && a[3]()){
-    state.achievements[a[0]] =
-  true;
 
-window.LAGO_UI
-  ?.toast
-  ?.(
-    `🏆 ${a[1]}`
+
+function checkAchievements() {
+
+  achievements.forEach(
+    achievement => {
+
+      const [
+        id,
+        title,
+        description,
+        condition
+      ] =
+        achievement;
+
+
+      void description;
+
+
+      if (
+        state.achievements[id] ||
+        !condition()
+      ) {
+
+        return;
+
+      }
+
+
+      state.achievements[id] =
+        true;
+
+
+      window.LAGO_UI
+        ?.toast
+        ?.(
+          `🏆 ${title}`
+        );
+
+
+      beep(
+        880,
+        .08
+      );
+
+
+      beep(
+        1320,
+        .1
+      );
+
+
+      save();
+
+    }
   );
 
-beep(
-  880,
-  .08
-);
-
-beep(
-  1320,
-  .1
-);
-    }
-  });
 }
 
-/* ---------- Дни ---------- */
-function updateDays(){
-  const today=new Date().toDateString();
-  if(state.lastDay!==today){
-    state.days++;
-    state.lastDay=today;
-    save();
+
+/* =========================================================
+   DAYS
+   ========================================================= */
+
+
+function updateDays() {
+
+  const today =
+    new Date()
+      .toDateString();
+
+
+  if (
+    state.lastDay ===
+    today
+  ) {
+
+    return;
+
   }
+
+
+  state.days++;
+
+
+  state.lastDay =
+    today;
+
+
+  save();
+
 }
+
+
 updateDays();
 
-/* ---------- Game Over ---------- */
-function gameOver(){
+
+/* =========================================================
+   GAME OVER
+   ========================================================= */
+
+
+function gameOver() {
 
   window.LAGO_UI
     ?.openPanel
     ?.(
       "gameOverPanel"
     );
+
 
   beep(
     70,
@@ -788,61 +1148,91 @@ function gameOver(){
   );
 
 }
-$("restartBtn").onclick =
-  () => {
-
-    state.energy =
-      10;
-
-    state.power =
-      1;
-
-    state.auto =
-      0;
-
-    state.shield =
-      0;
-
-    state.upgrades = {
-  click:
-    0,
-  auto:
-    0,
-  shield:
-    0,
-  doubleClick:
-    0
-};
-
-    state.lastDay =
-      new Date()
-        .toDateString();
 
 
-    window.LAGO_UI
-      ?.closePanel
-      ?.(
-        "gameOverPanel"
-      );
+const restartButton =
+  $("restartBtn");
 
 
-    window.LAGO_UI
-      ?.toast
-      ?.(
-        "Лаго воскрес. К сожалению."
-      );
+if (
+  restartButton
+) {
+
+  restartButton.onclick =
+    () => {
+
+      /*
+       * Only old temporary game-state
+       * values are reset here.
+       *
+       * Account upgrades such as
+       * DOUBLE CLICK live in
+       * LAGO_ACCOUNT and survive.
+       */
+
+      state.energy =
+        10;
 
 
-    render();
-
-    save();
-
-  };
-
-/* ---------- Туториал ---------- */
+      state.power =
+        1;
 
 
-/* ---------- Случайные фразы ---------- */
+      state.auto =
+        0;
+
+
+      state.shield =
+        0;
+
+
+      state.upgrades = {
+
+        click:
+          0,
+
+        auto:
+          0,
+
+        shield:
+          0
+
+      };
+
+
+      state.lastDay =
+        new Date()
+          .toDateString();
+
+
+      window.LAGO_UI
+        ?.closePanel
+        ?.(
+          "gameOverPanel"
+        );
+
+
+      window.LAGO_UI
+        ?.toast
+        ?.(
+          "Лаго воскрес. К сожалению."
+        );
+
+
+      render();
+
+
+      save();
+
+    };
+
+}
+
+
+/* =========================================================
+   RANDOM SPEECH
+   ========================================================= */
+
 
 setInterval(
   () => {
@@ -876,5 +1266,5 @@ setInterval(
   2500
 );
 
-render();
 
+render();
