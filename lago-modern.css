@@ -42,12 +42,12 @@
   position: fixed;
 
   inset: 0;
-   
-width: 100%;
 
-height: 100vh;
-height: 100dvh;
-   
+  width: 100%;
+
+  height: 100vh;
+  height: 100dvh;
+
   z-index: 4000;
 
   display: flex;
@@ -776,8 +776,8 @@ height: 100dvh;
   justify-content:
     center;
 
- overflow:
-  hidden;
+  overflow:
+    hidden;
 
   isolation:
     isolate;
@@ -785,18 +785,18 @@ height: 100dvh;
   z-index:
     0;
 
-touch-action:
-  manipulation;
+  touch-action:
+    manipulation;
 
-user-select:
-  none;
+  user-select:
+    none;
 
--webkit-user-select:
-  none;
+  -webkit-user-select:
+    none;
 
--webkit-touch-callout:
-  none;
-   
+  -webkit-touch-callout:
+    none;
+
 }
 
 
@@ -873,7 +873,7 @@ user-select:
     opacity;
 
 }
-   
+
 .lago-modern-snail #snail {
 
   width:
@@ -903,12 +903,12 @@ user-select:
   transition:
     transform .12s ease;
 
-   position:
-  relative;
+  position:
+    relative;
 
-z-index:
-  2;
-   
+  z-index:
+    2;
+
 }
 
 
@@ -1213,82 +1213,84 @@ z-index:
 
 @media (max-width: 899px) {
 
- .lago-game-area {
+  .lago-game-area {
 
-  grid-template-columns:
-    1fr;
+    grid-template-columns:
+      1fr;
 
-  align-items:
-    start;
+    align-items:
+      start;
 
-  overflow-x:
-    hidden;
+    overflow-x:
+      hidden;
 
-  overflow-y:
-    auto;
+    overflow-y:
+      auto;
 
-  -webkit-overflow-scrolling:
-    touch;
+    -webkit-overflow-scrolling:
+      touch;
 
-  overscroll-behavior:
-    contain;
+    overscroll-behavior:
+      contain;
 
-  padding:
-    8px
-    0
-    16px;
+    padding:
+      8px
+      0
+      16px;
 
-}
+  }
+
+
   /*
- * Mobile/tablet:
- * keep gameplay controls available.
- */
+   * Mobile/tablet:
+   * keep gameplay controls available.
+   */
 
-.lago-game-area > .lago-center {
+  .lago-game-area > .lago-center {
 
-  order: 1;
+    order: 1;
 
-}
-
-
-.lago-game-area > .lago-side:first-of-type {
-
-  order: 2;
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-
-  gap: 8px;
-
-  width: 100%;
-
-  padding-bottom: 14px;
-
-}
+  }
 
 
-.lago-game-area
-> .lago-side:first-of-type
-> .lago-side-card {
+  .lago-game-area > .lago-side:first-of-type {
 
-  grid-column:
-    1 / -1;
+    order: 2;
 
-}
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+
+    width: 100%;
+
+    padding-bottom: 14px;
+
+  }
 
 
-/*
- * "YOUR LAGO" is decorative here.
- * Hide only this right desktop panel.
- */
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
 
-.lago-game-area > .lago-side:last-of-type {
+    grid-column:
+      1 / -1;
 
-  display: none;
+  }
 
-}
+
+  /*
+   * "YOUR LAGO" is decorative here.
+   * Hide only this right desktop panel.
+   */
+
+  .lago-game-area > .lago-side:last-of-type {
+
+    display: none;
+
+  }
 
   .lago-center {
 
@@ -1418,6 +1420,8 @@ z-index:
   }
 
 }
+
+
 /* =========================================================
    R0.4 PORTAL CLEANUP
    ========================================================= */
@@ -1489,6 +1493,7 @@ z-index:
 .lago-profile-icon img {
 
   width: 100%;
+
   height: 100%;
 
   display: block;
@@ -1506,6 +1511,8 @@ z-index:
 #lagoModernDaily {
   display: none !important;
 }
+
+
 /* =========================================================
    TAP INTERACTION
    ========================================================= */
@@ -1549,6 +1556,8 @@ z-index:
     manipulation;
 
 }
+
+
 /* =========================================================
    MOBILE FIT — NO VERTICAL PAGE SCROLL
    ========================================================= */
@@ -1608,6 +1617,7 @@ z-index:
   .lago-profile-icon {
 
     width: 34px;
+
     height: 34px;
 
   }
@@ -1898,6 +1908,7 @@ z-index:
   .lago-action-icon {
 
     width: 27px;
+
     height: 27px;
 
     border-radius: 8px;
@@ -2017,6 +2028,8 @@ z-index:
   }
 
 }
+
+
 @media
 (max-width: 560px)
 and
@@ -2114,6 +2127,8 @@ and
   }
 
 }
+
+
 /* =========================================================
    MOBILE UI HOTFIX 2
    ========================================================= */
@@ -2128,96 +2143,96 @@ and
 
   #lagoLanguageButton {
 
-  position:
-    fixed !important;
+    position:
+      fixed !important;
+
+    /*
+     * Immediately after LAGO.
+     */
+    left:
+      72px !important;
+
+    right:
+      auto !important;
+
+    top:
+      calc(
+        12px +
+        env(safe-area-inset-top)
+      ) !important;
+
+    bottom:
+      auto !important;
+
+    width:
+      34px !important;
+
+    min-width:
+      34px !important;
+
+    max-width:
+      34px !important;
+
+    height:
+      32px !important;
+
+    padding:
+      0 !important;
+
+    display:
+      grid !important;
+
+    place-items:
+      center !important;
+
+    border-radius:
+      10px !important;
+
+    z-index:
+      5001 !important;
+
+  }
+
 
   /*
-   * Immediately after LAGO.
+   * Mobile language button:
+   * show ONLY current flag.
    */
-  left:
-    72px !important;
 
-  right:
-    auto !important;
+  #lagoLanguageButton
+  .lago-icon-slot {
 
-  top:
-    calc(
-      12px +
-      env(safe-area-inset-top)
-    ) !important;
+    display:
+      none !important;
 
-  bottom:
-    auto !important;
-
-  width:
-    34px !important;
-
-  min-width:
-    34px !important;
-
-  max-width:
-    34px !important;
-
-  height:
-    32px !important;
-
-  padding:
-    0 !important;
-
-  display:
-    grid !important;
-
-  place-items:
-    center !important;
-
-  border-radius:
-    10px !important;
-
-  z-index:
-    5001 !important;
-
-}
+  }
 
 
-/*
- * Mobile language button:
- * show ONLY current flag.
- */
+  #lagoLanguageButton
+  .lago-language-button-code {
 
-#lagoLanguageButton
-.lago-icon-slot {
+    display:
+      none !important;
 
-  display:
-    none !important;
-
-}
+  }
 
 
-#lagoLanguageButton
-.lago-language-button-code {
+  #lagoLanguageButton
+  .lago-language-button-flag {
 
-  display:
-    none !important;
+    display:
+      block !important;
 
-}
+    margin:
+      0 !important;
 
+    font-size:
+      17px !important;
 
-#lagoLanguageButton
-.lago-language-button-flag {
+    line-height:
+      1 !important;
 
-  display:
-    block !important;
-
-  margin:
-    0 !important;
-
-  font-size:
-    17px !important;
-
-  line-height:
-    1 !important;
-
-}
+  }
 
 
   /*
@@ -2334,6 +2349,7 @@ and
   }
 
 }
+
 
 /* =========================================================
    R0.5B4.2C — COMPACT PLAY HUD
@@ -2546,6 +2562,7 @@ and
 
 }
 
+
 /* =========================================================
    R0.5B4.2E3 — SP BALANCE / LEVEL PROGRESS
    ========================================================= */
@@ -2585,202 +2602,10 @@ span:last-child {
 
 }
 
-/* =========================================================
-   R0.5B4.2E4 — DUAL AUTO PURCHASE
-   ========================================================= */
-
-.lago-auto-upgrade-card {
-
-  display: block;
-
-}
-
-
-.lago-auto-upgrade-head {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  gap: 12px;
-
-  margin-bottom: 10px;
-
-}
-
-
-.lago-auto-upgrade-title {
-
-  font-size: 20px;
-
-  font-weight: 1000;
-
-}
-
-
-.lago-auto-rate {
-
-  flex: 0 0 auto;
-
-  padding: 8px 10px;
-
-  border: 1px solid
-    rgba(255,255,255,.15);
-
-  background:
-    rgba(255,255,255,.05);
-
-  font-size: 15px;
-
-  font-weight: 1000;
-
-  white-space: nowrap;
-
-}
-
-
-.lago-auto-next {
-
-  margin-bottom: 10px;
-
-  font-size: 10px;
-
-  font-weight: 1000;
-
-  letter-spacing: .06em;
-
-  color:
-    rgba(255,255,255,.7);
-
-}
-
-
-.lago-auto-routes {
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-
-  gap: 10px;
-
-}
-
-
-.lago-auto-route {
-
-  min-width: 0;
-
-  padding: 12px;
-
-  border: 1px solid
-    rgba(255,255,255,.12);
-
-  background:
-    rgba(255,255,255,.025);
-
-}
-
-
-.lago-auto-route-premium {
-
-  border-color:
-    rgba(255,215,90,.38);
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255,215,90,.07),
-      rgba(255,255,255,.02)
-    );
-
-}
-
-
-.lago-auto-route-title {
-
-  margin-bottom: 8px;
-
-  font-size: 13px;
-
-  font-weight: 1000;
-
-  letter-spacing: .05em;
-
-}
-
-
-.lago-auto-route
-.buy {
-
-  width: 100%;
-
-  margin-top: 12px;
-
-}
-
-
-.lago-auto-lago-buy {
-
-  border-color:
-    rgba(255,215,90,.55);
-
-}
-
-
-.lago-auto-coming {
-
-  margin-top: 7px;
-
-  text-align: center;
-
-  font-size: 7px;
-
-  font-weight: 900;
-
-  letter-spacing: .05em;
-
-  color:
-    rgba(255,255,255,.35);
-
-}
-
-
-.lago-auto-max {
-
-  padding: 14px;
-
-  text-align: center;
-
-  border: 1px solid
-    rgba(255,255,255,.12);
-
-  font-size: 12px;
-
-  font-weight: 1000;
-
-}
-
-
-@media (
-  max-width: 620px
-) {
-
-  .lago-auto-routes {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-}
 
 /* =========================================================
    LAGO 3D CHARACTER CANVAS
    ========================================================= */
-
 
 .lago-character-3d-canvas {
 
@@ -2791,16 +2616,16 @@ span:last-child {
     0;
 
   width:
-  100%;
+    100%;
 
-height:
-  100%;
+  height:
+    100%;
 
-max-width:
-  100%;
+  max-width:
+    100%;
 
-max-height:
-  100%;
+  max-height:
+    100%;
 
   display:
     block;
@@ -2815,15 +2640,15 @@ max-height:
     none;
 
   filter:
-  drop-shadow(
-    0 20px 28px
-    rgba(
-      0,
-      0,
-      0,
-      .30
-    )
-  );
+    drop-shadow(
+      0 20px 28px
+      rgba(
+        0,
+        0,
+        0,
+        .30
+      )
+    );
 
 }
 
@@ -2837,7 +2662,8 @@ max-height:
 
 }
 
-   /*
+
+/*
  * =========================================================
  * TAP GLOW PULSE
  * =========================================================
@@ -2894,6 +2720,7 @@ max-height:
   }
 
 }
+
 
 /*
  * =========================================================
@@ -3119,10 +2946,10 @@ max-height:
 
 }
 
+
 /* =========================================================
    MODERN UPGRADE SCREEN
    ========================================================= */
-
 
 .lago-upgrade-screen {
 
