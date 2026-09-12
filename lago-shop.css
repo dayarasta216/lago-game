@@ -441,10 +441,13 @@
     relative;
 
   width:
-    80%;
+    82%;
 
   height:
-    90%;
+    82%;
+
+  margin:
+    auto;
 
   overflow:
     visible;
@@ -471,28 +474,6 @@
    Card geometry stays untouched.
    ========================================================= */
 
-.lago-shop-character-image[
-  src*="comic-narek"
-] {
-  width: 70%;
-  height: 80%;
-}
-
-
-.lago-shop-character-image[
-  src*="comic-sola"
-] {
-  width: 70%;
-  height: 80%;
-}
-
-
-.lago-shop-character-image[
-  src*="comic-bambini-doc"
-] {
-  width: 70%;
-  height: 80%;
-}
 
 
 .lago-shop-character-image[
