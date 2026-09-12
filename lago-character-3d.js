@@ -710,30 +710,7 @@ import {
      * Tap Lago interaction surface.
      */
 
-    canvas.addEventListener(
-      "pointerdown",
-      event => {
-
-        event.preventDefault();
-
-
-        tapKick =
-          1;
-
-
-        window.LAGO_TAP_GAME
-          ?.tap
-          ?.(
-            event
-          );
-
-      },
-      {
-        passive:
-          false
-      }
-    );
-
+  
 
     resizeObserver =
       new ResizeObserver(
