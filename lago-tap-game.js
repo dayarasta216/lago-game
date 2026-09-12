@@ -339,6 +339,35 @@ function tapStrength(
 
 }
 
+function tapStrengthLabel(
+  strength
+) {
+
+  switch (
+    Number(
+      strength
+    )
+  ) {
+
+    case 5:
+      return "MAX";
+
+    case 4:
+      return "HARD";
+
+    case 3:
+      return "STRONG";
+
+    case 2:
+      return "FIRM";
+
+    default:
+      return "LIGHT";
+
+  }
+
+}
+  
   function tapTempo() {
 
   const now =
@@ -657,6 +686,29 @@ const gain =
     doubleClickMultiplier
   );
 
+  const strengthLabel =
+  tapStrengthLabel(
+    strength
+  );
+
+
+const tempoLabel =
+  tempo.multiplier > 1
+
+    ? `×${tempo.multiplier.toFixed(
+        2
+      )}`
+
+    : "";
+
+
+const doubleClickLabel =
+  doubleClickMultiplier === 2
+
+    ? "DOUBLE ×2"
+
+    : "";
+  
   /*
  * =========================================================
  * CANONICAL TAP REWARD
@@ -745,7 +797,28 @@ ui.spawnFloat(
 
     : `+${gainLabel} SP`,
 
-  event
+  event,
+
+  {
+
+    strength,
+
+    strengthLabel,
+
+    tempoMultiplier:
+      tempo.multiplier,
+
+    tempoLabel,
+
+    doubleClick:
+      doubleClickMultiplier === 2,
+
+    doubleClickLabel,
+
+    speedLimited:
+      tempo.antiBot === true
+
+  }
 
 );
   
