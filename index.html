@@ -5,24 +5,44 @@
 
 <link rel="stylesheet" href="lago-creator.css">
 <link rel="stylesheet" href="lago-collection.css?v=5">
- <link rel="stylesheet" href="lago-shop.css?v=3">
+<link rel="stylesheet" href="lago-shop.css?v=3">
 <link rel="stylesheet" href="lago-rewards.css">
 <link rel="stylesheet" href="lago-forge.css">
 <link rel="stylesheet" href="lago-my-lagos.css">
 <link rel="stylesheet" href="lago-ui.css">
+
 <link
   rel="stylesheet"
-  href="lago-modern.css?v=15"
+  href="lago-modern.css?v=16"
 >
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#1a0a1a">
- 
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#1a0a1a"
+>
+
 <title>LAGO $nail</title>
 
+
 <!-- Telegram Mini App SDK -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Solana Web3: используется только для подключения кошелька и Memo-транзакции -->
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.4/lib/index.iife.min.js"></script>
+<script
+  src="https://telegram.org/js/telegram-web-app.js"
+></script>
+
+
+<!--
+  Solana Web3:
+  wallet connection / transaction foundation.
+-->
+<script
+  src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.4/lib/index.iife.min.js"
+></script>
+
 
 <style id="lago-legacy-compat">
 
@@ -40,12 +60,15 @@
  * =========================================================
  */
 
+
 * {
+
   box-sizing:
     border-box;
 
   -webkit-tap-highlight-color:
     transparent;
+
 }
 
 
@@ -150,227 +173,11 @@ body > .panel.modal-center {
 }
 
 
-body > .panel > .sheet {
-
-  width:
-    100%;
-
-  max-height:
-    86dvh;
-
-  overflow:
-    auto;
-
-  padding:
-    16px
-    14px
-    calc(
-      18px +
-      env(safe-area-inset-bottom)
-    );
-
-  color:
-    #fff;
-
-  background:
-    #1d0b20;
-
-  border-top:
-    2px solid
-    rgba(
-      255,
-      57,
-      173,
-      .65
-    );
-
-  box-shadow:
-    0
-    -12px
-    34px
-    rgba(
-      169,
-      0,
-      255,
-      .28
-    );
-
-}
-
-
-body > .panel .close {
-
-  float:
-    right;
-
-  min-width:
-    38px;
-
-  min-height:
-    34px;
-
-  padding:
-    6px
-    10px;
-
-  border:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      .18
-    );
-
-  border-radius:
-    9px;
-
-  color:
-    #fff;
-
-  background:
-    rgba(
-      255,
-      57,
-      173,
-      .16
-    );
-
-  cursor:
-    pointer;
-
-}
-
-
-body > .panel h2 {
-
-  margin:
-    0
-    0
-    12px;
-
-  color:
-    #ccff00;
-
-}
-
-
-body > .panel .card {
-
-  margin:
-    8px
-    0;
-
-  padding:
-    12px;
-
-  border:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      .10
-    );
-
-  border-radius:
-    12px;
-
-  color:
-    #fff;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      .025
-    );
-
-}
-
-
-body > .panel .desc {
-
-  color:
-    rgba(
-      255,
-      255,
-      255,
-      .62
-    );
-
-  font-family:
-    monospace;
-
-  font-size:
-    11px;
-
-  line-height:
-    1.45;
-
-}
-
-
-body > .panel .buy {
-
-  min-height:
-    38px;
-
-  padding:
-    8px
-    10px;
-
-  border:
-    1px solid
-    rgba(
-      204,
-      255,
-      0,
-      .45
-    );
-
-  border-radius:
-    9px;
-
-  color:
-    #160916;
-
-  background:
-    #ccff00;
-
-  font-weight:
-    900;
-
-  cursor:
-    pointer;
-
-}
-
-
-body > .panel .hint {
-
-  color:
-    rgba(
-      255,
-      255,
-      255,
-      .48
-    );
-
-  font-family:
-    monospace;
-
-  font-size:
-    11px;
-
-  line-height:
-    1.45;
-
-}
-
-
-
+/*
+ * =========================================================
+ * TEMPORARY GAME OVER
+ * =========================================================
+ */
 
 #gameOverPanel .tutorial {
 
@@ -529,11 +336,27 @@ body > .panel .hint {
 </style>
 </head>
 
+
 <body>
+
+
+<!--
+  =========================================================
+  TEMPORARY CHARACTER FALLBACK
+  =========================================================
+
+  lago-modern.js moves #snail into
+  #modernSnailArea.
+
+  GLB runtime hides this image when
+  the 3D character loads successfully.
+-->
+
 <div
   class="app"
   aria-hidden="true"
 >
+
   <img
     id="snail"
     class="snail"
@@ -541,53 +364,222 @@ body > .panel .hint {
     src="./lago-snail.png"
     draggable="false"
   >
+
 </div>
 
-<!-- Апгрейды -->
-<div class="panel" id="upgradePanel"><div class="sheet">
-  <button class="close" data-close="upgradePanel">✕</button>
- <h2>🤖 AUTO UPGRADE</h2>
-  <div id="upgradeList"></div>
-</div></div>
+
+<!-- ======================================================
+     TEMPORARY GAME OVER
+     ====================================================== -->
+
+<div
+  class="panel modal-center"
+  id="gameOverPanel"
+>
+
+  <div
+    class="tutorial"
+  >
+
+    <div
+      class="big"
+    >
+      💀
+    </div>
 
 
-<!-- Game Over -->
-<div class="panel modal-center" id="gameOverPanel">
-  <div class="tutorial">
-    <div class="big">💀</div>
-    <h2>GAME OVER</h2>
-    <p>Лаго перестал существовать. Мем-Энергия достигла нуля. Это было тупо.</p>
-    <button class="btn main" id="restartBtn">🐌 ВОЗРОДИТЬ ЛАГО</button>
+    <h2>
+      GAME OVER
+    </h2>
+
+
+    <p>
+      Лаго перестал существовать.
+      Мем-Энергия достигла нуля.
+      Это было тупо.
+    </p>
+
+
+    <button
+      class="btn main"
+      id="restartBtn"
+      type="button"
+    >
+      🐌 ВОЗРОДИТЬ ЛАГО
+    </button>
+
   </div>
+
 </div>
 
-<div class="toast" id="toast"></div>
 
-<script src="lago-ui.js?v=4"></script>
+<!-- ======================================================
+     GLOBAL TOAST
+     ====================================================== -->
 
-<script src="lago-account-core.js?v=9"></script>
-<script src="lago-token-config.js?v=1"></script>
-<script src="lago-wallet.js?v=1"></script>
-<script src="lago-auth-backend.js?v=2"></script>
-<script src="lago-auth.js?v=6"></script>
-<script src="lago-premium.js?v=2"></script>
-<script src="lago-legacy-runtime.js?v=10"></script>
-<script src="lago-tap-game.js?v=16"></script>
-<script src="lago-character-registry.js?v=10"></script>
-<script src="lago-character-runtime.js?v=4"></script>
-<script src="lago-character-audio.js?v=1"></script>
-<script src="lago-dev-mode.js?v=4"></script>
-<script src="lago-shop.js?v=6"></script>
-<script src="lago-creator.js"></script>
-<script src="lago-life.js"></script>
-<script src="lago-language.js"></script>
-<script src="lago-onboarding.js"></script>
+<div
+  class="toast"
+  id="toast"
+></div>
 
-<script src="lago-collection.js?v=7"></script>
-<script src="lago-rewards.js?v=2"></script>
-<script src="lago-forge.js?v=2"></script>
-<script src="lago-modern.js?v=10"></script>
 
+<!--
+  =========================================================
+  CORE UI
+  =========================================================
+-->
+
+<script
+  src="lago-ui.js?v=5"
+></script>
+
+
+<!--
+  =========================================================
+  ACCOUNT / ECONOMY
+  =========================================================
+-->
+
+<script
+  src="lago-account-core.js?v=10"
+></script>
+
+
+<script
+  src="lago-token-config.js?v=1"
+></script>
+
+
+<script
+  src="lago-wallet.js?v=1"
+></script>
+
+
+<script
+  src="lago-auth-backend.js?v=2"
+></script>
+
+
+<script
+  src="lago-auth.js?v=6"
+></script>
+
+
+<script
+  src="lago-premium.js?v=2"
+></script>
+
+
+<!--
+  =========================================================
+  TAP LAGO
+  =========================================================
+-->
+
+<script
+  src="lago-legacy-runtime.js?v=11"
+></script>
+
+
+<script
+  src="lago-tap-game.js?v=17"
+></script>
+
+
+<!--
+  =========================================================
+  CHARACTER SYSTEM
+  =========================================================
+-->
+
+<script
+  src="lago-character-registry.js?v=10"
+></script>
+
+
+<script
+  src="lago-character-runtime.js?v=4"
+></script>
+
+
+<script
+  src="lago-character-audio.js?v=1"
+></script>
+
+
+<script
+  src="lago-dev-mode.js?v=4"
+></script>
+
+
+<!--
+  =========================================================
+  SHOP / CREATOR / LIFE / LANGUAGE
+  =========================================================
+-->
+
+<script
+  src="lago-shop.js?v=6"
+></script>
+
+
+<script
+  src="lago-creator.js"
+></script>
+
+
+<script
+  src="lago-life.js"
+></script>
+
+
+<script
+  src="lago-language.js"
+></script>
+
+
+<script
+  src="lago-onboarding.js"
+></script>
+
+
+<!--
+  =========================================================
+  COLLECTION / REWARDS / FORGE
+  =========================================================
+-->
+
+<script
+  src="lago-collection.js?v=7"
+></script>
+
+
+<script
+  src="lago-rewards.js?v=2"
+></script>
+
+
+<script
+  src="lago-forge.js?v=2"
+></script>
+
+
+<!--
+  =========================================================
+  MAIN MODERN INTERFACE
+  =========================================================
+-->
+
+<script
+  src="lago-modern.js?v=11"
+></script>
+
+
+<!--
+  =========================================================
+  THREE.JS
+  =========================================================
+-->
 
 <script type="importmap">
 {
@@ -599,14 +591,37 @@ body > .panel .hint {
 </script>
 
 
+<!--
+  =========================================================
+  CANONICAL GLB CHARACTER RENDERER
+  =========================================================
+-->
+
 <script
   type="module"
   src="lago-character-3d.js?v=12"
 ></script>
 
-<script src="lago-games.js"></script>
-<script src="lago-profile.js?v=3"></script>
-<script src="lago-my-lagos.js"></script>
+
+<!--
+  =========================================================
+  PORTAL / PROFILE
+  =========================================================
+-->
+
+<script
+  src="lago-games.js"
+></script>
+
+
+<script
+  src="lago-profile.js?v=3"
+></script>
+
+
+<script
+  src="lago-my-lagos.js"
+></script>
 
 
 </body>
