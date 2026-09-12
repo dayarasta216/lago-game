@@ -2892,33 +2892,54 @@ max-height:
 .lago-tap-float {
 
   position:
-    absolute;
+    fixed;
 
   z-index:
-    20;
+    20000;
+
+  transform:
+    translate(
+      -50%,
+      -50%
+    );
 
   pointer-events:
     none;
 
-  color:
-    var(--lago-lime);
-
-  font-family:
-    monospace;
-
-  font-size:
-    22px;
-
-  font-weight:
-    1000;
+  user-select:
+    none;
 
   white-space:
     nowrap;
 
+  color:
+    #ccff00;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    monospace;
+
+  font-size:
+    clamp(
+      17px,
+      2vw,
+      25px
+    );
+
+  font-weight:
+    1000;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -.04em;
+
   text-shadow:
-    2px
-    2px
-    0
+    0 2px 8px
     rgba(
       0,
       0,
@@ -2926,16 +2947,15 @@ max-height:
       .85
     );
 
-  transform:
-    translate(
-      -50%,
-      0
-    );
-
   animation:
     lagoTapFloat
-    .8s
-    ease-out
+    .82s
+    cubic-bezier(
+      .16,
+      .84,
+      .32,
+      1
+    )
     forwards;
 
 }
@@ -2946,17 +2966,56 @@ max-height:
   0% {
 
     opacity:
+      0;
+
+    transform:
+      translate(
+        -50%,
+        -35%
+      )
+      scale(.78);
+
+  }
+
+
+  14% {
+
+    opacity:
       1;
 
     transform:
       translate(
         -50%,
-        0
+        -58%
       )
-      scale(.82);
+      scale(1.08);
 
   }
 
+
+  65% {
+
+    opacity:
+      1;
+
+  }
+
+
+  100% {
+
+    opacity:
+      0;
+
+    transform:
+      translate(
+        -50%,
+        -155%
+      )
+      scale(.94);
+
+  }
+
+}
 
   100% {
 
