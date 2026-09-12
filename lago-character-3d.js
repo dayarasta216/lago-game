@@ -9,9 +9,10 @@ import {
   "use strict";
 
 
- const VERSION =
-  5;
-  
+  const VERSION =
+    6;
+
+
   const BASE_LAGO_MODEL =
     "./assets/model/lago.glb?v=4";
 
@@ -23,43 +24,83 @@ import {
     ]);
 
 
-/*
- * GLB is the canonical character renderer.
- * There are no public URL switches.
- */
+  /*
+   * =========================================================
+   * MODEL ORIENTATION
+   * =========================================================
+   *
+   * Canonical Lago GLBs are relief models.
+   *
+   * Source axes:
+   *
+   * X = horizontal width
+   * Y = relief depth
+   * Z = vertical height
+   *
+   * Three.js camera looks toward -Z.
+   *
+   * Therefore every canonical GLB must first
+   * rotate -90 degrees around X:
+   *
+   * old Z -> screen Y
+   * old -Y -> camera-facing Z
+   *
+   * Without this rotation the camera sees
+   * only the thin edge of the relief.
+   */
+
+  const CHARACTER_ROTATION_X =
+    -Math.PI /
+    2;
+
+
+  /*
+   * GLB is the canonical character renderer.
+   */
 
   let canvas =
     null;
 
+
   let renderer =
     null;
+
 
   let scene =
     null;
 
+
   let camera =
     null;
+
 
   let holder =
     null;
 
+
   let resizeObserver =
     null;
+
 
   let observedHost =
     null;
 
+
   let activeModel =
     null;
+
 
   let activeModelUrl =
     "";
 
+
   let requestedModelUrl =
     "";
 
+
   let loadNonce =
     0;
+
 
   let tapKick =
     0;
@@ -72,6 +113,12 @@ import {
   const modelCache =
     new Map();
 
+
+  /*
+   * =========================================================
+   * CHARACTER SELECTION
+   * =========================================================
+   */
 
   function selectedId() {
 
@@ -142,7 +189,7 @@ import {
 
 
     /*
-     * Complete comic character.
+     * Complete standalone character.
      */
     const character =
       window.LAGO_CHARACTERS
@@ -174,14 +221,20 @@ import {
 
 
     /*
-     * Lago skins / creator characters
-     * without their own GLB still use
-     * the existing 2D fallback.
+     * Lago skin / creator item
+     * without own GLB:
+     * keep existing 2D fallback.
      */
     return null;
 
   }
 
+
+  /*
+   * =========================================================
+   * VISIBILITY
+   * =========================================================
+   */
 
   function show2D(
     show
@@ -191,7 +244,9 @@ import {
       image();
 
 
-    if (!element) {
+    if (
+      !element
+    ) {
 
       return;
 
@@ -210,7 +265,9 @@ import {
     show
   ) {
 
-    if (!canvas) {
+    if (
+      !canvas
+    ) {
 
       return;
 
@@ -230,12 +287,11 @@ import {
 
 
   /*
-   * The Modern UI may recreate / move the
-   * character stage during migration.
-   *
-   * Always ensure that the canvas lives in
-   * #modernSnailArea when it exists.
+   * =========================================================
+   * HOST
+   * =========================================================
    */
+
   function bindHost() {
 
     const host =
@@ -289,6 +345,12 @@ import {
   }
 
 
+  /*
+   * =========================================================
+   * RESIZE
+   * =========================================================
+   */
+
   function resize() {
 
     if (
@@ -308,7 +370,9 @@ import {
       area();
 
 
-    if (!host) {
+    if (
+      !host
+    ) {
 
       return;
 
@@ -355,142 +419,163 @@ import {
   }
 
 
- function normalizeModel(
-  object
-) {
+  /*
+   * =========================================================
+   * MODEL NORMALIZATION
+   * =========================================================
+   */
 
-  if (
-    !object
+  function normalizeModel(
+    object
   ) {
 
-    return;
+    if (
+      !object
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * FIRST:
+     * rotate the relief into its
+     * canonical front-facing pose.
+     *
+     * This must happen BEFORE bounds
+     * and scale are calculated.
+     */
+    object.rotation.set(
+      CHARACTER_ROTATION_X,
+      0,
+      0
+    );
+
+
+    object.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    object.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    object.updateMatrixWorld(
+      true
+    );
+
+
+    /*
+     * Read correctly rotated bounds.
+     */
+    const initialBox =
+      new THREE.Box3()
+        .setFromObject(
+          object
+        );
+
+
+    const initialSize =
+      initialBox.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const largest =
+      Math.max(
+        initialSize.x,
+        initialSize.y,
+        initialSize.z,
+        0.001
+      );
+
+
+    /*
+     * Canonical safe visual envelope.
+     */
+    const targetSize =
+      2.35;
+
+
+    const scale =
+      targetSize /
+      largest;
+
+
+    object.scale.setScalar(
+      scale
+    );
+
+
+    object.updateMatrixWorld(
+      true
+    );
+
+
+    /*
+     * Recalculate bounds after scale.
+     */
+    const scaledBox =
+      new THREE.Box3()
+        .setFromObject(
+          object
+        );
+
+
+    const center =
+      scaledBox.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    /*
+     * Center all axes.
+     *
+     * Previously Z was treated as
+     * horizontal centering because
+     * the model had not been rotated.
+     *
+     * After canonical rotation,
+     * normal XYZ centering is correct.
+     */
+    object.position.x -=
+      center.x;
+
+
+    object.position.y -=
+      center.y;
+
+
+    object.position.z -=
+      center.z;
+
+
+    /*
+     * Tiny optical lift.
+     */
+    object.position.y +=
+      0.04;
+
+
+    object.updateMatrixWorld(
+      true
+    );
 
   }
 
 
   /*
-   * Read original bounds.
+   * =========================================================
+   * ACTIVE MODEL
+   * =========================================================
    */
-  object.updateMatrixWorld(
-    true
-  );
-
-
-  const initialBox =
-    new THREE.Box3()
-      .setFromObject(
-        object
-      );
-
-
-  const initialSize =
-    initialBox.getSize(
-      new THREE.Vector3()
-    );
-
-
-  const largest =
-    Math.max(
-      initialSize.x,
-      initialSize.y,
-      initialSize.z,
-      0.001
-    );
-
-
-  /*
-   * Canonical normalized character size.
-   *
-   * Every GLB gets the same safe envelope,
-   * regardless of whether it is wide,
-   * tall or oddly proportioned.
-   */
-  const targetSize =
-    2.35;
-
-
-  const scale =
-    targetSize /
-    largest;
-
-
-  object.scale.setScalar(
-    scale
-  );
-
-
-  object.updateMatrixWorld(
-    true
-  );
-
-
-  /*
-   * Recalculate after scaling.
-   */
-  const scaledBox =
-    new THREE.Box3()
-      .setFromObject(
-        object
-      );
-
-
-  const center =
-    scaledBox.getCenter(
-      new THREE.Vector3()
-    );
-
-
-  /*
-   * Center X/Z precisely.
-   */
-  object.position.x -=
-    center.x;
-
-  object.position.z -=
-    center.z;
-
-
-  object.updateMatrixWorld(
-    true
-  );
-
-
-  /*
-   * Vertical centering is calculated
-   * after horizontal correction.
-   */
-  const finalBox =
-    new THREE.Box3()
-      .setFromObject(
-        object
-      );
-
-
-  const finalCenter =
-    finalBox.getCenter(
-      new THREE.Vector3()
-    );
-
-
-  object.position.y -=
-    finalCenter.y;
-
-
-  /*
-   * Very small optical lift.
-   * Prevents characters from looking
-   * lower than the visual center.
-   */
-  object.position.y +=
-    0.05;
-
-
-  object.updateMatrixWorld(
-    true
-  );
-
-}
-
 
   function clearModel() {
 
@@ -524,12 +609,6 @@ import {
     clearModel();
 
 
-    /*
-     * Static Lago relief GLBs can be cloned
-     * directly. Original cached template
-     * stays untouched.
-     */
-
     activeModel =
       template.clone(
         true
@@ -545,6 +624,12 @@ import {
     );
 
 
+    /*
+     * Holder remains neutral.
+     *
+     * Canonical front rotation is stored
+     * inside the normalized model itself.
+     */
     holder.position.set(
       0,
       0,
@@ -568,13 +653,21 @@ import {
   }
 
 
+  /*
+   * =========================================================
+   * MAIN RENDERER
+   * =========================================================
+   */
+
   function createRenderer() {
 
     const host =
       area();
 
 
-    if (!host) {
+    if (
+      !host
+    ) {
 
       return false;
 
@@ -595,28 +688,29 @@ import {
       true;
 
 
-    /*
-     * Critical layout properties live here
-     * instead of relying on legacy CSS.
-     */
-
     canvas.style.position =
       "absolute";
+
 
     canvas.style.inset =
       "0";
 
+
     canvas.style.width =
       "100%";
+
 
     canvas.style.height =
       "100%";
 
+
     canvas.style.zIndex =
       "2";
 
+
     canvas.style.display =
       "none";
+
 
     canvas.style.touchAction =
       "manipulation";
@@ -653,7 +747,7 @@ import {
     renderer.setPixelRatio(
       Math.min(
         window.devicePixelRatio ||
-          1,
+        1,
         2
       )
     );
@@ -682,22 +776,22 @@ import {
       );
 
 
-   camera.position.set(
-  0,
-  0,
-  5.35
-);
+    camera.position.set(
+      0,
+      0,
+      5.35
+    );
 
 
-   camera.lookAt(
-  0,
-  0,
-  0
-);
+    camera.lookAt(
+      0,
+      0,
+      0
+    );
 
 
     /*
-     * Neutral lighting.
+     * Neutral front lighting.
      */
 
     scene.add(
@@ -756,13 +850,6 @@ import {
     );
 
 
-    /*
-     * GLB character remains the real
-     * Tap Lago interaction surface.
-     */
-
-  
-
     resizeObserver =
       new ResizeObserver(
         resize
@@ -798,10 +885,13 @@ import {
         ) {
 
           /*
-           * Very small idle motion.
-           * The stage itself never moves.
+           * Tiny idle motion.
+           *
+           * Rotation Y now means a
+           * small left/right face turn,
+           * because the model is finally
+           * standing upright.
            */
-
           holder.position.y =
             Math.sin(
               time *
@@ -815,14 +905,12 @@ import {
               time *
               0.65
             ) *
-            0.045;
+            0.035;
 
 
           /*
-           * TAP squash is applied only
-           * to the model holder.
+           * Tap squash.
            */
-
           holder.scale.set(
 
             1 +
@@ -835,7 +923,7 @@ import {
 
             1 +
               tapKick *
-              0.055
+              0.025
 
           );
 
@@ -875,6 +963,12 @@ import {
   }
 
 
+  /*
+   * =========================================================
+   * LOAD MAIN CHARACTER
+   * =========================================================
+   */
+
   function loadTarget(
     target
   ) {
@@ -898,13 +992,12 @@ import {
 
 
     /*
-     * Correct GLB is already installed.
+     * Correct GLB already installed.
      */
-
     if (
       activeModel &&
       activeModelUrl ===
-      modelUrl
+        modelUrl
     ) {
 
       show2D(
@@ -926,13 +1019,9 @@ import {
 
 
     /*
-     * Never display the previous character
-     * while a new one is loading.
-     *
-     * Existing 2D asset becomes temporary
-     * loading fallback only.
+     * Never show previous character
+     * while another GLB is loading.
      */
-
     show3D(
       false
     );
@@ -944,9 +1033,8 @@ import {
 
 
     /*
-     * Re-use already loaded GLBs.
+     * Cached model.
      */
-
     if (
       modelCache.has(
         modelUrl
@@ -1006,17 +1094,15 @@ import {
 
 
         /*
-         * Ignore stale asynchronous result
-         * if player already selected another
-         * character.
+         * Ignore stale async result.
          */
-
         if (
-  nonce !==
-  loadNonce ||
-  requestedModelUrl !==
-  modelUrl
-) {
+          nonce !==
+            loadNonce ||
+          requestedModelUrl !==
+            modelUrl
+        ) {
+
           return;
 
         }
@@ -1029,7 +1115,7 @@ import {
         if (
           !current ||
           current.url !==
-          modelUrl
+            modelUrl
         ) {
 
           return;
@@ -1077,11 +1163,8 @@ import {
 
 
           /*
-           * Fail closed to the existing
-           * 2D asset. Character never
-           * disappears completely.
+           * Fail safely to 2D.
            */
-
           show2D(
             true
           );
@@ -1101,370 +1184,489 @@ import {
 
   }
 
-/*
- * =========================================================
- * STATIC GLB PREVIEW
- * =========================================================
- *
- * Collection / Shop can render the real GLB directly.
- * No raster preview files are created.
- */
 
-function destroyPreview(
-  host
-) {
+  /*
+   * =========================================================
+   * STATIC GLB PREVIEW
+   * =========================================================
+   *
+   * Shop and Collection use exactly
+   * the same normalized GLB template.
+   *
+   * Therefore main character and cards
+   * always have the same orientation.
+   */
 
-  const controller =
+  function destroyPreview(
     host
-      ?._lago3dPreviewController;
-
-
-  if (
-    controller
-      ?.destroy
   ) {
 
-    controller.destroy();
+    const controller =
+      host
+        ?._lago3dPreviewController;
 
-  }
 
+    if (
+      controller
+        ?.destroy
+    ) {
 
-  if (host) {
-
-    delete host
-      ._lago3dPreviewController;
-
-  }
-
-}
-
-
-function mountPreview(
-  host,
-  modelUrl
-) {
-
-  if (
-    !host ||
-    typeof modelUrl !==
-      "string" ||
-    !modelUrl.trim()
-  ) {
-
-    return null;
-
-  }
-
-
-  destroyPreview(
-    host
-  );
-
-
-  const previewCanvas =
-    document.createElement(
-      "canvas"
-    );
-
-
-  previewCanvas.className =
-    "lago-glb-preview-canvas";
-
-
-  previewCanvas.style.position =
-    "absolute";
-
-  previewCanvas.style.inset =
-    "0";
-
-  previewCanvas.style.width =
-    "100%";
-
-  previewCanvas.style.height =
-    "100%";
-
-  previewCanvas.style.display =
-    "block";
-
-  previewCanvas.style.pointerEvents =
-    "none";
-
-
-  host.appendChild(
-    previewCanvas
-  );
-
-
-  const previewRenderer =
-    new THREE.WebGLRenderer({
-
-      canvas:
-        previewCanvas,
-
-      alpha:
-        true,
-
-      antialias:
-        true,
-
-      powerPreference:
-        "low-power"
-
-    });
-
-
-  previewRenderer.setPixelRatio(
-    Math.min(
-      window.devicePixelRatio ||
-        1,
-      1.5
-    )
-  );
-
-
-  previewRenderer.outputColorSpace =
-    THREE.SRGBColorSpace;
-
-
-  previewRenderer.setClearColor(
-    0x000000,
-    0
-  );
-
-
-  const previewScene =
-    new THREE.Scene();
-
-
-  const previewCamera =
-    new THREE.PerspectiveCamera(
-      30,
-      1,
-      0.1,
-      100
-    );
-
-
- previewCamera.position.set(
-  0,
-  0,
-  5.8
-);
-
-
-  previewCamera.lookAt(
-  0,
-  0,
-  0
-);
-
-
-  previewScene.add(
-    new THREE.HemisphereLight(
-      0xffffff,
-      0x33251a,
-      2.25
-    )
-  );
-
-
-  const previewKey =
-    new THREE.DirectionalLight(
-      0xffffff,
-      3
-    );
-
-
-  previewKey.position.set(
-    -3,
-    4,
-    5
-  );
-
-
-  previewScene.add(
-    previewKey
-  );
-
-
-  const previewFill =
-    new THREE.DirectionalLight(
-      0xffd9ef,
-      1.15
-    );
-
-
-  previewFill.position.set(
-    4,
-    1,
-    3
-  );
-
-
-  previewScene.add(
-    previewFill
-  );
-
-
-  const previewHolder =
-    new THREE.Group();
-
-
-  previewScene.add(
-    previewHolder
-  );
-
-
-  let destroyed =
-    false;
-
-
-  function drawPreview() {
-
-    if (destroyed) {
-
-      return;
+      controller.destroy();
 
     }
 
 
-    const rect =
-      host.getBoundingClientRect();
+    if (
+      host
+    ) {
 
+      delete host
+        ._lago3dPreviewController;
 
-    const width =
-      Math.max(
-        1,
-        Math.round(
-          rect.width
-        )
-      );
-
-
-    const height =
-      Math.max(
-        1,
-        Math.round(
-          rect.height
-        )
-      );
-
-
-    previewRenderer.setSize(
-      width,
-      height,
-      false
-    );
-
-
-    previewCamera.aspect =
-      width /
-      height;
-
-
-    previewCamera
-      .updateProjectionMatrix();
-
-
-    previewRenderer.render(
-      previewScene,
-      previewCamera
-    );
+    }
 
   }
 
 
-  function installPreview(
-    template
+  function mountPreview(
+    host,
+    modelUrl
   ) {
 
-    if (destroyed) {
+    if (
+      !host ||
+      typeof modelUrl !==
+        "string" ||
+      !modelUrl.trim()
+    ) {
 
-      return;
+      return null;
 
     }
 
 
-    previewHolder.clear();
+    destroyPreview(
+      host
+    );
 
 
-    previewHolder.add(
-      template.clone(
-        true
+    const previewCanvas =
+      document.createElement(
+        "canvas"
+      );
+
+
+    previewCanvas.className =
+      "lago-glb-preview-canvas";
+
+
+    previewCanvas.style.position =
+      "absolute";
+
+
+    previewCanvas.style.inset =
+      "0";
+
+
+    previewCanvas.style.width =
+      "100%";
+
+
+    previewCanvas.style.height =
+      "100%";
+
+
+    previewCanvas.style.display =
+      "block";
+
+
+    previewCanvas.style.pointerEvents =
+      "none";
+
+
+    host.appendChild(
+      previewCanvas
+    );
+
+
+    const previewRenderer =
+      new THREE.WebGLRenderer({
+
+        canvas:
+          previewCanvas,
+
+        alpha:
+          true,
+
+        antialias:
+          true,
+
+        powerPreference:
+          "low-power"
+
+      });
+
+
+    previewRenderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio ||
+        1,
+        1.5
       )
     );
 
 
-    drawPreview();
+    previewRenderer.outputColorSpace =
+      THREE.SRGBColorSpace;
 
-  }
 
-
-  const observer =
-    new ResizeObserver(
-      drawPreview
+    previewRenderer.setClearColor(
+      0x000000,
+      0
     );
 
 
-  observer.observe(
-    host
-  );
+    const previewScene =
+      new THREE.Scene();
 
 
-  const controller = {
+    const previewCamera =
+      new THREE.PerspectiveCamera(
+        30,
+        1,
+        0.1,
+        100
+      );
 
-    destroy() {
 
-      if (destroyed) {
+    previewCamera.position.set(
+      0,
+      0,
+      5.8
+    );
+
+
+    previewCamera.lookAt(
+      0,
+      0,
+      0
+    );
+
+
+    previewScene.add(
+      new THREE.HemisphereLight(
+        0xffffff,
+        0x33251a,
+        2.25
+      )
+    );
+
+
+    const previewKey =
+      new THREE.DirectionalLight(
+        0xffffff,
+        3
+      );
+
+
+    previewKey.position.set(
+      -3,
+      4,
+      5
+    );
+
+
+    previewScene.add(
+      previewKey
+    );
+
+
+    const previewFill =
+      new THREE.DirectionalLight(
+        0xffd9ef,
+        1.15
+      );
+
+
+    previewFill.position.set(
+      4,
+      1,
+      3
+    );
+
+
+    previewScene.add(
+      previewFill
+    );
+
+
+    const previewHolder =
+      new THREE.Group();
+
+
+    previewScene.add(
+      previewHolder
+    );
+
+
+    let destroyed =
+      false;
+
+
+    function drawPreview() {
+
+      if (
+        destroyed
+      ) {
 
         return;
 
       }
 
 
-      destroyed =
-        true;
+      const rect =
+        host
+          .getBoundingClientRect();
 
 
-      observer.disconnect();
+      const width =
+        Math.max(
+          1,
+          Math.round(
+            rect.width
+          )
+        );
+
+
+      const height =
+        Math.max(
+          1,
+          Math.round(
+            rect.height
+          )
+        );
+
+
+      previewRenderer.setSize(
+        width,
+        height,
+        false
+      );
+
+
+      previewCamera.aspect =
+        width /
+        height;
+
+
+      previewCamera
+        .updateProjectionMatrix();
+
+
+      previewRenderer.render(
+        previewScene,
+        previewCamera
+      );
+
+    }
+
+
+    function installPreview(
+      template
+    ) {
+
+      if (
+        destroyed
+      ) {
+
+        return;
+
+      }
 
 
       previewHolder.clear();
 
 
-      previewRenderer.dispose();
+      const model =
+        template.clone(
+          true
+        );
 
 
-      previewRenderer
-        .forceContextLoss
-        ?.();
+      previewHolder.add(
+        model
+      );
 
 
-      previewCanvas.remove();
+      /*
+       * Static front pose.
+       *
+       * No idle rotation in cards.
+       */
+      previewHolder.position.set(
+        0,
+        0,
+        0
+      );
+
+
+      previewHolder.rotation.set(
+        0,
+        0,
+        0
+      );
+
+
+      previewHolder.scale.set(
+        1,
+        1,
+        1
+      );
+
+
+      drawPreview();
 
     }
 
-  };
+
+    const observer =
+      new ResizeObserver(
+        drawPreview
+      );
 
 
-  host._lago3dPreviewController =
-    controller;
+    observer.observe(
+      host
+    );
 
 
-  const key =
-    modelUrl.trim();
+    const controller = {
+
+      destroy() {
+
+        if (
+          destroyed
+        ) {
+
+          return;
+
+        }
 
 
-  if (
-    modelCache.has(
-      key
-    )
-  ) {
+        destroyed =
+          true;
 
-    installPreview(
-      modelCache.get(
+
+        observer.disconnect();
+
+
+        previewHolder.clear();
+
+
+        previewRenderer.dispose();
+
+
+        previewRenderer
+          .forceContextLoss
+          ?.();
+
+
+        previewCanvas.remove();
+
+      }
+
+    };
+
+
+    host._lago3dPreviewController =
+      controller;
+
+
+    const key =
+      modelUrl.trim();
+
+
+    /*
+     * Same cache as main stage.
+     */
+    if (
+      modelCache.has(
         key
       )
+    ) {
+
+      installPreview(
+        modelCache.get(
+          key
+        )
+      );
+
+
+      return controller;
+
+    }
+
+
+    loader.load(
+
+      key,
+
+
+      gltf => {
+
+        if (
+          destroyed
+        ) {
+
+          return;
+
+        }
+
+
+        const template =
+          gltf.scene;
+
+
+        normalizeModel(
+          template
+        );
+
+
+        modelCache.set(
+          key,
+          template
+        );
+
+
+        installPreview(
+          template
+        );
+
+      },
+
+
+      undefined,
+
+
+      error => {
+
+        if (
+          destroyed
+        ) {
+
+          return;
+
+        }
+
+
+        console.error(
+          "[LAGO 3D] Preview load failed:",
+          key,
+          error
+        );
+
+      }
+
     );
 
 
@@ -1473,74 +1675,15 @@ function mountPreview(
   }
 
 
-  loader.load(
+  /*
+   * =========================================================
+   * APPLY CHARACTER
+   * =========================================================
+   */
 
-    key,
-
-
-    gltf => {
-
-      if (destroyed) {
-
-        return;
-
-      }
-
-
-      const template =
-        gltf.scene;
-
-
-      normalizeModel(
-        template
-      );
-
-
-      modelCache.set(
-        key,
-        template
-      );
-
-
-      installPreview(
-        template
-      );
-
-    },
-
-
-    undefined,
-
-
-    error => {
-
-      if (destroyed) {
-
-        return;
-
-      }
-
-
-      console.error(
-        "[LAGO 3D] Preview load failed:",
-        key,
-        error
-      );
-
-    }
-
-  );
-
-
-  return controller;
-
-}
-  
   function apply() {
 
     bindHost();
-
-
 
 
     const target =
@@ -1549,9 +1692,7 @@ function mountPreview(
 
     /*
      * Character has no GLB.
-     * Keep its 2D runtime.
      */
-
     if (
       !target
     ) {
@@ -1591,11 +1732,10 @@ function mountPreview(
   }
 
 
-
-
   /*
-   * Re-evaluate renderer whenever
-   * account / Collection changes.
+   * =========================================================
+   * EVENTS
+   * =========================================================
    */
 
   document.addEventListener(
@@ -1610,9 +1750,6 @@ function mountPreview(
   );
 
 
-  /*
-   * Optional future Modern UI lifecycle event.
-   */
   document.addEventListener(
     "lago:modern-ready",
     apply
@@ -1628,54 +1765,67 @@ function mountPreview(
     }
   );
 
-function pulseTap() {
 
-  tapKick =
-    1;
+  /*
+   * =========================================================
+   * TAP ANIMATION
+   * =========================================================
+   */
 
-}
-  
-window.LAGO_CHARACTER_3D =
-  Object.freeze({
+  function pulseTap() {
 
-    version:
-      VERSION,
+    tapKick =
+      1;
 
-    apply,
-
-    pulseTap,
-
-    mountPreview,
-
-    destroyPreview
-
-  });
+  }
 
 
-/*
- * Initial canonical 3D render.
- *
- * lago-modern.js has already created
- * #modernSnailArea before this module runs.
- */
-apply();
+  /*
+   * =========================================================
+   * PUBLIC API
+   * =========================================================
+   */
+
+  window.LAGO_CHARACTER_3D =
+    Object.freeze({
+
+      version:
+        VERSION,
+
+      apply,
+
+      pulseTap,
+
+      mountPreview,
+
+      destroyPreview
+
+    });
 
 
-/*
- * Collection may already exist before
- * this ES module finishes loading.
- */
-document.dispatchEvent(
-  new CustomEvent(
-    "lago:character-3d-ready",
-    {
-      detail: {
-        version:
-          VERSION
+  /*
+   * Initial main character.
+   */
+  apply();
+
+
+  /*
+   * Collection / Shop may already
+   * exist before this ES module loads.
+   */
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:character-3d-ready",
+      {
+        detail: {
+
+          version:
+            VERSION
+
+        }
       }
-    }
-  )
-);
+    )
+  );
 
 
 })();
