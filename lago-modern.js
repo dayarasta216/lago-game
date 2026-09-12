@@ -922,14 +922,7 @@ if (
       window.LAGO_CHARACTER_3D
         ?.pulseTap
         ?.();
-
-
-      window.LAGO_TAP_GAME
-        ?.tap
-        ?.(
-          event
-        );
-
+      
     },
     {
       passive:
@@ -939,6 +932,44 @@ if (
 
 }
 
+    snailArea.addEventListener(
+  "pointerdown",
+  beginCharacterTap,
+  {
+    passive:
+      true
+  }
+);
+
+
+snailArea.addEventListener(
+  "pointermove",
+  updateCharacterTap,
+  {
+    passive:
+      true
+  }
+);
+
+
+snailArea.addEventListener(
+  "pointerup",
+  finishCharacterTap,
+  {
+    passive:
+      true
+  }
+);
+
+
+snailArea.addEventListener(
+  "pointercancel",
+  cancelCharacterTap,
+  {
+    passive:
+      true
+  }
+);
     
     /*
  * Read the initial Tap Lago state
@@ -1548,7 +1579,217 @@ if (bar) {
  */
 }
 
+let activeTapPointer =
+  null;
 
+
+function beginCharacterTap(
+  event
+) {
+
+  if (
+    event.isTrusted !==
+      true
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    event.pointerType ===
+      "mouse" &&
+    event.button !==
+      0
+  ) {
+
+    return;
+
+  }
+
+
+  const target =
+    event.currentTarget;
+
+
+  target
+    ?.setPointerCapture
+    ?.(
+      event.pointerId
+    );
+
+
+  activeTapPointer = {
+
+    id:
+      event.pointerId,
+
+    startedAt:
+      performance.now(),
+
+    pointerType:
+      event.pointerType || "unknown",
+
+    minPressure:
+      Number(
+        event.pressure
+      ) || 0,
+
+    maxPressure:
+      Number(
+        event.pressure
+      ) || 0,
+
+    maxArea:
+      Math.max(
+        1,
+        (
+          Number(event.width) ||
+          1
+        ) *
+        (
+          Number(event.height) ||
+          1
+        )
+      )
+
+  };
+
+}
+
+
+function updateCharacterTap(
+  event
+) {
+
+  if (
+    !activeTapPointer ||
+    activeTapPointer.id !==
+      event.pointerId
+  ) {
+
+    return;
+
+  }
+
+
+  const pressure =
+    Number(
+      event.pressure
+    ) || 0;
+
+
+  activeTapPointer.minPressure =
+    Math.min(
+      activeTapPointer.minPressure,
+      pressure
+    );
+
+
+  activeTapPointer.maxPressure =
+    Math.max(
+      activeTapPointer.maxPressure,
+      pressure
+    );
+
+
+  activeTapPointer.maxArea =
+    Math.max(
+      activeTapPointer.maxArea,
+
+      (
+        Number(event.width) ||
+        1
+      ) *
+      (
+        Number(event.height) ||
+        1
+      )
+    );
+
+}
+
+
+function finishCharacterTap(
+  event
+) {
+
+  if (
+    !activeTapPointer ||
+    activeTapPointer.id !==
+      event.pointerId
+  ) {
+
+    return;
+
+  }
+
+
+  updateCharacterTap(
+    event
+  );
+
+
+  const sample = {
+
+    pointerType:
+      activeTapPointer.pointerType,
+
+    duration:
+      Math.max(
+        1,
+        performance.now() -
+          activeTapPointer.startedAt
+      ),
+
+    minPressure:
+      activeTapPointer.minPressure,
+
+    maxPressure:
+      activeTapPointer.maxPressure,
+
+    maxArea:
+      activeTapPointer.maxArea
+
+  };
+
+
+  activeTapPointer =
+    null;
+
+
+  window.LAGO_CHARACTER_3D
+    ?.pulseTap
+    ?.();
+
+
+  window.LAGO_TAP_GAME
+    ?.tap
+    ?.(
+      event,
+      sample
+    );
+
+}
+
+
+function cancelCharacterTap(
+  event
+) {
+
+  if (
+    activeTapPointer?.id ===
+      event.pointerId
+  ) {
+
+    activeTapPointer =
+      null;
+
+  }
+
+}
+  
 /*
  * index.html loads this script
  * after the legacy DOM exists.
