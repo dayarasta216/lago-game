@@ -1139,12 +1139,11 @@ function buyDoubleClick() {
     );
 
 
-    renderUpgrades();
+    renderModernUpgrades();
 
-    publishState();
+runtime.render();
 
-
-    return true;
+publishState();
 
   }
 
@@ -1416,6 +1415,619 @@ async function buyAutoWithLago() {
 
 }
 
+function ensureModernUpgradeScreen() {
+
+  let root =
+    document.getElementById(
+      "lagoUpgradeScreen"
+    );
+
+
+  if (
+    root
+  ) {
+
+    return root;
+
+  }
+
+
+  root =
+    document.createElement(
+      "div"
+    );
+
+
+  root.id =
+    "lagoUpgradeScreen";
+
+
+  root.className =
+    "lago-upgrade-screen";
+
+
+  root.innerHTML = `
+    <div
+      class="lago-upgrade-shell"
+    >
+
+      <header
+        class="lago-upgrade-header"
+      >
+
+        <div>
+
+          <div
+            class="lago-upgrade-kicker"
+          >
+            CHARACTER UPGRADES
+          </div>
+
+          <div
+            class="lago-upgrade-title"
+          >
+            UPGRADE LAGO
+          </div>
+
+        </div>
+
+
+        <button
+          class="lago-upgrade-close"
+          type="button"
+          data-upgrade-close
+          aria-label="Close upgrades"
+        >
+          ×
+        </button>
+
+      </header>
+
+
+      <div
+        class="lago-upgrade-balance"
+      >
+
+        <span>
+          SP BALANCE
+        </span>
+
+        <strong
+          id="lagoUpgradeBalance"
+        >
+          0 SP
+        </strong>
+
+      </div>
+
+
+      <div
+        class="lago-upgrade-grid"
+        id="lagoUpgradeGrid"
+      ></div>
+
+    </div>
+  `;
+
+
+  document.body.appendChild(
+    root
+  );
+
+
+  root
+    .querySelector(
+      "[data-upgrade-close]"
+    )
+    ?.addEventListener(
+      "click",
+      closeUpgrades
+    );
+
+
+  root.addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target ===
+        root
+      ) {
+
+        closeUpgrades();
+
+      }
+
+    }
+  );
+
+
+  return root;
+
+}
+
+  function closeUpgrades() {
+
+  document
+    .getElementById(
+      "lagoUpgradeScreen"
+    )
+    ?.classList.remove(
+      "show"
+    );
+
+}
+
+  function renderModernUpgrades() {
+
+  const root =
+    ensureModernUpgradeScreen();
+
+
+  const grid =
+    root.querySelector(
+      "#lagoUpgradeGrid"
+    );
+
+
+  const balanceElement =
+    root.querySelector(
+      "#lagoUpgradeBalance"
+    );
+
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  if (
+    !grid ||
+    !account
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * =========================================================
+   * SP BALANCE
+   * =========================================================
+   */
+
+  const spState =
+    account
+      .getSPState
+      ?.() || {};
+
+
+  const balance =
+    Math.max(
+      0,
+      Number(
+        spState.balance
+      ) || 0
+    );
+
+
+  if (
+    balanceElement
+  ) {
+
+    balanceElement.textContent =
+      `${balance.toLocaleString(
+        "en-US",
+        {
+          minimumFractionDigits:
+            Number.isInteger(
+              balance
+            )
+              ? 0
+              : 2,
+
+          maximumFractionDigits:
+            2
+        }
+      )} SP`;
+
+  }
+
+
+  /*
+   * =========================================================
+   * DOUBLE CLICK
+   * =========================================================
+   */
+
+  const doubleState =
+    account
+      .getDoubleClickUpgradeState
+      ?.() || {
+
+        unlocked:
+          false,
+
+        multiplier:
+          1,
+
+        spCost:
+          0
+
+      };
+
+
+  const doubleUnlocked =
+    doubleState.unlocked ===
+    true;
+
+
+  const doubleCost =
+    Math.max(
+      0,
+      Number(
+        doubleState.spCost
+      ) || 0
+    );
+
+
+  /*
+   * =========================================================
+   * AUTO
+   * =========================================================
+   */
+
+  const auto =
+    account
+      .getTapAutoUpgradeState
+      ?.() || {
+
+        level:
+          0,
+
+        maxLevel:
+          0,
+
+        spPerSecond:
+          0,
+
+        nextLevel:
+          0,
+
+        requiredLevel:
+          0,
+
+        requiredLifetimeSp:
+          0,
+
+        spCost:
+          0,
+
+        dumCost:
+          0,
+
+        maxed:
+          false
+
+      };
+
+
+  grid.innerHTML = `
+
+    <!-- DOUBLE CLICK -->
+
+    <article
+      class="
+        lago-upgrade-card
+        lago-upgrade-card-double
+        ${
+          doubleUnlocked
+            ? "active"
+            : ""
+        }
+      "
+    >
+
+      <div
+        class="lago-upgrade-card-top"
+      >
+
+        <div
+          class="lago-upgrade-icon"
+        >
+          ✌️
+        </div>
+
+
+        <div
+          class="lago-upgrade-status"
+        >
+          ${
+            doubleUnlocked
+              ? "ACTIVE"
+              : "LOCKED"
+          }
+        </div>
+
+      </div>
+
+
+      <div
+        class="lago-upgrade-card-name"
+      >
+        DOUBLE CLICK
+      </div>
+
+
+      <div
+        class="lago-upgrade-card-effect"
+      >
+        ×2 TAP REWARD
+      </div>
+
+
+      <div
+        class="lago-upgrade-card-desc"
+      >
+        Doubles SP earned by legitimate physical taps.
+        Fast-limit taps do not receive the ×2 multiplier.
+      </div>
+
+
+      ${
+        doubleUnlocked
+
+          ? `
+            <div
+              class="
+                lago-upgrade-owned
+              "
+            >
+              UNLOCKED
+            </div>
+          `
+
+          : `
+            <button
+              class="
+                lago-upgrade-buy
+              "
+              type="button"
+              data-upgrade-double
+            >
+              UNLOCK · ${doubleCost.toLocaleString(
+                "en-US"
+              )} SP
+            </button>
+          `
+      }
+
+    </article>
+
+
+    <!-- AUTO -->
+
+    <article
+      class="
+        lago-upgrade-card
+        lago-upgrade-card-auto
+      "
+    >
+
+      <div
+        class="lago-upgrade-card-top"
+      >
+
+        <div
+          class="lago-upgrade-icon"
+        >
+          🤖
+        </div>
+
+
+        <div
+          class="lago-upgrade-status"
+        >
+          LV ${Number(
+            auto.level
+          ) || 0}
+        </div>
+
+      </div>
+
+
+      <div
+        class="lago-upgrade-card-name"
+      >
+        AUTO
+      </div>
+
+
+      <div
+        class="lago-upgrade-card-effect"
+      >
+        ${Number(
+          auto.spPerSecond
+        ) || 0} SP / SEC
+      </div>
+
+
+      ${
+        auto.maxed
+
+          ? `
+            <div
+              class="
+                lago-upgrade-owned
+              "
+            >
+              MAX LEVEL
+            </div>
+          `
+
+          : `
+            <div
+              class="lago-upgrade-auto-next"
+            >
+
+              <span>
+                NEXT
+              </span>
+
+              <strong>
+                ${Number(
+                  auto.nextLevel
+                ) || 0} SP/S
+              </strong>
+
+            </div>
+
+
+            <div
+              class="lago-upgrade-cost-grid"
+            >
+
+              <div>
+                <span>
+                  REQUIRED LEVEL
+                </span>
+
+                <strong>
+                  ${Number(
+                    auto.requiredLevel
+                  ) || 0}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  LIFETIME SP
+                </span>
+
+                <strong>
+                  ${Number(
+                    auto.requiredLifetimeSp
+                  ).toLocaleString(
+                    "en-US"
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  SP COST
+                </span>
+
+                <strong>
+                  ${Number(
+                    auto.spCost
+                  ).toLocaleString(
+                    "en-US"
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  DUM COST
+                </span>
+
+                <strong>
+                  ${Number(
+                    auto.dumCost
+                  ) || 0}
+                </strong>
+              </div>
+
+            </div>
+
+
+            <button
+              class="
+                lago-upgrade-buy
+              "
+              type="button"
+              data-upgrade-auto
+            >
+              UPGRADE AUTO
+            </button>
+
+
+            <button
+              class="
+                lago-upgrade-buy
+                lago-upgrade-buy-premium
+              "
+              type="button"
+              data-upgrade-auto-lago
+            >
+              BUY WITH $LAGO
+            </button>
+          `
+      }
+
+    </article>
+
+  `;
+
+
+  /*
+   * DOUBLE CLICK
+   */
+  grid
+    .querySelector(
+      "[data-upgrade-double]"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        buyDoubleClick();
+
+      }
+    );
+
+
+  /*
+   * AUTO FREE
+   */
+  grid
+    .querySelector(
+      "[data-upgrade-auto]"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        buyUpgrade(
+          "auto"
+        );
+
+      }
+    );
+
+
+  /*
+   * AUTO $LAGO
+   */
+  grid
+    .querySelector(
+      "[data-upgrade-auto-lago]"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        buyAutoWithLago();
+
+      }
+    );
+
+}
+  
 function renderUpgrades() {
 
   const list =
@@ -1769,13 +2381,17 @@ list
     );
 
 }
- function openUpgrades() {
+function openUpgrades() {
 
-  renderUpgrades();
+  const root =
+    ensureModernUpgradeScreen();
 
 
-  ui.openPanel(
-    "upgradePanel"
+  renderModernUpgrades();
+
+
+  root.classList.add(
+    "show"
   );
 
 }
@@ -1842,6 +2458,7 @@ list
 
     openUpgrades,
 
+    closeUpgrades,
 
     openCreator() {
 
