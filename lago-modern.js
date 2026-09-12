@@ -1687,20 +1687,23 @@ try {
 
 
     spBalance =
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            spState.balance
-          ) || 0
-        )
-      );
+  Math.max(
+    0,
+    Math.round(
+      (
+        Number(
+          spState.balance
+        ) || 0
+      ) *
+      100
+    ) /
+    100
+  );
 
 
     lifetimeSp =
       Math.max(
         0,
-        Math.floor(
           Number(
             spState.lifetimeEarned
           ) || 0
@@ -1783,12 +1786,20 @@ $("modernLevelStat")
   );
 
 
-$("modernSPBalance")
-  ?.replaceChildren(
-    `${spBalance.toLocaleString(
-      "ru-RU"
-    )} SP`
-  );
+`${spBalance.toLocaleString(
+  "en-US",
+  {
+    minimumFractionDigits:
+      Number.isInteger(
+        spBalance
+      )
+        ? 0
+        : 2,
+
+    maximumFractionDigits:
+      2
+  }
+)} SP`
 
 
 const levelProgress =
