@@ -874,7 +874,72 @@ window.LAGO_UI
 
     }
 
+/*
+ * =========================================================
+ * CANONICAL TAP SURFACE
+ * =========================================================
+ *
+ * One interaction surface for:
+ * - GLB
+ * - emergency 2D
+ * - future characters
+ */
 
+if (
+  snailArea &&
+  snailArea.dataset
+    .lagoTapBound !==
+    "1"
+) {
+
+  snailArea.dataset
+    .lagoTapBound =
+    "1";
+
+
+  snailArea.addEventListener(
+    "pointerdown",
+    event => {
+
+      /*
+       * Ignore secondary mouse buttons.
+       */
+      if (
+        event.pointerType ===
+          "mouse" &&
+        event.button !==
+          0
+      ) {
+
+        return;
+
+      }
+
+
+      event.preventDefault();
+
+
+      window.LAGO_CHARACTER_3D
+        ?.pulseTap
+        ?.();
+
+
+      window.LAGO_TAP_GAME
+        ?.tap
+        ?.(
+          event
+        );
+
+    },
+    {
+      passive:
+        false
+    }
+  );
+
+}
+
+    
     /*
  * Read the initial Tap Lago state
  * through the public game API.
