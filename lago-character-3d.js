@@ -355,90 +355,141 @@ import {
   }
 
 
-  function normalizeModel(
-    object
+ function normalizeModel(
+  object
+) {
+
+  if (
+    !object
   ) {
 
-    /*
-     * Current Lago GLBs are exported Z-up.
-     * Convert to Three.js Y-up.
-     */
-
-    object.rotation.x =
-      -Math.PI /
-      2;
-
-
-    object.updateMatrixWorld(
-      true
-    );
-
-
-    let box =
-      new THREE.Box3()
-        .setFromObject(
-          object
-        );
-
-
-    const size =
-      box.getSize(
-        new THREE.Vector3()
-      );
-
-
-    const largest =
-      Math.max(
-        size.x,
-        size.y,
-        size.z,
-        0.0001
-      );
-
-
-    /*
-     * Every character gets the same
-     * normalized visual scale.
-     */
-
-    object.scale.setScalar(
-  2.55 /
-  largest
-);
-
-
-    object.updateMatrixWorld(
-      true
-    );
-
-
-    box =
-      new THREE.Box3()
-        .setFromObject(
-          object
-        );
-
-
-    const center =
-      box.getCenter(
-        new THREE.Vector3()
-      );
-
-
-    object.position.sub(
-      center
-    );
-
-
-    object.position.y -=
-      0.06;
-
-
-    object.updateMatrixWorld(
-      true
-    );
+    return;
 
   }
+
+
+  /*
+   * Read original bounds.
+   */
+  object.updateMatrixWorld(
+    true
+  );
+
+
+  const initialBox =
+    new THREE.Box3()
+      .setFromObject(
+        object
+      );
+
+
+  const initialSize =
+    initialBox.getSize(
+      new THREE.Vector3()
+    );
+
+
+  const largest =
+    Math.max(
+      initialSize.x,
+      initialSize.y,
+      initialSize.z,
+      0.001
+    );
+
+
+  /*
+   * Canonical normalized character size.
+   *
+   * Every GLB gets the same safe envelope,
+   * regardless of whether it is wide,
+   * tall or oddly proportioned.
+   */
+  const targetSize =
+    2.35;
+
+
+  const scale =
+    targetSize /
+    largest;
+
+
+  object.scale.setScalar(
+    scale
+  );
+
+
+  object.updateMatrixWorld(
+    true
+  );
+
+
+  /*
+   * Recalculate after scaling.
+   */
+  const scaledBox =
+    new THREE.Box3()
+      .setFromObject(
+        object
+      );
+
+
+  const center =
+    scaledBox.getCenter(
+      new THREE.Vector3()
+    );
+
+
+  /*
+   * Center X/Z precisely.
+   */
+  object.position.x -=
+    center.x;
+
+  object.position.z -=
+    center.z;
+
+
+  object.updateMatrixWorld(
+    true
+  );
+
+
+  /*
+   * Vertical centering is calculated
+   * after horizontal correction.
+   */
+  const finalBox =
+    new THREE.Box3()
+      .setFromObject(
+        object
+      );
+
+
+  const finalCenter =
+    finalBox.getCenter(
+      new THREE.Vector3()
+    );
+
+
+  object.position.y -=
+    finalCenter.y;
+
+
+  /*
+   * Very small optical lift.
+   * Prevents characters from looking
+   * lower than the visual center.
+   */
+  object.position.y +=
+    0.05;
+
+
+  object.updateMatrixWorld(
+    true
+  );
+
+}
 
 
   function clearModel() {
@@ -633,16 +684,16 @@ import {
 
    camera.position.set(
   0,
-  0.1,
-  6.1
+  0,
+  5.35
 );
 
 
-    camera.lookAt(
-      0,
-      0.1,
-      0
-    );
+   camera.lookAt(
+  0,
+  0,
+  0
+);
 
 
     /*
@@ -1196,16 +1247,16 @@ function mountPreview(
 
  previewCamera.position.set(
   0,
-  0.1,
-  6.3
+  0,
+  5.8
 );
 
 
   previewCamera.lookAt(
-    0,
-    0.1,
-    0
-  );
+  0,
+  0,
+  0
+);
 
 
   previewScene.add(
