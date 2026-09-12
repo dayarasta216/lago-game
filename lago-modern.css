@@ -785,6 +785,18 @@ height: 100dvh;
   z-index:
     0;
 
+touch-action:
+  manipulation;
+
+user-select:
+  none;
+
+-webkit-user-select:
+  none;
+
+-webkit-touch-callout:
+  none;
+   
 }
 
 
@@ -2897,6 +2909,18 @@ max-height:
   z-index:
     20000;
 
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  gap:
+    5px;
+
   transform:
     translate(
       -50%,
@@ -2909,8 +2933,27 @@ max-height:
   user-select:
     none;
 
+  -webkit-user-select:
+    none;
+
   white-space:
     nowrap;
+
+  animation:
+    lagoTapFloat
+    .82s
+    cubic-bezier(
+      .16,
+      .84,
+      .32,
+      1
+    )
+    forwards;
+
+}
+
+
+.lago-tap-float-main {
 
   color:
     #ccff00;
@@ -2924,9 +2967,9 @@ max-height:
 
   font-size:
     clamp(
-      17px,
+      18px,
       2vw,
-      25px
+      26px
     );
 
   font-weight:
@@ -2944,19 +2987,78 @@ max-height:
       0,
       0,
       0,
-      .85
+      .90
     );
 
-  animation:
-    lagoTapFloat
-    .82s
-    cubic-bezier(
-      .16,
-      .84,
-      .32,
-      1
-    )
-    forwards;
+}
+
+
+.lago-tap-float-meta {
+
+  padding:
+    4px
+    7px;
+
+  border-radius:
+    999px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .88
+    );
+
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      .62
+    );
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    monospace;
+
+  font-size:
+    clamp(
+      9px,
+      1vw,
+      12px
+    );
+
+  font-weight:
+    900;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    .04em;
+
+}
+
+
+/*
+ * Максимально сильный tap
+ * немного крупнее визуально.
+ */
+.lago-tap-float[
+  data-strength="5"
+]
+.lago-tap-float-main {
+
+  font-size:
+    clamp(
+      21px,
+      2.3vw,
+      30px
+    );
 
 }
 
@@ -3009,25 +3111,9 @@ max-height:
     transform:
       translate(
         -50%,
-        -155%
+        -165%
       )
       scale(.94);
-
-  }
-
-}
-
-  100% {
-
-    opacity:
-      0;
-
-    transform:
-      translate(
-        -50%,
-        -90px
-      )
-      scale(1.12);
 
   }
 
