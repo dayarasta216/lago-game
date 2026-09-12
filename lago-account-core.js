@@ -281,7 +281,7 @@ auth: {
   walletLinkedAt:
     null
 
-}, 
+},
 
 inventory: {
 
@@ -442,6 +442,38 @@ function clamp(
 }
 
 
+function roundSPAmount(
+  value
+) {
+
+  const number =
+    Number(
+      value
+    );
+
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+
+    return 0;
+
+  }
+
+
+  return (
+    Math.round(
+      number *
+      100
+    ) /
+    100
+  );
+
+}
+
+
 function resolveLifeStatus(
   value,
   max = 100
@@ -575,6 +607,35 @@ function resolveLifeStatus(
 
 
 /*
+ * Permanent Tap Lago account upgrades.
+ */
+next.tapUpgrades = {
+
+  ...clone(
+    defaults.tapUpgrades
+  ),
+
+  ...(
+    input.tapUpgrades &&
+    typeof input.tapUpgrades ===
+      "object" &&
+    !Array.isArray(
+      input.tapUpgrades
+    )
+
+      ? input.tapUpgrades
+      : {}
+  )
+
+};
+
+
+next.tapUpgrades.doubleClick =
+  next.tapUpgrades.doubleClick ===
+  true;
+
+
+/*
  * =========================================================
  * ECONOMY v2
  * =========================================================
@@ -620,11 +681,11 @@ next.economy.lagoBalance =
 next.economy.sp =
   Math.max(
     0,
-    Number(
+    roundSPAmount(
       input.economy
         ?.sp ??
       next.xp
-    ) || 0
+    )
   );
 
 
@@ -1016,7 +1077,7 @@ next.auth.walletLinkedAt =
 
     ? next.auth.walletLinkedAt
     : null;
-    
+
 /*
  * =========================================================
  * INVENTORY
@@ -1163,11 +1224,13 @@ next.lifetime.spEarned =
 
     next.economy.sp,
 
-    Number(
+    roundSPAmount(
       next.lifetime.spEarned
-    ) || 0,
+    ),
 
-    next.lifetime.xpEarned
+    roundSPAmount(
+      next.lifetime.xpEarned
+    )
 
   );
 
@@ -1175,9 +1238,9 @@ next.lifetime.spEarned =
 next.lifetime.spSpent =
   Math.max(
     0,
-    Number(
+    roundSPAmount(
       next.lifetime.spSpent
-    ) || 0
+    )
   );
 
 
@@ -1673,38 +1736,6 @@ function creditMem(
 
   }
 
-  function roundSPAmount(
-  value
-) {
-
-  const number =
-    Number(
-      value
-    );
-
-
-  if (
-    !Number.isFinite(
-      number
-    )
-  ) {
-
-    return 0;
-
-  }
-
-
-  return (
-    Math.round(
-      number *
-      100
-    ) /
-    100
-  );
-
-}
-
-
   return addSP(
     value,
     {
@@ -1752,48 +1783,48 @@ function addSP(
 ) {
 
   const value =
-  Math.max(
-    0,
-    roundSPAmount(
-      amount
-    )
-  );
+    Math.max(
+      0,
+      roundSPAmount(
+        amount
+      )
+    );
 
-  if (!value) {
+
+  if (
+    value <= 0
+  ) {
 
     return snapshot();
 
   }
 
 
-  /*
- * economy.sp is canonical.
- *
- * Top-level xp is only a
- * compatibility mirror for
- * old saves / old modules.
- */
-
-state.balance =
-  roundSPAmount(
-    Number(
-      state.balance
-    ) +
-    gain
-  );
+  state.economy.sp =
+    roundSPAmount(
+      (
+        Number(
+          state.economy.sp
+        ) || 0
+      ) +
+      value
+    );
 
 
-state.xp =
-  state.economy.sp;
+  state.xp =
+    state.economy.sp;
 
 
-state.sp.lifetimeEarned =
-  roundSPAmount(
-    Number(
-      state.sp.lifetimeEarned
-    ) +
-    gain
-  );
+  state.lifetime.spEarned =
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime.spEarned
+        ) || 0
+      ) +
+      value
+    );
+
 
   if (
     options.gameId
@@ -1805,15 +1836,19 @@ state.sp.lifetimeEarned =
       );
 
 
-   game.xpEarned =
+    game.spEarned =
+      roundSPAmount(
+        (
+          Number(
+            game.spEarned
+          ) || 0
+        ) +
+        value
+      );
 
-      Math.max(
-        0,
-        Number(
-          game.spEarned
-        ) || 0
-      ) +
-      value;
+
+    game.xpEarned =
+      game.spEarned;
 
   }
 
@@ -1848,29 +1883,26 @@ function getSPState() {
   return {
 
     balance:
-  Math.max(
-    0,
-    roundSPAmount(
-      state.sp.balance
-    )
-  ),
+      Math.max(
+        0,
+        roundSPAmount(
+          state.economy.sp
+        )
+      ),
 
-   lifetimeEarned:
-  Math.max(
-    0,
-    roundSPAmount(
-      state.sp.lifetimeEarned
-    )
-  ),
+    lifetimeEarned:
+      Math.max(
+        0,
+        roundSPAmount(
+          state.lifetime.spEarned
+        )
+      ),
 
     lifetimeSpent:
       Math.max(
         0,
-        Math.floor(
-          Number(
-            state.lifetime
-              ?.spSpent
-          ) || 0
+        roundSPAmount(
+          state.lifetime.spSpent
         )
       ),
 
@@ -1889,6 +1921,7 @@ function getSPState() {
   };
 
 }
+
 
 function getDoubleClickUpgradeState() {
 
@@ -1921,23 +1954,16 @@ function unlockDoubleClick() {
     getDoubleClickUpgradeState();
 
 
-  /*
-   * Уже куплен.
-   */
   if (
     upgrade.unlocked
   ) {
 
     return {
-
       ok:
         false,
-
       reason:
         "owned",
-
       ...upgrade
-
     };
 
   }
@@ -1947,59 +1973,66 @@ function unlockDoubleClick() {
     Math.max(
       0,
       roundSPAmount(
-        state
-          ?.sp
-          ?.balance
+        state.economy.sp
       )
     );
 
 
-  /*
-   * Не хватает SP.
-   */
   if (
     balance <
     DOUBLE_CLICK_SP_COST
   ) {
 
     return {
-
       ok:
         false,
-
       reason:
         "sp",
-
       balance,
-
       spCost:
         DOUBLE_CLICK_SP_COST
-
     };
 
   }
 
 
-  /*
-   * Покупка производится одной
-   * account-транзакцией.
-   */
-  state.sp.balance =
+  state.economy.sp =
     roundSPAmount(
       balance -
       DOUBLE_CLICK_SP_COST
     );
 
 
-  if (
-    !state.tapUpgrades ||
-    typeof state.tapUpgrades !==
-      "object"
-  ) {
+  state.xp =
+    state.economy.sp;
 
-    state.tapUpgrades = {};
 
-  }
+  state.lifetime.spSpent =
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime.spSpent
+        ) || 0
+      ) +
+      DOUBLE_CLICK_SP_COST
+    );
+
+
+  const game =
+    ensureGame(
+      "tap-lago"
+    );
+
+
+  game.spSpent =
+    roundSPAmount(
+      (
+        Number(
+          game.spSpent
+        ) || 0
+      ) +
+      DOUBLE_CLICK_SP_COST
+    );
 
 
   state.tapUpgrades.doubleClick =
@@ -2009,59 +2042,50 @@ function unlockDoubleClick() {
   save();
 
 
-  /*
-   * Обновляем весь интерфейс аккаунта.
-   */
-  publishState?.();
-
-
   return {
-
     ok:
       true,
-
     unlocked:
       true,
-
     multiplier:
       2,
-
     spCost:
       DOUBLE_CLICK_SP_COST,
-
     balance:
-      state.sp.balance
-
+      state.economy.sp
   };
 
 }
-  
+
+
 function canSpendSP(
   amount = 0
 ) {
 
-  const value =
+  const cost =
     Math.max(
       0,
-      Math.floor(
-        Number(
-          amount
-        ) || 0
+      roundSPAmount(
+        amount
       )
     );
 
 
   return (
-    state.economy.sp >=
-    value
+    roundSPAmount(
+      state.economy.sp
+    ) >=
+    cost
   );
 
 }
 
 
 function spendSP(
-  amount,
-  meta = {}
+  amount = 0,
+  {
+    gameId = ""
+  } = {}
 ) {
 
   const cost =
@@ -2074,15 +2098,7 @@ function spendSP(
 
 
   if (
-    cost <= 0
-  ) {
-
-    return false;
-
-  }
-
-
-  if (
+    cost <= 0 ||
     !canSpendSP(
       cost
     )
@@ -2093,25 +2109,59 @@ function spendSP(
   }
 
 
-  state.sp.balance =
+  state.economy.sp =
     roundSPAmount(
-      Number(
-        state.sp.balance
-      ) -
+      state.economy.sp -
       cost
     );
+
+
+  state.xp =
+    state.economy.sp;
+
+
+  state.lifetime.spSpent =
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime.spSpent
+        ) || 0
+      ) +
+      cost
+    );
+
+
+  if (
+    gameId
+  ) {
+
+    const game =
+      ensureGame(
+        gameId
+      );
+
+
+    game.spSpent =
+      roundSPAmount(
+        (
+          Number(
+            game.spSpent
+          ) || 0
+        ) +
+        cost
+      );
+
+  }
 
 
   save();
 
 
-  publishState?.();
-
-
   return true;
 
 }
-  /*
+
+/*
  * =========================================================
  * ATOMIC GAMEPLAY RESOURCE COST
  * =========================================================
@@ -2204,8 +2254,11 @@ function spendGameplayResources(
     state.energy.max;
 
 
-  state.economy.sp -=
-    spCost;
+  state.economy.sp =
+    roundSPAmount(
+      state.economy.sp -
+      spCost
+    );
 
 
   /*
@@ -2218,13 +2271,14 @@ function spendGameplayResources(
 
 
   state.lifetime.spSpent =
-    Math.max(
-      0,
-      Number(
-        state.lifetime.spSpent
-      ) || 0
-    ) +
-    spCost;
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime.spSpent
+        ) || 0
+      ) +
+      spCost
+    );
 
 
   state.energy.dum -=
@@ -2307,7 +2361,7 @@ function spendGameplayResources(
   };
 
 }
-  
+
   /*
  * =========================================================
  * DUM ENERGY — CANONICAL STAMINA
@@ -2725,7 +2779,7 @@ function restoreDum(
    * At MAX there is no partially
    * completed regeneration timer.
    */
-  
+
   if (
     state.energy.dum >=
     state.energy.max
@@ -3303,7 +3357,7 @@ function upgradeTapAuto() {
   };
 
 }
-  
+
   /*
  * =========================================================
  * LAGO LIFE — ACCOUNT CONDITION
@@ -3779,7 +3833,7 @@ function coolHeat(
   return save();
 
 }
-  
+
   /*
    * =========================================================
    * XP
@@ -3977,13 +4031,15 @@ state.games[id].dumSpent =
   const safeSP =
     Math.max(
       0,
-      Number(
-        sp
-      ) ||
-      Number(
-        xp
-      ) ||
-      0
+      roundSPAmount(
+        Number(
+          sp
+        ) ||
+        Number(
+          xp
+        ) ||
+        0
+      )
     );
 
 
@@ -4015,8 +4071,11 @@ state.games[id].dumSpent =
 
   if (safeSP) {
 
-    state.economy.sp +=
-      safeSP;
+    state.economy.sp =
+      roundSPAmount(
+        state.economy.sp +
+        safeSP
+      );
 
 
     /*
@@ -4026,19 +4085,22 @@ state.games[id].dumSpent =
       state.economy.sp;
 
 
-    state.lifetime
-      .spEarned +=
-      safeSP;
+    state.lifetime.spEarned =
+      roundSPAmount(
+        state.lifetime.spEarned +
+        safeSP
+      );
 
 
     game.spEarned =
-      Math.max(
-        0,
-        Number(
-          game.spEarned
-        ) || 0
-      ) +
-      safeSP;
+      roundSPAmount(
+        (
+          Number(
+            game.spEarned
+          ) || 0
+        ) +
+        safeSP
+      );
 
   }
 
@@ -4499,7 +4561,7 @@ function linkWalletIdentity(
 addSP,
 
 getSPState,
-    
+
 canSpendSP,
 
 spendSP,
