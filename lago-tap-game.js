@@ -994,7 +994,98 @@ function startAuto() {
 
   }
 
+function buyDoubleClick() {
 
+  const current =
+    state();
+
+
+  if (
+    Number(
+      current
+        ?.upgrades
+        ?.doubleClick
+    ) >= 1
+  ) {
+
+    ui.toast(
+      "DOUBLE CLICK ALREADY ACTIVE"
+    );
+
+    return false;
+
+  }
+
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  if (
+    !account
+      ?.canSpendSP
+      ?.(
+        DOUBLE_CLICK_COST
+      )
+  ) {
+
+    ui.toast(
+      `NEED ${DOUBLE_CLICK_COST.toLocaleString(
+        "en-US"
+      )} SP`
+    );
+
+    return false;
+
+  }
+
+
+  const spent =
+    account
+      ?.spendSP
+      ?.(
+        DOUBLE_CLICK_COST,
+        {
+          gameId:
+            "tap-lago-double-click"
+        }
+      );
+
+
+  if (
+    spent !== true
+  ) {
+
+    ui.toast(
+      "DOUBLE CLICK PURCHASE FAILED"
+    );
+
+    return false;
+
+  }
+
+
+  current.upgrades.doubleClick =
+    1;
+
+
+  runtime.save();
+
+
+  ui.toast(
+    "DOUBLE CLICK UNLOCKED · TAP ×2"
+  );
+
+
+  renderUpgrades();
+
+  publishState();
+
+
+  return true;
+
+}
+  
 function buyUpgrade(
   key
 ) {
@@ -1223,7 +1314,64 @@ function renderUpgrades() {
     );
 
 
-  if (!list) {
+  if (!list) const current =
+  state();
+
+
+const doubleUnlocked =
+  Number(
+    current
+      ?.upgrades
+      ?.doubleClick
+  ) >= 1;
+
+
+const doubleHTML =
+  `
+    <div
+      class="card lago-double-click-card"
+    >
+
+      <div
+        class="lago-auto-upgrade-title"
+      >
+        ✌️ DOUBLE CLICK
+      </div>
+
+
+      <div
+        class="desc"
+      >
+        EACH PHYSICAL TAP EARNS ×2 SP
+      </div>
+
+
+      ${
+        doubleUnlocked
+
+          ? `
+            <div
+              class="lago-auto-max"
+            >
+              ACTIVE · ×2 TAP
+            </div>
+          `
+
+          : `
+            <button
+              class="buy"
+              data-double-click
+              type="button"
+            >
+              UNLOCK · ${DOUBLE_CLICK_COST.toLocaleString(
+                "en-US"
+              )} SP
+            </button>
+          `
+      }
+
+    </div>
+  `; {
 
     return;
 
@@ -1266,12 +1414,20 @@ function renderUpgrades() {
       : auto.nextLevel;
 
 
-  list.innerHTML =
-    `
-      <div
-        class="card lago-auto-upgrade-card"
+ list.innerHTML =
+  doubleHTML +
+  `
+    <div
+      class="card lago-auto-upgrade-card"
       >
-
+list
+  .querySelector(
+    "[data-double-click]"
+  )
+  ?.addEventListener(
+    "click",
+    buyDoubleClick
+  );
         <div
           class="lago-auto-upgrade-head"
         >
