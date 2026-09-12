@@ -402,9 +402,9 @@ import {
      */
 
     object.scale.setScalar(
-      3.25 /
-      largest
-    );
+  2.55 /
+  largest
+);
 
 
     object.updateMatrixWorld(
@@ -631,11 +631,11 @@ import {
       );
 
 
-    camera.position.set(
-      0,
-      0.1,
-      5.6
-    );
+   camera.position.set(
+  0,
+  0.1,
+  6.1
+);
 
 
     camera.lookAt(
@@ -1194,11 +1194,11 @@ function mountPreview(
     );
 
 
-  previewCamera.position.set(
-    0,
-    0.1,
-    5.6
-  );
+ previewCamera.position.set(
+  0,
+  0.1,
+  6.3
+);
 
 
   previewCamera.lookAt(
@@ -1577,6 +1577,13 @@ function mountPreview(
     }
   );
 
+function pulseTap() {
+
+  tapKick =
+    1;
+
+}
+  
 window.LAGO_CHARACTER_3D =
   Object.freeze({
 
@@ -1584,6 +1591,8 @@ window.LAGO_CHARACTER_3D =
       VERSION,
 
     apply,
+
+    pulseTap,
 
     mountPreview,
 
