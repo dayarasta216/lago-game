@@ -1665,6 +1665,37 @@ function creditMem(
 
   }
 
+  function roundSPAmount(
+  value
+) {
+
+  const number =
+    Number(
+      value
+    );
+
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+
+    return 0;
+
+  }
+
+
+  return (
+    Math.round(
+      number *
+      100
+    ) /
+    100
+  );
+
+}
+
 
   return addSP(
     value,
@@ -1713,13 +1744,12 @@ function addSP(
 ) {
 
   const value =
-    Math.max(
-      0,
-      Number(
-        amount
-      ) || 0
-    );
-
+  Math.max(
+    0,
+    roundSPAmount(
+      amount
+    )
+  );
 
   if (!value) {
 
@@ -1736,18 +1766,26 @@ function addSP(
  * old saves / old modules.
  */
 
-state.economy.sp +=
-  value;
+state.balance =
+  roundSPAmount(
+    Number(
+      state.balance
+    ) +
+    gain
+  );
 
 
 state.xp =
   state.economy.sp;
 
 
-state.lifetime
-  .spEarned +=
-  value;
-
+state.sp.lifetimeEarned =
+  roundSPAmount(
+    Number(
+      state.sp.lifetimeEarned
+    ) +
+    gain
+  );
 
   if (
     options.gameId
@@ -1802,26 +1840,20 @@ function getSPState() {
   return {
 
     balance:
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            state.economy
-              ?.sp
-          ) || 0
-        )
-      ),
+  Math.max(
+    0,
+    roundSPAmount(
+      state.sp.balance
+    )
+  ),
 
-    lifetimeEarned:
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            state.lifetime
-              ?.spEarned
-          ) || 0
-        )
-      ),
+   lifetimeEarned:
+  Math.max(
+    0,
+    roundSPAmount(
+      state.sp.lifetimeEarned
+    )
+  ),
 
     lifetimeSpent:
       Math.max(
@@ -1875,31 +1907,21 @@ function canSpendSP(
 
 
 function spendSP(
-  amount = 0,
-  options = {}
+  amount,
+  meta = {}
 ) {
 
-  const value =
+  const cost =
     Math.max(
       0,
-      Math.floor(
-        Number(
-          amount
-        ) || 0
+      roundSPAmount(
+        amount
       )
     );
 
 
-  if (!value) {
-
-    return true;
-
-  }
-
-
   if (
-    state.economy.sp <
-    value
+    cost <= 0
   ) {
 
     return false;
@@ -1907,71 +1929,35 @@ function spendSP(
   }
 
 
-  /*
-   * Spend only CURRENT balance.
-   */
-  state.economy.sp -=
-    value;
-
-
-  /*
-   * XP temporarily remains a
-   * compatibility mirror of
-   * current SP balance.
-   */
-  state.xp =
-    state.economy.sp;
-
-
-  /*
-   * Permanent progression
-   * does NOT go backwards.
-   */
-  state.lifetime.spSpent =
-    Math.max(
-      0,
-      Number(
-        state.lifetime.spSpent
-      ) || 0
-    ) +
-    value;
-
-
   if (
-    options.gameId
+    !canSpendSP(
+      cost
+    )
   ) {
 
-    const game =
-      ensureGame(
-        options.gameId
-      );
-
-
-    game.spSpent =
-      Math.max(
-        0,
-        Number(
-          game.spSpent
-        ) || 0
-      ) +
-      value;
+    return false;
 
   }
 
 
-  /*
-   * Do NOT call updateLevel().
-   *
-   * LEVEL is based on
-   * lifetime.spEarned.
-   */
+  state.sp.balance =
+    roundSPAmount(
+      Number(
+        state.sp.balance
+      ) -
+      cost
+    );
+
+
   save();
+
+
+  publishState?.();
 
 
   return true;
 
 }
-
   /*
  * =========================================================
  * ATOMIC GAMEPLAY RESOURCE COST
@@ -4360,7 +4346,7 @@ function linkWalletIdentity(
 addSP,
 
 getSPState,
-
+    
 canSpendSP,
 
 spendSP,
