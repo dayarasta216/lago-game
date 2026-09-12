@@ -316,16 +316,28 @@ ui.animateTap();
    * successful tap → SP
    * every 5th tap → -1 DUM
    */
- ui.spawnFloat(
-  dumResult.spent > 0
+ const spentDum =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        dumResult.spent
+      ) || 0
+    )
+  );
 
-    ? `+${gain} SP · -1 DUM`
+
+ui.spawnFloat(
+
+  spentDum > 0
+
+    ? `+${gain} SP · -${spentDum} DUM`
 
     : `+${gain} SP`,
 
   event
-);
 
+);
 
   runtime.checkAchievements();
 
