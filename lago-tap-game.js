@@ -171,6 +171,48 @@ if (
 
   }
 
+  function playTapSound() {
+
+  try {
+
+    const audio =
+      window.LAGO_CHARACTER_AUDIO;
+
+
+    if (
+      audio &&
+      typeof audio.playTap ===
+        "function"
+    ) {
+
+      audio.playTap();
+
+      return;
+
+    }
+
+  } catch (
+    error
+  ) {
+
+    console.warn(
+      "[TAP LAGO AUDIO]",
+      error
+    );
+
+  }
+
+
+  /*
+   * Emergency sound fallback.
+   */
+  runtime.beep(
+    205,
+    0.045,
+    "sine"
+  );
+
+}
 
   /*
    * =========================================================
@@ -319,24 +361,9 @@ ui.animateTap();
 );
 
 
-  if (
-  window.LAGO_CHARACTER_AUDIO
-    ?.playTap
-) {
+ playTapSound();
 
-  window.LAGO_CHARACTER_AUDIO
-    .playTap();
-
-} else {
-
-  runtime.beep(
-    205,
-    0.045,
-    "sine"
-  );
-
-}
-
+   
   /*
    * Show the real economy:
    *
@@ -369,6 +396,8 @@ ui.spawnFloat(
   runtime.checkAchievements();
 
 runtime.render();
+
+   publishState();
 
 runtime.save();
 
