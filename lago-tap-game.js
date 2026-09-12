@@ -121,6 +121,26 @@ if (
 
   }
 
+  function publishState() {
+
+  const snapshot =
+    getState();
+
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:tap-game-state",
+      {
+        detail:
+          snapshot
+      }
+    )
+  );
+
+
+  return snapshot;
+
+}
 
   function formatNumber(value) {
 
@@ -236,7 +256,7 @@ if (
 );
 
 
-    return getState();
+  return publishState();
 
   }
 
@@ -262,7 +282,14 @@ if (
  * through the Character Engine.
  */
 const gain =
-  1;
+  Math.max(
+    1,
+    Math.floor(
+      Number(
+        current.power
+      ) || 1
+    )
+  );
 
 
 /*
@@ -341,14 +368,12 @@ ui.spawnFloat(
 
   runtime.checkAchievements();
 
+runtime.render();
 
-  runtime.render();
-
-
-  runtime.save();
+runtime.save();
 
 
-  return getState();
+return publishState();
 
 }
 
