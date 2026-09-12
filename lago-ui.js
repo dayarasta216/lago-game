@@ -446,49 +446,54 @@ function spawnFloat(
   event = null
 ) {
 
-  const host =
+  const stage =
     document.getElementById(
       "modernSnailArea"
-    ) ||
-    document.getElementById(
-      "snailWrap"
     );
 
 
-  if (!host) {
+  if (
+    !stage
+  ) {
 
-    return null;
+    return;
 
   }
 
 
   const rect =
-    host.getBoundingClientRect();
+    stage.getBoundingClientRect();
 
 
-  const hasPointer =
+  let x =
+    rect.left +
+    rect.width / 2;
+
+
+  let y =
+    rect.top +
+    rect.height * 0.46;
+
+
+  /*
+   * Prefer exact tap location.
+   */
+  if (
     Number.isFinite(
       event?.clientX
     ) &&
     Number.isFinite(
       event?.clientY
-    );
+    )
+  ) {
 
+    x =
+      event.clientX;
 
-  const x =
-    hasPointer
-      ? event.clientX -
-        rect.left
-      : rect.width /
-        2;
+    y =
+      event.clientY;
 
-
-  const y =
-    hasPointer
-      ? event.clientY -
-        rect.top
-      : rect.height *
-        0.42;
+  }
 
 
   const element =
@@ -503,108 +508,51 @@ function spawnFloat(
 
   element.textContent =
     String(
-      text ?? ""
+      text || ""
     );
 
 
+  /*
+   * Attach to BODY instead of character stage.
+   *
+   * This prevents:
+   * - clipping by overflow
+   * - GLB canvas covering the number
+   * - Collection/character dimensions affecting it
+   */
   element.style.left =
-    `${Math.max(
-      0,
-      Math.min(
-        rect.width,
-        x
-      )
-    )}px`;
-
+    `${x}px`;
 
   element.style.top =
-    `${Math.max(
-      0,
-      Math.min(
-        rect.height,
-        y
-      )
-    )}px`;
+    `${y}px`;
 
 
-  host.appendChild(
+  document.body.appendChild(
     element
   );
 
 
-  window.setTimeout(
+  element.addEventListener(
+    "animationend",
     () => {
 
       element.remove();
 
     },
-    850
+    {
+      once:
+        true
+    }
   );
 
 
-  return element;
+  setTimeout(
+    () => {
+
+      element.remove();
+
+    },
+    1200
+  );
 
 }
-
-
-/*
- * One close handler for all temporary
- * compatibility panels.
- */
-document.addEventListener(
-  "click",
-  event => {
-
-    const button =
-      event.target
-        ?.closest
-        ?.(
-          "[data-close]"
-        );
-
-
-    if (!button) {
-
-      return;
-
-    }
-
-
-    closePanel(
-      button.dataset.close
-    );
-
-  }
-);
-
-  
-window.LAGO_UI =
-  Object.freeze({
-
-    version:
-      VERSION,
-
-    icon,
-
-    hydrate,
-
-    sprite:
-      SPRITE,
-
-    toast,
-
-    setSpeech,
-
-    getSpeech,
-
-    animateTap,
-
-    spawnFloat,
-
-    openPanel,
-
-    closePanel
-
-  });
-
-})();
