@@ -1202,34 +1202,29 @@ return true;
 
 
     grid.innerHTML =
-      catalog
-        .map(
-          character =>
-            characterCard(
-
-              character,
-
-              owned.has(
-                character.id
-              ),
-
-              current ===
-                character.id,
-
-              balance
-
-            )
+  catalog
+    .map(
+      character =>
+        characterCard(
+          character,
+          owned.has(
+            character.id
+          ),
+          current ===
+            character.id,
+          balance
         )
-        .join(
-          ""
-        );
+    )
+    .join(
+      ""
+    );
 
-  }
 
 mountPreviewHosts(
   grid
 );
 
+}
   /*
    * =========================================================
    * SHOW / HIDE
