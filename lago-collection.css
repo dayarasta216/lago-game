@@ -2,6 +2,24 @@
    LAGO COLLECTION
    ========================================================= */
 
+.lago-collection-glb-preview {
+
+  position:
+    relative;
+
+  width:
+    82%;
+
+  height:
+    82%;
+
+  margin:
+    auto;
+
+  overflow:
+    visible;
+
+}
 
 #lagoCollection {
   position: fixed;
