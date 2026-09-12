@@ -114,6 +114,16 @@ if (
   let autoTimer =
     null;
 
+  let lastPhysicalTapAt =
+  0;
+
+
+const tapIntervals =
+  [];
+
+
+const DOUBLE_CLICK_COST =
+  10000;
 
   function state() {
 
@@ -161,7 +171,122 @@ if (
 
     }
 
+function clamp(
+  value,
+  min,
+  max
+) {
 
+  return Math.min(
+    max,
+    Math.max(
+      min,
+      value
+    )
+  );
+
+}
+
+
+function roundSP(
+  value
+) {
+
+  return (
+    Math.round(
+      Number(value) *
+      100
+    ) /
+    100
+  );
+
+}
+
+
+function tapStrength(
+  sample
+) {
+
+  if (
+    !sample ||
+    (
+      sample.pointerType !==
+        "touch" &&
+      sample.pointerType !==
+        "pen"
+    )
+  ) {
+
+    return 1;
+
+  }
+
+
+  const minPressure =
+    Number(
+      sample.minPressure
+    ) || 0;
+
+
+  const maxPressure =
+    Number(
+      sample.maxPressure
+    ) || 0;
+
+
+  const variablePressure =
+    maxPressure > 0 &&
+    Math.abs(
+      maxPressure -
+      minPressure
+    ) > 0.025;
+
+
+  if (
+    variablePressure
+  ) {
+
+    if (maxPressure >= .80)
+      return 5;
+
+    if (maxPressure >= .62)
+      return 4;
+
+    if (maxPressure >= .45)
+      return 3;
+
+    if (maxPressure >= .28)
+      return 2;
+
+
+    return 1;
+
+  }
+
+
+  const duration =
+    Number(
+      sample.duration
+    ) || 0;
+
+
+  if (duration >= 230)
+    return 5;
+
+  if (duration >= 175)
+    return 4;
+
+  if (duration >= 130)
+    return 3;
+
+  if (duration >= 90)
+    return 2;
+
+
+  return 1;
+
+}
+    
     return PHRASES[
       Math.floor(
         Math.random() *
@@ -214,14 +339,170 @@ if (
 
 }
 
+  function tapTempo() {
+
+  const now =
+    performance.now();
+
+
+  /*
+   * Первый tap ещё не имеет
+   * предыдущего интервала.
+   */
+  if (
+    lastPhysicalTapAt <= 0
+  ) {
+
+    lastPhysicalTapAt =
+      now;
+
+
+    return {
+
+      multiplier:
+        1,
+
+      antiBot:
+        false,
+
+      average:
+        Infinity
+
+    };
+
+  }
+
+
+  const interval =
+    now -
+    lastPhysicalTapAt;
+
+
+  lastPhysicalTapAt =
+    now;
+
+
+  /*
+   * Храним только последние
+   * 5 интервалов.
+   */
+  tapIntervals.push(
+    interval
+  );
+
+
+  if (
+    tapIntervals.length > 5
+  ) {
+
+    tapIntervals.shift();
+
+  }
+
+
+  const average =
+    tapIntervals.reduce(
+      (sum, value) =>
+        sum + value,
+      0
+    ) /
+    tapIntervals.length;
+
+
+  /*
+   * Скорость игрока даёт
+   * бонус от x1.00 до x1.85.
+   */
+  let multiplier =
+    1;
+
+
+  if (
+    average <= 150
+  ) {
+
+    multiplier =
+      1.85;
+
+  } else if (
+    average <= 190
+  ) {
+
+    multiplier =
+      1.70;
+
+  } else if (
+    average <= 240
+  ) {
+
+    multiplier =
+      1.55;
+
+  } else if (
+    average <= 310
+  ) {
+
+    multiplier =
+      1.40;
+
+  } else if (
+    average <= 390
+  ) {
+
+    multiplier =
+      1.25;
+
+  } else if (
+    average <= 500
+  ) {
+
+    multiplier =
+      1.10;
+
+  }
+
+
+  /*
+   * Anti-bot.
+   *
+   * Если последние несколько
+   * нажатий идут быстрее примерно
+   * 80 мс между тапами,
+   * считаем поток подозрительным.
+   *
+   * Коэффициент скорости остаётся,
+   * но сила принудительно = 1.
+   *
+   * Максимум такого потока:
+   *
+   * 1 × 1.85 = 1.85 SP
+   */
+  const antiBot =
+    tapIntervals.length >= 4 &&
+    average < 80;
+
+
+  return {
+
+    multiplier,
+
+    antiBot,
+
+    average
+
+  };
+
+}
+  
   /*
    * =========================================================
    * TAP
    * =========================================================
    */
 
- function tap(
-  event = null
+function tap(
+  event = null,
+  sample = null
 ) {
 
   const account =
@@ -306,6 +587,70 @@ if (
   const current =
     state();
 
+  /*
+ * =========================================================
+ * PHYSICAL TAP POWER
+ * =========================================================
+ */
+
+const tempo =
+  tapTempo();
+
+
+let strength =
+  tapStrength(
+    sample
+  );
+
+
+/*
+ * Подозрительно быстрый поток:
+ * не разрешаем strength 2–5.
+ */
+if (
+  tempo.antiBot
+) {
+
+  strength =
+    1;
+
+}
+
+
+/*
+ * DOUBLE CLICK upgrade.
+ *
+ * 0 = обычный reward
+ * 1 = reward ×2
+ */
+const doubleClickMultiplier =
+  Number(
+    current
+      ?.upgrades
+      ?.doubleClick
+  ) >= 1
+
+    ? 2
+
+    : 1;
+
+
+/*
+ * Финальный SP за один
+ * физический tap.
+ *
+ * MAX без Double Click:
+ * 5 × 1.85 = 9.25
+ *
+ * MAX с Double Click:
+ * 5 × 1.85 × 2 = 18.50
+ */
+const gain =
+  roundSP(
+    strength *
+    tempo.multiplier *
+    doubleClickMultiplier
+  );
 
   /*
  * =========================================================
@@ -323,15 +668,6 @@ if (
  * will be implemented explicitly
  * through the Character Engine.
  */
-const gain =
-  Math.max(
-    1,
-    Math.floor(
-      Number(
-        current.power
-      ) || 1
-    )
-  );
 
 
 /*
@@ -380,19 +716,34 @@ ui.animateTap();
     )
   );
 
+  const gainLabel =
+  gain.toLocaleString(
+    "en-US",
+    {
+      minimumFractionDigits:
+        Number.isInteger(
+          gain
+        )
+          ? 0
+          : 2,
+
+      maximumFractionDigits:
+        2
+    }
+  );
 
 ui.spawnFloat(
 
   spentDum > 0
 
-    ? `+${gain} SP · -${spentDum} DUM`
+    ? `+${gainLabel} SP · -${spentDum} DUM`
 
-    : `+${gain} SP`,
+    : `+${gainLabel} SP`,
 
   event
 
 );
-
+  
   runtime.checkAchievements();
 
 runtime.render();
