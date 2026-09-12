@@ -2,7 +2,7 @@
   "use strict";
 
  const VERSION =
-  2;
+  4;
 
 const SPRITE =
   "./lago-icons.svg";
@@ -696,4 +696,70 @@ function spawnFloat(
 
 }
 
-}
+
+
+window.LAGO_UI =
+  Object.freeze({
+
+    version:
+      VERSION,
+
+    icon,
+
+    hydrate,
+
+    openPanel,
+
+    closePanel,
+
+    toast,
+
+    setSpeech,
+
+    getSpeech,
+
+    animateTap,
+
+    spawnFloat
+
+  });
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    const close =
+      event.target
+        ?.closest
+        ?.('[data-close]');
+
+
+    if (!close) {
+      return;
+    }
+
+
+    closePanel(
+      close.getAttribute(
+        "data-close"
+      )
+    );
+
+  }
+);
+
+
+document.dispatchEvent(
+  new CustomEvent(
+    "lago:ui-ready",
+    {
+      detail: {
+        version:
+          VERSION
+      }
+    }
+  )
+);
+
+})();
