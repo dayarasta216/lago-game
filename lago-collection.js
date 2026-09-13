@@ -1097,28 +1097,71 @@ function mountPreviewHosts(
       return;
 
 
-    const catalog =
-      characters();
+    /*
+ * Full canonical character catalog.
+ */
+const fullCatalog =
+  characters();
 
 
-    const selected =
-      selectedCharacterId();
+const selected =
+  selectedCharacterId();
 
 
-    const owned =
-      ownedIds();
+const owned =
+  ownedIds();
 
 
-    const ownedCharacterCount =
-      catalog.filter(
+/*
+ * MOBILE COLLECTION
+ * =========================================================
+ *
+ * Smartphone Collection is inventory,
+ * not a duplicate of Shop.
+ *
+ * Therefore:
+ *
+ * - Lago is always visible
+ * - purchased/unlocked characters visible
+ * - locked characters completely absent
+ *
+ * Desktop may still show the complete
+ * catalog during R0 development.
+ */
+const mobileCollection =
+  window.matchMedia(
+    "(max-width: 560px)"
+  ).matches;
+
+
+const catalog =
+  mobileCollection
+
+    ? fullCatalog.filter(
         character =>
+
           character.id ===
             "lago" ||
+
           owned.has(
             character.id
           )
-      ).length;
+      )
 
+    : fullCatalog;
+
+
+   const ownedCharacterCount =
+  fullCatalog.filter(
+    character =>
+
+      character.id ===
+        "lago" ||
+
+      owned.has(
+        character.id
+      )
+  ).length;
 
     const counter =
       document.getElementById(
@@ -1129,8 +1172,7 @@ function mountPreviewHosts(
     if (counter) {
 
       counter.textContent =
-        `${ownedCharacterCount}/${catalog.length}`;
-
+       `${ownedCharacterCount}/${fullCatalog.length}`
     }
 
 
@@ -1602,39 +1644,51 @@ function hide() {
    */
 
 
-  document.addEventListener(
-    "lago:state",
-    render
-  );
+  function renderCollectionIfOpen() {
 
-  document.addEventListener(
-  "lago:character-3d-ready",
-  () => {
-
-    const page =
-      document.getElementById(
-        "lagoCollection"
-      );
+  const page =
+    document.getElementById(
+      "lagoCollection"
+    );
 
 
-    if (
-      page
-        ?.classList
-        .contains(
-          "active"
-        )
-    ) {
+  if (
+    !page ||
+    !page.classList.contains(
+      "active"
+    )
+  ) {
 
-      render();
-
-    }
+    return;
 
   }
+
+
+  render();
+
+}
+
+
+document.addEventListener(
+  "lago:character-equipped",
+  renderCollectionIfOpen
 );
 
-  document.addEventListener(
-    "lago:character-unlocked",
-    render
+
+/*
+ * Phone rotation / responsive switch.
+ */
+const collectionMobileQuery =
+  window.matchMedia(
+    "(max-width: 560px)"
+  );
+
+
+collectionMobileQuery
+  .addEventListener
+  ?.(
+    "change",
+    renderCollectionIfOpen
   );
 
 
