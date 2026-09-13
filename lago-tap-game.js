@@ -1137,93 +1137,75 @@ function tap(
    * =========================================================
    */
 
-  function autoTick() {
+ function autoTick() {
 
-    const account =
-      window.LAGO_ACCOUNT;
+  /*
+   * Absolutely no offline/background
+   * AUTO income.
+   */
+  if (
+    document.hidden
+  ) {
 
+    return;
 
-    /*
-     * Fail closed.
-     */
-    if (
-      !account ||
-      typeof account.getTapAutoState !==
-        "function" ||
-      typeof account.consumeTapDum !==
-        "function" ||
-      typeof account.addSP !==
-        "function"
-    ) {
-
-      return;
-
-    }
+  }
 
 
-    const auto =
-      account.getTapAutoState();
+  const account =
+    window.LAGO_ACCOUNT;
 
 
-    const rate =
-      Math.max(
-        0,
+  if (
+    !account ||
+    typeof account
+      .getTapAutoState !==
+      "function" ||
+    typeof account
+      .applyAutoReward !==
+      "function"
+  ) {
 
-        Math.floor(
-          Number(
-            auto
-              ?.spPerSecond
-          ) || 0
-        )
-      );
+    return;
 
-
-    if (
-      rate <= 0
-    ) {
-
-      return;
-
-    }
+  }
 
 
-    let earned =
-      0;
+  const auto =
+    account
+      .getTapAutoState();
 
 
-    /*
-     * Each AUTO SP behaves like
-     * one successful automatic tap.
-     *
-     * Therefore AUTO and manual Tap
-     * share the same DUM tapCounter.
-     */
-    for (
-      let i = 0;
-      i < rate;
-      i++
-    ) {
-
-      const dumResult =
-        account.consumeTapDum({
-          gameId:
-            "tap-lago"
-        });
+  const rate =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          auto
+            ?.spPerSecond
+        ) || 0
+      )
+    );
 
 
-      if (
-        !dumResult ||
-        dumResult.allowed !==
-          true
-      ) {
+  if (
+    rate <= 0
+  ) {
 
-        break;
+    return;
 
-      }
+  }
 
 
-      account.addSP(
-        1,
+  /*
+   * Entire second of AUTO activity
+   * is processed by ONE Account Core
+   * transaction.
+   */
+  const result =
+    account
+      .applyAutoReward(
+        rate,
         {
           gameId:
             "tap-lago"
@@ -1231,33 +1213,29 @@ function tap(
       );
 
 
-      earned++;
+  if (
+    !result ||
+    result.ok !==
+      true ||
+    result.earned <=
+      0
+  ) {
 
-    }
-
-
-    if (
-      earned <= 0
-    ) {
-
-      return;
-
-    }
-
-
-    /*
-     * Refresh visible game/account UI.
-     *
-     * AUTO does NOT count as a
-     * physical player click.
-     */
-    runtime.render();
-
-
-    publishState();
+    return;
 
   }
 
+
+  /*
+   * Account Core already emitted its
+   * canonical account-state event.
+   *
+   * We only publish Tap Lago's
+   * lightweight compatibility state.
+   */
+  publishState();
+
+}
 
   function startAuto() {
 
