@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-    7;
+    8;
 
 
   const BASE_LAGO_MODEL =
@@ -140,7 +140,25 @@ import {
   let previewBusy =
     false;
 
+/*
+ * =========================================================
+ * STATIC PREVIEW CACHE
+ * =========================================================
+ *
+ * One GLB model is converted to a static
+ * preview only once per browser session.
+ *
+ * Shop and Collection reuse the exact
+ * same cached snapshot.
+ */
 
+const PREVIEW_SNAPSHOT_SIZE =
+  384;
+
+
+const previewSnapshotCache =
+  new Map();
+  
   /*
    * =========================================================
    * STATE
@@ -1302,28 +1320,31 @@ let lastRenderedAt =
       modelUrl;
 
 
-    if (
-      activeModel &&
-      activeModelUrl ===
-        modelUrl
-    ) {
+   if (
+  activeModel &&
+  activeModelUrl ===
+    modelUrl
+) {
 
-      show2D(
-        false
-      );
-
-
-      show3D(
-        true
-      );
+  show2D(
+    false
+  );
 
 
-      resize();
+  show3D(
+    true
+  );
 
 
-      return;
+  /*
+   * ResizeObserver already owns sizing.
+   *
+   * Do not force layout measurement
+   * every time state emits.
+   */
+  return;
 
-    }
+}
 
 
     const nonce =
@@ -1608,10 +1629,33 @@ let lastRenderedAt =
   }
 
 
-  function previewDimensions(
-    host
-  ) {
+  function previewDimensions() {
 
+  /*
+   * One canonical square render size.
+   *
+   * This is important because the same
+   * cached snapshot can now be reused in:
+   *
+   * - Shop
+   * - Collection grid
+   * - Collection current character
+   *
+   * CSS handles the final card geometry
+   * using object-fit: contain.
+   */
+
+  return {
+
+    width:
+      PREVIEW_SNAPSHOT_SIZE,
+
+    height:
+      PREVIEW_SNAPSHOT_SIZE
+
+  };
+
+}
     const rect =
       host
         .getBoundingClientRect();
@@ -1672,209 +1716,287 @@ let lastRenderedAt =
 
   }
 
+ function attachPreviewImage(
+  host,
+  dataUrl,
+  controller
+) {
 
-  async function processPreviewTask(
-    task
+  if (
+    !host ||
+    !host.isConnected ||
+    controller
+      ?.destroyed ||
+    !dataUrl
   ) {
 
-    const {
-      host,
-      modelUrl,
-      controller
-    } =
-      task;
-
-
-    if (
-      controller.destroyed ||
-      !host.isConnected
-    ) {
-
-      return;
-
-    }
-
-
-    const template =
-      await getTemplate(
-        modelUrl
-      );
-
-
-    if (
-      controller.destroyed ||
-      !host.isConnected
-    ) {
-
-      return;
-
-    }
-
-
-    ensurePreviewRenderer();
-
-
-    previewHolder.clear();
-
-
-    const model =
-      template.clone(
-        true
-      );
-
-
-    previewHolder.add(
-      model
-    );
-
-
-    previewHolder.position.set(
-      0,
-      0,
-      0
-    );
-
-
-    previewHolder.rotation.set(
-      0,
-      0,
-      0
-    );
-
-
-    previewHolder.scale.set(
-      1,
-      1,
-      1
-    );
-
-
-    const {
-      width,
-      height
-    } =
-      previewDimensions(
-        host
-      );
-
-
-    previewRenderer.setSize(
-      width,
-      height,
-      false
-    );
-
-
-    previewCamera.aspect =
-      width /
-      height;
-
-
-    previewCamera
-      .updateProjectionMatrix();
-
-
-    previewRenderer.render(
-      previewScene,
-      previewCamera
-    );
-
-
-    /*
-     * Snapshot once.
-     *
-     * Card no longer owns a live
-     * WebGL context afterwards.
-     */
-    const dataUrl =
-      previewRenderer
-        .domElement
-        .toDataURL(
-          "image/png"
-        );
-
-
-    if (
-      controller.destroyed ||
-      !host.isConnected
-    ) {
-
-      previewHolder.clear();
-
-      return;
-
-    }
-
-
-    const previewImage =
-      document.createElement(
-        "img"
-      );
-
-
-    previewImage.className =
-      "lago-glb-preview-image";
-
-
-    previewImage.alt =
-      "";
-
-
-    previewImage.draggable =
-      false;
-
-
-    previewImage.src =
-      dataUrl;
-
-
-    previewImage.style.position =
-      "absolute";
-
-
-    previewImage.style.inset =
-      "0";
-
-
-    previewImage.style.width =
-      "100%";
-
-
-    previewImage.style.height =
-      "100%";
-
-
-    previewImage.style.objectFit =
-      "contain";
-
-
-    previewImage.style.pointerEvents =
-      "none";
-
-
-    host
-      .querySelectorAll(
-        ".lago-glb-preview-image"
-      )
-      .forEach(
-        element =>
-          element.remove()
-      );
-
-
-    host.appendChild(
-      previewImage
-    );
-
-
-    controller.image =
-      previewImage;
-
-
-    previewHolder.clear();
+    return false;
 
   }
 
+
+  const previewImage =
+    document.createElement(
+      "img"
+    );
+
+
+  previewImage.className =
+    "lago-glb-preview-image";
+
+
+  previewImage.alt =
+    "";
+
+
+  previewImage.draggable =
+    false;
+
+
+  previewImage.decoding =
+    "async";
+
+
+  previewImage.src =
+    dataUrl;
+
+
+  previewImage.style.position =
+    "absolute";
+
+
+  previewImage.style.inset =
+    "0";
+
+
+  previewImage.style.width =
+    "100%";
+
+
+  previewImage.style.height =
+    "100%";
+
+
+  previewImage.style.objectFit =
+    "contain";
+
+
+  previewImage.style.pointerEvents =
+    "none";
+
+
+  host
+    .querySelectorAll(
+      ".lago-glb-preview-image"
+    )
+    .forEach(
+      element =>
+        element.remove()
+    );
+
+
+  host.appendChild(
+    previewImage
+  );
+
+
+  controller.image =
+    previewImage;
+
+
+  return true;
+
+}
+
+ async function processPreviewTask(
+  task
+) {
+
+  const {
+    host,
+    modelUrl,
+    controller
+  } =
+    task;
+
+
+  if (
+    controller.destroyed ||
+    !host.isConnected
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * =====================================================
+   * FAST CACHE HIT
+   * =====================================================
+   *
+   * The model was already converted
+   * to a static preview somewhere else.
+   *
+   * No GLB parsing.
+   * No cloning.
+   * No WebGL rendering.
+   * No toDataURL().
+   */
+
+  const cachedSnapshot =
+    previewSnapshotCache.get(
+      modelUrl
+    );
+
+
+  if (
+    cachedSnapshot
+  ) {
+
+    attachPreviewImage(
+      host,
+      cachedSnapshot,
+      controller
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * =====================================================
+   * FIRST RENDER FOR THIS MODEL
+   * =====================================================
+   */
+
+  const template =
+    await getTemplate(
+      modelUrl
+    );
+
+
+  if (
+    controller.destroyed ||
+    !host.isConnected
+  ) {
+
+    return;
+
+  }
+
+
+  ensurePreviewRenderer();
+
+
+  previewHolder.clear();
+
+
+  const model =
+    template.clone(
+      true
+    );
+
+
+  previewHolder.add(
+    model
+  );
+
+
+  previewHolder.position.set(
+    0,
+    0,
+    0
+  );
+
+
+  previewHolder.rotation.set(
+    0,
+    0,
+    0
+  );
+
+
+  previewHolder.scale.set(
+    1,
+    1,
+    1
+  );
+
+
+  const {
+    width,
+    height
+  } =
+    previewDimensions();
+
+
+  previewRenderer.setSize(
+    width,
+    height,
+    false
+  );
+
+
+  previewCamera.aspect =
+    width /
+    height;
+
+
+  previewCamera
+    .updateProjectionMatrix();
+
+
+  previewRenderer.render(
+    previewScene,
+    previewCamera
+  );
+
+
+  const dataUrl =
+    previewRenderer
+      .domElement
+      .toDataURL(
+        "image/png"
+      );
+
+
+  /*
+   * Cache BEFORE attaching.
+   *
+   * Even if this particular host disappears
+   * while we were rendering, another Shop /
+   * Collection host can reuse the result.
+   */
+
+  previewSnapshotCache.set(
+    modelUrl,
+    dataUrl
+  );
+
+
+  previewHolder.clear();
+
+
+  if (
+    controller.destroyed ||
+    !host.isConnected
+  ) {
+
+    return;
+
+  }
+
+
+  attachPreviewImage(
+    host,
+    dataUrl,
+    controller
+  );
+
+}
 
   async function pumpPreviewQueue() {
 
@@ -1947,71 +2069,120 @@ let lastRenderedAt =
 
 
   function mountPreview(
-    host,
-    modelUrl
+  host,
+  modelUrl
+) {
+
+  if (
+    !host ||
+    typeof modelUrl !==
+      "string"
   ) {
 
-    if (
-      !host ||
-      typeof modelUrl !==
-        "string" ||
-      !modelUrl.trim()
-    ) {
+    return null;
 
-      return null;
+  }
+
+
+  const key =
+    modelUrl.trim();
+
+
+  if (
+    !key
+  ) {
+
+    return null;
+
+  }
+
+
+  /*
+   * Do not remount the exact same
+   * preview host unnecessarily.
+   */
+
+  const existing =
+    host
+      ._lago3dPreviewController;
+
+
+  if (
+    existing &&
+    existing.destroyed !==
+      true &&
+    host.dataset
+      .lagoPreviewModel ===
+      key
+  ) {
+
+    return existing;
+
+  }
+
+
+  destroyPreview(
+    host
+  );
+
+
+  const controller = {
+
+    destroyed:
+      false,
+
+    image:
+      null,
+
+    destroy() {
+
+      controller.destroyed =
+        true;
+
+
+      controller.image
+        ?.remove
+        ?.();
+
+
+      controller.image =
+        null;
 
     }
 
+  };
 
-    destroyPreview(
-      host
+
+  host._lago3dPreviewController =
+    controller;
+
+
+  host.dataset
+    .lagoPreviewModel =
+    key;
+
+
+  /*
+   * =====================================================
+   * INSTANT CACHE HIT
+   * =====================================================
+   */
+
+  const cachedSnapshot =
+    previewSnapshotCache.get(
+      key
     );
 
 
-    const controller = {
+  if (
+    cachedSnapshot
+  ) {
 
-      destroyed:
-        false,
-
-      image:
-        null,
-
-      destroy() {
-
-        controller.destroyed =
-          true;
-
-
-        controller.image
-          ?.remove
-          ?.();
-
-
-        controller.image =
-          null;
-
-      }
-
-    };
-
-
-    host._lago3dPreviewController =
-      controller;
-
-
-    previewQueue.push({
-
+    attachPreviewImage(
       host,
-
-      modelUrl:
-        modelUrl.trim(),
-
+      cachedSnapshot,
       controller
-
-    });
-
-
-    pumpPreviewQueue();
+    );
 
 
     return controller;
@@ -2020,10 +2191,28 @@ let lastRenderedAt =
 
 
   /*
-   * =========================================================
-   * APPLY CURRENT CHARACTER
-   * =========================================================
+   * Only unseen models enter
+   * the WebGL preview queue.
    */
+
+  previewQueue.push({
+
+    host,
+
+    modelUrl:
+      key,
+
+    controller
+
+  });
+
+
+  pumpPreviewQueue();
+
+
+  return controller;
+
+}
 
 
   function apply() {
@@ -2083,24 +2272,10 @@ let lastRenderedAt =
     apply
   );
 
-
-  document.addEventListener(
-    "lago:account-state",
-    apply
-  );
-
-
   document.addEventListener(
     "lago:character-equipped",
     apply
   );
-
-
-  document.addEventListener(
-    "lago:character-unlocked",
-    apply
-  );
-
 
   document.addEventListener(
     "lago:modern-ready",
