@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-    6;
+    7;
 
 
   const BASE_LAGO_MODEL =
@@ -25,38 +25,42 @@ import {
 
 
   /*
-   * =========================================================
-   * MODEL ORIENTATION
-   * =========================================================
+   * Source GLB:
    *
-   * Canonical Lago GLBs are relief models.
-   *
-   * Source axes:
-   *
-   * X = horizontal width
-   * Y = relief depth
-   * Z = vertical height
-   *
-   * Three.js camera looks toward -Z.
-   *
-   * Therefore every canonical GLB must first
-   * rotate -90 degrees around X:
-   *
-   * old Z -> screen Y
-   * old -Y -> camera-facing Z
-   *
-   * Without this rotation the camera sees
-   * only the thin edge of the relief.
+   * X = width
+   * Y = depth
+   * Z = height
    */
-
   const CHARACTER_ROTATION_X =
     -Math.PI /
     2;
 
 
+  const loader =
+    new GLTFLoader();
+
+
   /*
-   * GLB is the canonical character renderer.
+   * Parsed normalized models.
    */
+  const modelCache =
+    new Map();
+
+
+  /*
+   * Prevent same GLB from being loaded
+   * several times simultaneously.
+   */
+  const modelPromiseCache =
+    new Map();
+
+
+  /*
+   * =========================================================
+   * MAIN RENDERER
+   * =========================================================
+   */
+
 
   let canvas =
     null;
@@ -98,7 +102,7 @@ import {
     "";
 
 
-  let loadNonce =
+  let requestNonce =
     0;
 
 
@@ -106,21 +110,64 @@ import {
     0;
 
 
-  const loader =
-    new GLTFLoader();
+  /*
+   * =========================================================
+   * ONE SHARED PREVIEW RENDERER
+   * =========================================================
+   */
 
 
-  const modelCache =
-    new Map();
+  let previewRenderer =
+    null;
+
+
+  let previewScene =
+    null;
+
+
+  let previewCamera =
+    null;
+
+
+  let previewHolder =
+    null;
+
+
+  const previewQueue =
+    [];
+
+
+  let previewBusy =
+    false;
 
 
   /*
    * =========================================================
-   * CHARACTER SELECTION
+   * STATE
    * =========================================================
    */
 
+
   function selectedId() {
+
+    const accountState =
+      window.LAGO_ACCOUNT
+        ?.getState
+        ?.();
+
+
+    if (
+      accountState
+        ?.selectedSkin
+    ) {
+
+      return String(
+        accountState
+          .selectedSkin
+      );
+
+    }
+
 
     return String(
       window.LAGO
@@ -163,9 +210,6 @@ import {
       selectedId();
 
 
-    /*
-     * Original Lago.
-     */
     if (
       BASE_IDS.has(
         id
@@ -188,9 +232,6 @@ import {
     }
 
 
-    /*
-     * Complete standalone character.
-     */
     const character =
       window.LAGO_CHARACTERS
         ?.getById
@@ -221,11 +262,287 @@ import {
 
 
     /*
-     * Lago skin / creator item
-     * without own GLB:
-     * keep existing 2D fallback.
+     * Lago skin without its own GLB.
      */
     return null;
+
+  }
+
+
+  /*
+   * =========================================================
+   * MODEL LOADING
+   * =========================================================
+   */
+
+
+  function normalizeModel(
+    object
+  ) {
+
+    object.rotation.set(
+      CHARACTER_ROTATION_X,
+      0,
+      0
+    );
+
+
+    object.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    object.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    object.updateMatrixWorld(
+      true
+    );
+
+
+    const initialBox =
+      new THREE.Box3()
+        .setFromObject(
+          object
+        );
+
+
+    const initialSize =
+      initialBox.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const largest =
+      Math.max(
+        initialSize.x,
+        initialSize.y,
+        initialSize.z,
+        0.001
+      );
+
+
+    const targetSize =
+      2.35;
+
+
+    const scale =
+      targetSize /
+      largest;
+
+
+    object.scale.setScalar(
+      scale
+    );
+
+
+    object.updateMatrixWorld(
+      true
+    );
+
+
+    const scaledBox =
+      new THREE.Box3()
+        .setFromObject(
+          object
+        );
+
+
+    const center =
+      scaledBox.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    object.position.x -=
+      center.x;
+
+
+    object.position.y -=
+      center.y;
+
+
+    object.position.z -=
+      center.z;
+
+
+    object.position.y +=
+      0.04;
+
+
+    object.updateMatrixWorld(
+      true
+    );
+
+
+    /*
+     * Models are essentially static game characters.
+     * Disable unnecessary automatic matrix work
+     * inside individual meshes.
+     */
+    object.traverse(
+      child => {
+
+        if (
+          child.isMesh
+        ) {
+
+          child.frustumCulled =
+            true;
+
+        }
+
+      }
+    );
+
+  }
+
+
+  function getTemplate(
+    modelUrl
+  ) {
+
+    const key =
+      String(
+        modelUrl ||
+        ""
+      ).trim();
+
+
+    if (
+      !key
+    ) {
+
+      return Promise.reject(
+        new Error(
+          "Missing GLB URL"
+        )
+      );
+
+    }
+
+
+    if (
+      modelCache.has(
+        key
+      )
+    ) {
+
+      return Promise.resolve(
+        modelCache.get(
+          key
+        )
+      );
+
+    }
+
+
+    if (
+      modelPromiseCache.has(
+        key
+      )
+    ) {
+
+      return modelPromiseCache.get(
+        key
+      );
+
+    }
+
+
+    const promise =
+      new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          loader.load(
+
+            key,
+
+
+            gltf => {
+
+              try {
+
+                const template =
+                  gltf.scene;
+
+
+                normalizeModel(
+                  template
+                );
+
+
+                modelCache.set(
+                  key,
+                  template
+                );
+
+
+                modelPromiseCache.delete(
+                  key
+                );
+
+
+                resolve(
+                  template
+                );
+
+              } catch (
+                error
+              ) {
+
+                modelPromiseCache.delete(
+                  key
+                );
+
+
+                reject(
+                  error
+                );
+
+              }
+
+            },
+
+
+            undefined,
+
+
+            error => {
+
+              modelPromiseCache.delete(
+                key
+              );
+
+
+              reject(
+                error
+              );
+
+            }
+
+          );
+
+        }
+      );
+
+
+    modelPromiseCache.set(
+      key,
+      promise
+    );
+
+
+    return promise;
 
   }
 
@@ -235,6 +552,7 @@ import {
    * VISIBILITY
    * =========================================================
    */
+
 
   function show2D(
     show
@@ -288,9 +606,10 @@ import {
 
   /*
    * =========================================================
-   * HOST
+   * MAIN HOST
    * =========================================================
    */
+
 
   function bindHost() {
 
@@ -345,11 +664,36 @@ import {
   }
 
 
-  /*
-   * =========================================================
-   * RESIZE
-   * =========================================================
-   */
+  function desiredPixelRatio() {
+
+    const dpr =
+      window.devicePixelRatio ||
+      1;
+
+
+    /*
+     * Retina 2–3x rendering is
+     * needlessly expensive for animated GLB.
+     *
+     * 1.35–1.5 stays sharp while keeping
+     * stable frame pacing.
+     */
+    const cap =
+      window.innerWidth <=
+      720
+
+        ? 1.35
+
+        : 1.5;
+
+
+    return Math.min(
+      dpr,
+      cap
+    );
+
+  }
+
 
   function resize() {
 
@@ -402,6 +746,11 @@ import {
       );
 
 
+    renderer.setPixelRatio(
+      desiredPixelRatio()
+    );
+
+
     renderer.setSize(
       width,
       height,
@@ -419,245 +768,24 @@ import {
   }
 
 
-  /*
-   * =========================================================
-   * MODEL NORMALIZATION
-   * =========================================================
-   */
+  function mainOverlayOpen() {
 
-  function normalizeModel(
-    object
-  ) {
-
-    if (
-      !object
-    ) {
-
-      return;
-
-    }
-
-
-    /*
-     * FIRST:
-     * rotate the relief into its
-     * canonical front-facing pose.
-     *
-     * This must happen BEFORE bounds
-     * and scale are calculated.
-     */
-    object.rotation.set(
-      CHARACTER_ROTATION_X,
-      0,
-      0
-    );
-
-
-    object.position.set(
-      0,
-      0,
-      0
-    );
-
-
-    object.scale.set(
-      1,
-      1,
-      1
-    );
-
-
-    object.updateMatrixWorld(
-      true
-    );
-
-
-    /*
-     * Read correctly rotated bounds.
-     */
-    const initialBox =
-      new THREE.Box3()
-        .setFromObject(
-          object
-        );
-
-
-    const initialSize =
-      initialBox.getSize(
-        new THREE.Vector3()
-      );
-
-
-    const largest =
-      Math.max(
-        initialSize.x,
-        initialSize.y,
-        initialSize.z,
-        0.001
-      );
-
-
-    /*
-     * Canonical safe visual envelope.
-     */
-    const targetSize =
-      2.35;
-
-
-    const scale =
-      targetSize /
-      largest;
-
-
-    object.scale.setScalar(
-      scale
-    );
-
-
-    object.updateMatrixWorld(
-      true
-    );
-
-
-    /*
-     * Recalculate bounds after scale.
-     */
-    const scaledBox =
-      new THREE.Box3()
-        .setFromObject(
-          object
-        );
-
-
-    const center =
-      scaledBox.getCenter(
-        new THREE.Vector3()
-      );
-
-
-    /*
-     * Center all axes.
-     *
-     * Previously Z was treated as
-     * horizontal centering because
-     * the model had not been rotated.
-     *
-     * After canonical rotation,
-     * normal XYZ centering is correct.
-     */
-    object.position.x -=
-      center.x;
-
-
-    object.position.y -=
-      center.y;
-
-
-    object.position.z -=
-      center.z;
-
-
-    /*
-     * Tiny optical lift.
-     */
-    object.position.y +=
-      0.04;
-
-
-    object.updateMatrixWorld(
-      true
+    return Boolean(
+      document.querySelector(
+        [
+          "#lagoShop.active",
+          "#lagoCollection.active",
+          "#lagoCreator.active",
+          "#lagoGames.active",
+          "#lagoProfile.active"
+        ].join(
+          ","
+        )
+      )
     );
 
   }
 
-
-  /*
-   * =========================================================
-   * ACTIVE MODEL
-   * =========================================================
-   */
-
-  function clearModel() {
-
-    if (
-      activeModel &&
-      holder
-    ) {
-
-      holder.remove(
-        activeModel
-      );
-
-    }
-
-
-    activeModel =
-      null;
-
-
-    activeModelUrl =
-      "";
-
-  }
-
-
-  function installModel(
-    template,
-    modelUrl
-  ) {
-
-    clearModel();
-
-
-    activeModel =
-      template.clone(
-        true
-      );
-
-
-    activeModelUrl =
-      modelUrl;
-
-
-    holder.add(
-      activeModel
-    );
-
-
-    /*
-     * Holder remains neutral.
-     *
-     * Canonical front rotation is stored
-     * inside the normalized model itself.
-     */
-    holder.position.set(
-      0,
-      0,
-      0
-    );
-
-
-    holder.rotation.set(
-      0,
-      0,
-      0
-    );
-
-
-    holder.scale.set(
-      1,
-      1,
-      1
-    );
-
-  }
-
-
-  /*
-   * =========================================================
-   * MAIN RENDERER
-   * =========================================================
-   */
 
   function createRenderer() {
 
@@ -716,12 +844,6 @@ import {
       "manipulation";
 
 
-    canvas.setAttribute(
-      "aria-label",
-      "Lago character 3D"
-    );
-
-
     host.appendChild(
       canvas
     );
@@ -742,15 +864,6 @@ import {
           "high-performance"
 
       });
-
-
-    renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio ||
-        1,
-        2
-      )
-    );
 
 
     renderer.outputColorSpace =
@@ -789,10 +902,6 @@ import {
       0
     );
 
-
-    /*
-     * Neutral front lighting.
-     */
 
     scene.add(
       new THREE.HemisphereLight(
@@ -865,11 +974,72 @@ import {
       host;
 
 
+    /*
+     * Safari / WebKit resilience.
+     */
+    canvas.addEventListener(
+      "webglcontextlost",
+      event => {
+
+        event.preventDefault();
+
+
+        show3D(
+          false
+        );
+
+
+        show2D(
+          true
+        );
+
+      }
+    );
+
+
+    canvas.addEventListener(
+      "webglcontextrestored",
+      () => {
+
+        requestedModelUrl =
+          "";
+
+
+        activeModelUrl =
+          "";
+
+
+        resize();
+
+
+        apply();
+
+      }
+    );
+
+
     resize();
 
 
     renderer.setAnimationLoop(
       () => {
+
+        /*
+         * Do not burn GPU while tab
+         * or another full-screen Lago page
+         * is covering PLAY.
+         */
+        if (
+          document.hidden ||
+          canvas.hidden ||
+          !activeModel ||
+          mainOverlayOpen()
+        ) {
+
+          return;
+
+        }
+
 
         const time =
           performance.now() *
@@ -877,57 +1047,43 @@ import {
 
 
         tapKick *=
-          0.82;
+          0.80;
 
 
-        if (
-          activeModel
-        ) {
-
-          /*
-           * Tiny idle motion.
-           *
-           * Rotation Y now means a
-           * small left/right face turn,
-           * because the model is finally
-           * standing upright.
-           */
-          holder.position.y =
-            Math.sin(
-              time *
-              1.8
-            ) *
-            0.045;
+        /*
+         * Extremely light idle animation.
+         */
+        holder.position.y =
+          Math.sin(
+            time *
+            1.55
+          ) *
+          0.035;
 
 
-          holder.rotation.y =
-            Math.sin(
-              time *
-              0.65
-            ) *
-            0.035;
+        holder.rotation.y =
+          Math.sin(
+            time *
+            0.58
+          ) *
+          0.025;
 
 
-          /*
-           * Tap squash.
-           */
-          holder.scale.set(
+        holder.scale.set(
 
-            1 +
-              tapKick *
-              0.055,
+          1 +
+            tapKick *
+            0.045,
 
-            1 -
-              tapKick *
-              0.045,
+          1 -
+            tapKick *
+            0.035,
 
-            1 +
-              tapKick *
-              0.025
+          1 +
+            tapKick *
+            0.02
 
-          );
-
-        }
+        );
 
 
         renderer.render(
@@ -963,13 +1119,97 @@ import {
   }
 
 
+  function clearModel() {
+
+    if (
+      activeModel &&
+      holder
+    ) {
+
+      holder.remove(
+        activeModel
+      );
+
+    }
+
+
+    activeModel =
+      null;
+
+
+    activeModelUrl =
+      "";
+
+  }
+
+
+  function installModel(
+    template,
+    modelUrl
+  ) {
+
+    clearModel();
+
+
+    activeModel =
+      template.clone(
+        true
+      );
+
+
+    activeModelUrl =
+      modelUrl;
+
+
+    holder.add(
+      activeModel
+    );
+
+
+    holder.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    holder.rotation.set(
+      0,
+      0,
+      0
+    );
+
+
+    holder.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    show2D(
+      false
+    );
+
+
+    show3D(
+      true
+    );
+
+
+    resize();
+
+  }
+
+
   /*
    * =========================================================
-   * LOAD MAIN CHARACTER
+   * MAIN CHARACTER LOAD
    * =========================================================
    */
 
-  function loadTarget(
+
+  async function loadTarget(
     target
   ) {
 
@@ -991,9 +1231,6 @@ import {
       modelUrl;
 
 
-    /*
-     * Correct GLB already installed.
-     */
     if (
       activeModel &&
       activeModelUrl ===
@@ -1018,9 +1255,13 @@ import {
     }
 
 
+    const nonce =
+      ++requestNonce;
+
+
     /*
-     * Never show previous character
-     * while another GLB is loading.
+     * Keep 2D fallback visible only
+     * while asynchronous GLB loads.
      */
     show3D(
       false
@@ -1032,268 +1273,110 @@ import {
     );
 
 
-    /*
-     * Cached model.
-     */
-    if (
-      modelCache.has(
-        modelUrl
-      )
-    ) {
+    try {
+
+      const template =
+        await getTemplate(
+          modelUrl
+        );
+
+
+      if (
+        nonce !==
+          requestNonce ||
+        requestedModelUrl !==
+          modelUrl
+      ) {
+
+        return;
+
+      }
+
+
+      const current =
+        resolveTarget();
+
+
+      if (
+        !current ||
+        current.url !==
+          modelUrl
+      ) {
+
+        return;
+
+      }
+
 
       installModel(
-        modelCache.get(
-          modelUrl
-        ),
+        template,
         modelUrl
       );
 
+    } catch (
+      error
+    ) {
 
-      show2D(
-        false
-      );
+      if (
+        requestedModelUrl ===
+        modelUrl
+      ) {
 
-
-      show3D(
-        true
-      );
-
-
-      resize();
+        clearModel();
 
 
-      return;
-
-    }
-
-
-    const nonce =
-      ++loadNonce;
-
-
-    loader.load(
-
-      modelUrl,
-
-
-      gltf => {
-
-        const template =
-          gltf.scene;
-
-
-        normalizeModel(
-          template
-        );
-
-
-        modelCache.set(
-          modelUrl,
-          template
-        );
-
-
-        /*
-         * Ignore stale async result.
-         */
-        if (
-          nonce !==
-            loadNonce ||
-          requestedModelUrl !==
-            modelUrl
-        ) {
-
-          return;
-
-        }
-
-
-        const current =
-          resolveTarget();
-
-
-        if (
-          !current ||
-          current.url !==
-            modelUrl
-        ) {
-
-          return;
-
-        }
-
-
-        installModel(
-          template,
-          modelUrl
-        );
-
-
-        show2D(
+        show3D(
           false
         );
 
 
-        show3D(
+        show2D(
           true
-        );
-
-
-        resize();
-
-      },
-
-
-      undefined,
-
-
-      error => {
-
-        if (
-          requestedModelUrl ===
-          modelUrl
-        ) {
-
-          clearModel();
-
-
-          show3D(
-            false
-          );
-
-
-          /*
-           * Fail safely to 2D.
-           */
-          show2D(
-            true
-          );
-
-        }
-
-
-        console.error(
-          "[LAGO 3D] GLB load failed:",
-          modelUrl,
-          error
         );
 
       }
 
-    );
+
+      console.error(
+        "[LAGO 3D] GLB load failed:",
+        modelUrl,
+        error
+      );
+
+    }
 
   }
 
 
   /*
    * =========================================================
-   * STATIC GLB PREVIEW
+   * SHARED STATIC PREVIEW RENDERER
    * =========================================================
-   *
-   * Shop and Collection use exactly
-   * the same normalized GLB template.
-   *
-   * Therefore main character and cards
-   * always have the same orientation.
    */
 
-  function destroyPreview(
-    host
-  ) {
 
-    const controller =
-      host
-        ?._lago3dPreviewController;
-
+  function ensurePreviewRenderer() {
 
     if (
-      controller
-        ?.destroy
+      previewRenderer
     ) {
 
-      controller.destroy();
+      return;
 
     }
 
 
-    if (
-      host
-    ) {
-
-      delete host
-        ._lago3dPreviewController;
-
-    }
-
-  }
-
-
-  function mountPreview(
-    host,
-    modelUrl
-  ) {
-
-    if (
-      !host ||
-      typeof modelUrl !==
-        "string" ||
-      !modelUrl.trim()
-    ) {
-
-      return null;
-
-    }
-
-
-    destroyPreview(
-      host
-    );
-
-
-    const previewCanvas =
+    const offscreenCanvas =
       document.createElement(
         "canvas"
       );
 
 
-    previewCanvas.className =
-      "lago-glb-preview-canvas";
-
-
-    previewCanvas.style.position =
-      "absolute";
-
-
-    previewCanvas.style.inset =
-      "0";
-
-
-    previewCanvas.style.width =
-      "100%";
-
-
-    previewCanvas.style.height =
-      "100%";
-
-
-    previewCanvas.style.display =
-      "block";
-
-
-    previewCanvas.style.pointerEvents =
-      "none";
-
-
-    host.appendChild(
-      previewCanvas
-    );
-
-
-    const previewRenderer =
+    previewRenderer =
       new THREE.WebGLRenderer({
 
         canvas:
-          previewCanvas,
+          offscreenCanvas,
 
         alpha:
           true,
@@ -1302,17 +1385,16 @@ import {
           true,
 
         powerPreference:
-          "low-power"
+          "low-power",
+
+        preserveDrawingBuffer:
+          true
 
       });
 
 
     previewRenderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio ||
-        1,
-        1.5
-      )
+      1
     );
 
 
@@ -1326,11 +1408,11 @@ import {
     );
 
 
-    const previewScene =
+    previewScene =
       new THREE.Scene();
 
 
-    const previewCamera =
+    previewCamera =
       new THREE.PerspectiveCamera(
         30,
         1,
@@ -1362,14 +1444,14 @@ import {
     );
 
 
-    const previewKey =
+    const key =
       new THREE.DirectionalLight(
         0xffffff,
         3
       );
 
 
-    previewKey.position.set(
+    key.position.set(
       -3,
       4,
       5
@@ -1377,18 +1459,18 @@ import {
 
 
     previewScene.add(
-      previewKey
+      key
     );
 
 
-    const previewFill =
+    const fill =
       new THREE.DirectionalLight(
         0xffd9ef,
-        1.15
+        1.1
       );
 
 
-    previewFill.position.set(
+    fill.position.set(
       4,
       1,
       3
@@ -1396,11 +1478,11 @@ import {
 
 
     previewScene.add(
-      previewFill
+      fill
     );
 
 
-    const previewHolder =
+    previewHolder =
       new THREE.Group();
 
 
@@ -1408,170 +1490,434 @@ import {
       previewHolder
     );
 
-
-    let destroyed =
-      false;
+  }
 
 
-    function drawPreview() {
+  function destroyPreview(
+    host
+  ) {
 
-      if (
-        destroyed
-      ) {
+    if (
+      !host
+    ) {
 
-        return;
-
-      }
-
-
-      const rect =
-        host
-          .getBoundingClientRect();
-
-
-      const width =
-        Math.max(
-          1,
-          Math.round(
-            rect.width
-          )
-        );
-
-
-      const height =
-        Math.max(
-          1,
-          Math.round(
-            rect.height
-          )
-        );
-
-
-      previewRenderer.setSize(
-        width,
-        height,
-        false
-      );
-
-
-      previewCamera.aspect =
-        width /
-        height;
-
-
-      previewCamera
-        .updateProjectionMatrix();
-
-
-      previewRenderer.render(
-        previewScene,
-        previewCamera
-      );
+      return;
 
     }
 
 
-    function installPreview(
-      template
+    const controller =
+      host
+        ._lago3dPreviewController;
+
+
+    if (
+      controller
     ) {
 
-      if (
-        destroyed
-      ) {
+      controller.destroyed =
+        true;
 
-        return;
+    }
 
-      }
 
+    delete host
+      ._lago3dPreviewController;
+
+
+    host
+      .querySelectorAll(
+        ".lago-glb-preview-image"
+      )
+      .forEach(
+        element =>
+          element.remove()
+      );
+
+  }
+
+
+  function previewDimensions(
+    host
+  ) {
+
+    const rect =
+      host
+        .getBoundingClientRect();
+
+
+    const rawWidth =
+      Math.max(
+        180,
+        rect.width ||
+        280
+      );
+
+
+    const rawHeight =
+      Math.max(
+        180,
+        rect.height ||
+        280
+      );
+
+
+    /*
+     * High enough for crisp cards,
+     * low enough for fast Safari rendering.
+     */
+    const scale =
+      Math.min(
+        1.35,
+        420 /
+          Math.max(
+            rawWidth,
+            rawHeight
+          )
+      );
+
+
+    return {
+
+      width:
+        Math.max(
+          180,
+          Math.round(
+            rawWidth *
+            scale
+          )
+        ),
+
+      height:
+        Math.max(
+          180,
+          Math.round(
+            rawHeight *
+            scale
+          )
+        )
+
+    };
+
+  }
+
+
+  async function processPreviewTask(
+    task
+  ) {
+
+    const {
+      host,
+      modelUrl,
+      controller
+    } =
+      task;
+
+
+    if (
+      controller.destroyed ||
+      !host.isConnected
+    ) {
+
+      return;
+
+    }
+
+
+    const template =
+      await getTemplate(
+        modelUrl
+      );
+
+
+    if (
+      controller.destroyed ||
+      !host.isConnected
+    ) {
+
+      return;
+
+    }
+
+
+    ensurePreviewRenderer();
+
+
+    previewHolder.clear();
+
+
+    const model =
+      template.clone(
+        true
+      );
+
+
+    previewHolder.add(
+      model
+    );
+
+
+    previewHolder.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    previewHolder.rotation.set(
+      0,
+      0,
+      0
+    );
+
+
+    previewHolder.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    const {
+      width,
+      height
+    } =
+      previewDimensions(
+        host
+      );
+
+
+    previewRenderer.setSize(
+      width,
+      height,
+      false
+    );
+
+
+    previewCamera.aspect =
+      width /
+      height;
+
+
+    previewCamera
+      .updateProjectionMatrix();
+
+
+    previewRenderer.render(
+      previewScene,
+      previewCamera
+    );
+
+
+    /*
+     * Snapshot once.
+     *
+     * Card no longer owns a live
+     * WebGL context afterwards.
+     */
+    const dataUrl =
+      previewRenderer
+        .domElement
+        .toDataURL(
+          "image/png"
+        );
+
+
+    if (
+      controller.destroyed ||
+      !host.isConnected
+    ) {
 
       previewHolder.clear();
 
-
-      const model =
-        template.clone(
-          true
-        );
-
-
-      previewHolder.add(
-        model
-      );
-
-
-      /*
-       * Static front pose.
-       *
-       * No idle rotation in cards.
-       */
-      previewHolder.position.set(
-        0,
-        0,
-        0
-      );
-
-
-      previewHolder.rotation.set(
-        0,
-        0,
-        0
-      );
-
-
-      previewHolder.scale.set(
-        1,
-        1,
-        1
-      );
-
-
-      drawPreview();
+      return;
 
     }
 
 
-    const observer =
-      new ResizeObserver(
-        drawPreview
+    const previewImage =
+      document.createElement(
+        "img"
       );
 
 
-    observer.observe(
+    previewImage.className =
+      "lago-glb-preview-image";
+
+
+    previewImage.alt =
+      "";
+
+
+    previewImage.draggable =
+      false;
+
+
+    previewImage.src =
+      dataUrl;
+
+
+    previewImage.style.position =
+      "absolute";
+
+
+    previewImage.style.inset =
+      "0";
+
+
+    previewImage.style.width =
+      "100%";
+
+
+    previewImage.style.height =
+      "100%";
+
+
+    previewImage.style.objectFit =
+      "contain";
+
+
+    previewImage.style.pointerEvents =
+      "none";
+
+
+    host
+      .querySelectorAll(
+        ".lago-glb-preview-image"
+      )
+      .forEach(
+        element =>
+          element.remove()
+      );
+
+
+    host.appendChild(
+      previewImage
+    );
+
+
+    controller.image =
+      previewImage;
+
+
+    previewHolder.clear();
+
+  }
+
+
+  async function pumpPreviewQueue() {
+
+    if (
+      previewBusy
+    ) {
+
+      return;
+
+    }
+
+
+    const task =
+      previewQueue.shift();
+
+
+    if (
+      !task
+    ) {
+
+      return;
+
+    }
+
+
+    previewBusy =
+      true;
+
+
+    try {
+
+      await processPreviewTask(
+        task
+      );
+
+    } catch (
+      error
+    ) {
+
+      if (
+        !task.controller
+          .destroyed
+      ) {
+
+        console.error(
+          "[LAGO 3D] Preview failed:",
+          task.modelUrl,
+          error
+        );
+
+      }
+
+    } finally {
+
+      previewBusy =
+        false;
+
+
+      /*
+       * Give Safari one frame
+       * between heavy GLB previews.
+       */
+      requestAnimationFrame(
+        pumpPreviewQueue
+      );
+
+    }
+
+  }
+
+
+  function mountPreview(
+    host,
+    modelUrl
+  ) {
+
+    if (
+      !host ||
+      typeof modelUrl !==
+        "string" ||
+      !modelUrl.trim()
+    ) {
+
+      return null;
+
+    }
+
+
+    destroyPreview(
       host
     );
 
 
     const controller = {
 
+      destroyed:
+        false,
+
+      image:
+        null,
+
       destroy() {
 
-        if (
-          destroyed
-        ) {
-
-          return;
-
-        }
-
-
-        destroyed =
+        controller.destroyed =
           true;
 
 
-        observer.disconnect();
-
-
-        previewHolder.clear();
-
-
-        previewRenderer.dispose();
-
-
-        previewRenderer
-          .forceContextLoss
+        controller.image
+          ?.remove
           ?.();
 
 
-        previewCanvas.remove();
+        controller.image =
+          null;
 
       }
 
@@ -1582,92 +1928,19 @@ import {
       controller;
 
 
-    const key =
-      modelUrl.trim();
+    previewQueue.push({
+
+      host,
+
+      modelUrl:
+        modelUrl.trim(),
+
+      controller
+
+    });
 
 
-    /*
-     * Same cache as main stage.
-     */
-    if (
-      modelCache.has(
-        key
-      )
-    ) {
-
-      installPreview(
-        modelCache.get(
-          key
-        )
-      );
-
-
-      return controller;
-
-    }
-
-
-    loader.load(
-
-      key,
-
-
-      gltf => {
-
-        if (
-          destroyed
-        ) {
-
-          return;
-
-        }
-
-
-        const template =
-          gltf.scene;
-
-
-        normalizeModel(
-          template
-        );
-
-
-        modelCache.set(
-          key,
-          template
-        );
-
-
-        installPreview(
-          template
-        );
-
-      },
-
-
-      undefined,
-
-
-      error => {
-
-        if (
-          destroyed
-        ) {
-
-          return;
-
-        }
-
-
-        console.error(
-          "[LAGO 3D] Preview load failed:",
-          key,
-          error
-        );
-
-      }
-
-    );
+    pumpPreviewQueue();
 
 
     return controller;
@@ -1677,22 +1950,17 @@ import {
 
   /*
    * =========================================================
-   * APPLY CHARACTER
+   * APPLY CURRENT CHARACTER
    * =========================================================
    */
 
+
   function apply() {
-
-    bindHost();
-
 
     const target =
       resolveTarget();
 
 
-    /*
-     * Character has no GLB.
-     */
     if (
       !target
     ) {
@@ -1701,7 +1969,7 @@ import {
         "";
 
 
-      loadNonce++;
+      requestNonce++;
 
 
       clearModel();
@@ -1738,8 +2006,15 @@ import {
    * =========================================================
    */
 
+
   document.addEventListener(
     "lago:state",
+    apply
+  );
+
+
+  document.addEventListener(
+    "lago:account-state",
     apply
   );
 
@@ -1751,8 +2026,34 @@ import {
 
 
   document.addEventListener(
+    "lago:character-unlocked",
+    apply
+  );
+
+
+  document.addEventListener(
     "lago:modern-ready",
     apply
+  );
+
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+
+        resize();
+
+
+        apply();
+
+      }
+
+    }
   );
 
 
@@ -1768,9 +2069,10 @@ import {
 
   /*
    * =========================================================
-   * TAP ANIMATION
+   * TAP
    * =========================================================
    */
+
 
   function pulseTap() {
 
@@ -1785,6 +2087,7 @@ import {
    * PUBLIC API
    * =========================================================
    */
+
 
   window.LAGO_CHARACTER_3D =
     Object.freeze({
@@ -1804,15 +2107,11 @@ import {
 
 
   /*
-   * Initial main character.
+   * Initial render.
    */
   apply();
 
 
-  /*
-   * Collection / Shop may already
-   * exist before this ES module loads.
-   */
   document.dispatchEvent(
     new CustomEvent(
       "lago:character-3d-ready",
