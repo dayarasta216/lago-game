@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 6;
+  const VERSION = 7;
 
 
   const LAGO_CHARACTER =
@@ -768,20 +768,18 @@
   }
 
 
-  function notifyCharacterEquipped(
+   function notifyCharacterEquipped(
     id
   ) {
 
-    window.LAGO_CHARACTER_RUNTIME
-      ?.apply
-      ?.();
-
-
-    window.LAGO_CHARACTER_3D
-      ?.apply
-      ?.();
-
-
+    /*
+     * Character runtimes already react
+     * to structural account state.
+     *
+     * Keep one semantic equip event for
+     * UI / compatibility listeners.
+     * Do not invoke renderers directly.
+     */
     document.dispatchEvent(
       new CustomEvent(
         "lago:character-equipped",
@@ -794,6 +792,7 @@
         }
       )
     );
+
   }
 
 
@@ -824,9 +823,6 @@
       notifyCharacterEquipped(
         "lago"
       );
-
-
-      render();
 
       return true;
     }
@@ -872,9 +868,6 @@
     notifyCharacterEquipped(
       id
     );
-
-
-    render();
 
     return true;
   }
