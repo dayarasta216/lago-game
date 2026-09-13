@@ -1,14 +1,11 @@
 (() => {
   "use strict";
 
-
- const VERSION =
-  5;
+  const VERSION = 6;
 
 
   const LAGO_CHARACTER =
     Object.freeze({
-
       id:
         "lago",
 
@@ -16,14 +13,13 @@
         "Lago",
 
       asset:
-  "./lago-snail.png",
+        "./lago-snail.png",
 
-model3d:
-  "./assets/model/lago.glb?v=4",
+      model3d:
+        "./assets/model/lago.glb?v=4",
 
-rarity:
-  "ORIGINAL"
-      
+      rarity:
+        "ORIGINAL"
     });
 
 
@@ -33,13 +29,10 @@ rarity:
       {
         id:
           "default",
-
         name:
           "Classic Lago",
-
         emoji:
           "🐌",
-
         rarity:
           "COMMON"
       },
@@ -47,13 +40,10 @@ rarity:
       {
         id:
           "lime",
-
         name:
           "Lime",
-
         emoji:
           "🐌",
-
         rarity:
           "COMMON"
       },
@@ -61,13 +51,10 @@ rarity:
       {
         id:
           "ocean",
-
         name:
           "Ocean",
-
         emoji:
           "🌊",
-
         rarity:
           "RARE"
       },
@@ -75,13 +62,10 @@ rarity:
       {
         id:
           "galaxy",
-
         name:
           "Galaxy",
-
         emoji:
           "🌌",
-
         rarity:
           "EPIC"
       },
@@ -89,13 +73,10 @@ rarity:
       {
         id:
           "lava",
-
         name:
           "Lava",
-
         emoji:
           "🔥",
-
         rarity:
           "EPIC"
       },
@@ -103,13 +84,10 @@ rarity:
       {
         id:
           "gold",
-
         name:
           "Golden Lago",
-
         emoji:
           "👑",
-
         rarity:
           "LEGENDARY"
       },
@@ -117,13 +95,10 @@ rarity:
       {
         id:
           "void",
-
         name:
           "Void",
-
         emoji:
           "🕳️",
-
         rarity:
           "MYTHIC"
       },
@@ -131,13 +106,10 @@ rarity:
       {
         id:
           "diamond",
-
         name:
           "Diamond",
-
         emoji:
           "💎",
-
         rarity:
           "MYTHIC"
       }
@@ -149,52 +121,75 @@ rarity:
     "lago_last_lago_skin_v1";
 
 
-  /*
-   * =========================================================
-   * STATE
-   * =========================================================
-   */
+  let lastHeroKey =
+    "";
+
+  let lastCharactersKey =
+    "";
+
+  let lastSkinsKey =
+    "";
 
 
   function state() {
 
     return (
+      window.LAGO_ACCOUNT
+        ?.getState
+        ?.() ||
+
       window.LAGO
         ?.getState
         ?.() ||
+
       {
         skins: [],
         selectedSkin:
           "default"
       }
     );
+  }
 
+
+  function selectSkin(id) {
+
+    if (
+      typeof window.LAGO_ACCOUNT
+        ?.selectSkin ===
+      "function"
+    ) {
+
+      return (
+        window.LAGO_ACCOUNT
+          .selectSkin(
+            id
+          ) === true
+      );
+    }
+
+
+    return (
+      window.LAGO
+        ?.selectSkin
+        ?.(
+          id
+        ) === true
+    );
   }
 
 
   function ownedIds() {
 
     const value =
-      state()
-        .skins;
+      state().skins;
 
 
     return new Set(
-      Array.isArray(
-        value
-      )
+      Array.isArray(value)
         ? value
         : []
     );
-
   }
-
-
-  /*
-   * =========================================================
-   * CHARACTER CATALOG
-   * =========================================================
-   */
 
 
   function comicCharacters() {
@@ -202,47 +197,36 @@ rarity:
     return (
       window.LAGO_CHARACTERS
         ?.getAll
-        ?.() ||
-      []
+        ?.() || []
     );
-
   }
 
 
   function characters() {
 
     return [
-
       LAGO_CHARACTER,
-
       ...comicCharacters()
-
     ];
-
   }
 
 
-  function isComicCharacter(
-    id
-  ) {
+  function isComicCharacter(id) {
 
     return (
       window.LAGO_CHARACTERS
         ?.isComicCharacter
         ?.(
           id
-        ) ===
-      true
+        ) === true
     );
-
   }
 
 
   function selectedCharacterId() {
 
     const selected =
-      state()
-        .selectedSkin ||
+      state().selectedSkin ||
       "default";
 
 
@@ -251,14 +235,11 @@ rarity:
         selected
       )
     ) {
-
       return selected;
-
     }
 
 
     return "lago";
-
   }
 
 
@@ -271,49 +252,36 @@ rarity:
     return (
       characters()
         .find(
-          character =>
-            character.id ===
-            id
+          item =>
+            item.id === id
         ) ||
       LAGO_CHARACTER
     );
-
   }
 
 
-  /*
-   * =========================================================
-   * LAGO SKIN MEMORY
-   * =========================================================
-   */
+  function rememberLagoSkin(id) {
+
+    const exists =
+      LAGO_SKINS.some(
+        skin =>
+          skin.id === id
+      );
 
 
-  function rememberLagoSkin(
-    id
-  ) {
-
-    const skin =
-      LAGO_SKINS
-        .find(
-          item =>
-            item.id ===
-            id
-        );
-
-
-    if (!skin)
+    if (!exists) {
       return;
+    }
 
 
     try {
 
       localStorage.setItem(
         LAST_LAGO_SKIN_KEY,
-        skin.id
+        id
       );
 
     } catch {}
-
   }
 
 
@@ -334,18 +302,15 @@ rarity:
     } catch {}
 
 
-    const skinExists =
+    const exists =
       LAGO_SKINS.some(
         skin =>
-          skin.id ===
-          id
+          skin.id === id
       );
 
 
-    if (!skinExists) {
-
+    if (!exists) {
       return "default";
-
     }
 
 
@@ -355,247 +320,245 @@ rarity:
         id
       )
     ) {
-
       return "default";
-
     }
 
 
     return id;
-
   }
 
 
-  /*
-   * =========================================================
-   * UI HELPERS
-   * =========================================================
-   */
-
-
-  function rarityClass(
-    rarity
-  ) {
+  function rarityClass(rarity) {
 
     return (
       "lago-rarity-" +
       String(
         rarity ||
         "COMMON"
+      ).toLowerCase()
+    );
+  }
+
+
+  function escapeAttribute(value) {
+
+    return String(
+      value ?? ""
+    )
+      .replaceAll(
+        "&",
+        "&amp;"
       )
-        .toLowerCase()
-    );
-
-  }
-
-
-  function escapeAttribute(
-  value
-) {
-
-  return String(
-    value ?? ""
-  )
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    );
-
-}
-
-
-function createCharacterVisual(
-  character,
-  className
-) {
-
-  const model3d =
-    typeof character
-      ?.model3d ===
-      "string"
-      ? character.model3d.trim()
-      : "";
-
-
-  /*
-   * GLB is the primary Collection visual.
-   */
-  if (model3d) {
-
-    return `
-      <div
-        class="${className} lago-glb-preview-host"
-        data-lago-glb-preview="${escapeAttribute(
-          model3d
-        )}"
-        role="img"
-        aria-label="${escapeAttribute(
-          character.name
-        )}"
-      ></div>
-    `;
-
-  }
-
-
-  /*
-   * Temporary compatibility fallback.
-   */
-  const asset =
-    typeof character
-      ?.asset ===
-      "string"
-      ? character.asset.trim()
-      : "";
-
-
-  if (!asset) {
-
-    return `
-      <div
-        class="${className} lago-character-visual-empty"
-        role="img"
-        aria-label="${escapeAttribute(
-          character.name
-        )}"
-      ></div>
-    `;
-
-  }
-
-
-  return `
-    <img
-      class="${className}"
-      src="${escapeAttribute(
-        asset
-      )}"
-      alt="${escapeAttribute(
-        character.name
-      )}"
-      draggable="false"
-    >
-  `;
-
-}
-
-
-function destroyPreviewHosts(
-  root
-) {
-
-  if (!root) {
-
-    return;
-
-  }
-
-
-  root
-    .querySelectorAll(
-      "[data-lago-glb-preview]"
-    )
-    .forEach(
-      host => {
-
-        window.LAGO_CHARACTER_3D
-          ?.destroyPreview
-          ?.(
-            host
-          );
-
-      }
-    );
-
-}
-
-
-function mountPreviewHosts(
-  root
-) {
-
-  const page =
-    document.getElementById(
-      "lagoCollection"
-    );
-
-
-  /*
-   * Do not create WebGL contexts while
-   * Collection is hidden.
-   */
-  if (
-    !root ||
-    !page
-      ?.classList
-      .contains(
-        "active"
+      .replaceAll(
+        '"',
+        "&quot;"
       )
+      .replaceAll(
+        "<",
+        "&lt;"
+      )
+      .replaceAll(
+        ">",
+        "&gt;"
+      );
+  }
+
+
+  /*
+   * Hero = GLB first.
+   */
+  function createHeroVisual(
+    character,
+    className
   ) {
 
-    return;
+    const model3d =
+      typeof character
+        ?.model3d ===
+        "string"
+        ? character.model3d.trim()
+        : "";
 
+
+    if (model3d) {
+
+      return `
+        <div
+          class="
+            ${className}
+            lago-glb-preview-host
+          "
+          data-lago-glb-preview="${escapeAttribute(
+            model3d
+          )}"
+          role="img"
+          aria-label="${escapeAttribute(
+            character.name
+          )}"
+        ></div>
+      `;
+    }
+
+
+    return createThumbVisual(
+      character,
+      className
+    );
   }
 
 
-  root
-    .querySelectorAll(
-      "[data-lago-glb-preview]"
-    )
-    .forEach(
-      host => {
+  /*
+   * Grid cards = thumbnail first.
+   *
+   * This avoids parsing 5–8 GLBs
+   * merely to open Collection.
+   */
+  function createThumbVisual(
+    character,
+    className
+  ) {
 
-        const model3d =
-          host.dataset
-            .lagoGlbPreview;
+    const asset =
+      typeof character
+        ?.asset ===
+        "string"
+        ? character.asset.trim()
+        : "";
 
 
-        if (!model3d) {
+    if (asset) {
 
-          return;
+      return `
+        <img
+          class="${className}"
+          src="${escapeAttribute(
+            asset
+          )}"
+          alt="${escapeAttribute(
+            character.name
+          )}"
+          draggable="false"
+          loading="lazy"
+          decoding="async"
+        >
+      `;
+    }
 
-        }
+
+    const model3d =
+      typeof character
+        ?.model3d ===
+        "string"
+        ? character.model3d.trim()
+        : "";
 
 
-        window.LAGO_CHARACTER_3D
-          ?.mountPreview
-          ?.(
-            host,
+    if (model3d) {
+
+      return `
+        <div
+          class="
+            ${className}
+            lago-glb-preview-host
+          "
+          data-lago-glb-preview="${escapeAttribute(
             model3d
-          );
+          )}"
+          role="img"
+          aria-label="${escapeAttribute(
+            character.name
+          )}"
+        ></div>
+      `;
+    }
 
-      }
-    );
 
-}
+    return `
+      <div
+        class="
+          ${className}
+          lago-character-visual-empty
+        "
+      ></div>
+    `;
+  }
+
+
+  function mountPreviewHosts(root) {
+
+    const page =
+      document.getElementById(
+        "lagoCollection"
+      );
+
+
+    if (
+      !root ||
+      !page?.classList.contains(
+        "active"
+      )
+    ) {
+      return;
+    }
+
+
+    root
+      .querySelectorAll(
+        "[data-lago-glb-preview]"
+      )
+      .forEach(
+        host => {
+
+          /*
+           * Never regenerate an already
+           * completed static snapshot.
+           */
+          if (
+            host.querySelector(
+              ".lago-glb-preview-image"
+            ) ||
+            host
+              ._lago3dPreviewController
+          ) {
+            return;
+          }
+
+
+          const model =
+            host.dataset
+              .lagoGlbPreview;
+
+
+          if (!model) {
+            return;
+          }
+
+
+          window.LAGO_CHARACTER_3D
+            ?.mountPreview
+            ?.(
+              host,
+              model
+            );
+        }
+      );
+  }
 
 
   function create() {
 
-    if (
+    let page =
       document.getElementById(
         "lagoCollection"
-      )
-    ) {
+      );
 
-      return;
 
+    if (page) {
+      return page;
     }
 
 
-    const page =
+    page =
       document.createElement(
         "div"
       );
@@ -606,11 +569,9 @@ function mountPreviewHosts(
 
 
     page.innerHTML = `
-
       <header
         class="lago-collection-header"
       >
-
         <button
           class="lago-collection-back"
           id="lagoCollectionBack"
@@ -619,48 +580,36 @@ function mountPreviewHosts(
           ←
         </button>
 
-
         <div
           class="lago-collection-title"
         >
           COLLECTION
         </div>
 
-
         <div
           class="lago-collection-counter"
           id="lagoCollectionCounter"
         >
-          1/6
+          1/8
         </div>
-
       </header>
-
 
       <main
         class="lago-collection-content"
       >
-
-        <!-- =========================================
-             CURRENT CHARACTER
-             ========================================= -->
-
         <section
           class="lago-collection-hero"
         >
-
           <div
             class="lago-collection-hero-title"
           >
             CURRENT CHARACTER
           </div>
 
-
           <div
             class="lago-collection-current"
             id="lagoCollectionCurrent"
           ></div>
-
 
           <div
             class="lago-collection-current-name"
@@ -669,77 +618,55 @@ function mountPreviewHosts(
             Lago
           </div>
 
-
           <div
             class="lago-collection-current-rarity"
             id="lagoCollectionCurrentRarity"
           >
             ORIGINAL
           </div>
-
         </section>
-
-
-        <!-- =========================================
-             REAL CHARACTERS
-             ========================================= -->
 
         <section
           class="lago-collection-section"
         >
-
           <div
             class="lago-collection-section-title"
           >
             CHARACTERS
           </div>
 
-
           <div
             class="lago-skin-grid"
             id="lagoCharacterGrid"
           ></div>
-
         </section>
-
-
-        <!-- =========================================
-             LAGO SKINS
-             ========================================= -->
 
         <section
           class="lago-collection-section"
         >
-
           <div
             class="lago-collection-section-title"
           >
             LAGO SKINS
           </div>
 
-
           <div
             class="lago-skin-grid"
             id="lagoSkinGrid"
           ></div>
-
         </section>
-
       </main>
-
 
       <div
         class="lago-collection-toast"
         id="lagoCollectionToast"
       ></div>
-
     `;
 
 
-    document.body
-      .appendChild(
-        page
-      );
+    document.body.appendChild(
+      page
+    );
 
 
     page
@@ -751,12 +678,56 @@ function mountPreviewHosts(
         hide
       );
 
+
+    /*
+     * Event delegation.
+     *
+     * Cards can be rebuilt without
+     * recreating hundreds of listeners.
+     */
+    page.addEventListener(
+      "click",
+      event => {
+
+        const character =
+          event.target.closest(
+            "[data-character]"
+          );
+
+
+        if (character) {
+
+          equipCharacter(
+            character.dataset
+              .character
+          );
+
+          return;
+        }
+
+
+        const skin =
+          event.target.closest(
+            "[data-lago-skin]"
+          );
+
+
+        if (skin) {
+
+          equipLagoSkin(
+            skin.dataset
+              .lagoSkin
+          );
+        }
+      }
+    );
+
+
+    return page;
   }
 
 
-  function toast(
-    message
-  ) {
+  function toast(message) {
 
     const element =
       document.getElementById(
@@ -764,14 +735,14 @@ function mountPreviewHosts(
       );
 
 
-    if (!element)
+    if (!element) {
       return;
+    }
 
 
     element.textContent =
       String(
-        message ||
-        ""
+        message || ""
       );
 
 
@@ -788,87 +759,85 @@ function mountPreviewHosts(
     element._timer =
       setTimeout(
         () => {
-
           element.classList.remove(
             "show"
           );
-
         },
         1500
       );
-
   }
 
 
-  /*
-   * =========================================================
-   * EQUIP CHARACTER
-   * =========================================================
-   */
-
-
-  function equipCharacter(
+  function notifyCharacterEquipped(
     id
   ) {
 
-    /*
-     * Returning to Lago restores
-     * the player's previous Lago skin.
-     */
+    window.LAGO_CHARACTER_RUNTIME
+      ?.apply
+      ?.();
+
+
+    window.LAGO_CHARACTER_3D
+      ?.apply
+      ?.();
+
+
+    document.dispatchEvent(
+      new CustomEvent(
+        "lago:character-equipped",
+        {
+          detail: {
+            id,
+            source:
+              "collection"
+          }
+        }
+      )
+    );
+  }
+
+
+  function equipCharacter(id) {
 
     if (
-      id ===
-      "lago"
+      id === "lago"
     ) {
 
       const skin =
         getLastLagoSkin();
 
 
-      const ok =
-        window.LAGO
-          ?.selectSkin
-          ?.(
-            skin
-          );
-
-
-      if (!ok) {
+      if (
+        !selectSkin(
+          skin
+        )
+      ) {
 
         toast(
           "EQUIP FAILED"
         );
 
         return false;
-
       }
 
 
-      window.LAGO_CHARACTER_RUNTIME
-        ?.apply
-        ?.();
+      notifyCharacterEquipped(
+        "lago"
+      );
 
 
       render();
 
-
       return true;
-
     }
 
-
-    /*
-     * Comic character.
-     */
 
     if (
       !isComicCharacter(
         id
       )
     ) {
-
       return false;
-
     }
 
 
@@ -883,69 +852,50 @@ function mountPreviewHosts(
       );
 
       return false;
-
     }
 
 
-    const ok =
-      window.LAGO
-        ?.selectSkin
-        ?.(
-          id
-        );
-
-
-    if (!ok) {
+    if (
+      !selectSkin(
+        id
+      )
+    ) {
 
       toast(
         "EQUIP FAILED"
       );
 
       return false;
-
     }
 
 
-    window.LAGO_CHARACTER_RUNTIME
-      ?.apply
-      ?.();
+    notifyCharacterEquipped(
+      id
+    );
 
 
     render();
 
-
     return true;
-
   }
 
 
-  /*
-   * =========================================================
-   * EQUIP LAGO SKIN
-   * =========================================================
-   */
-
-
-  function equipLagoSkin(
-    id
-  ) {
+  function equipLagoSkin(id) {
 
     const skin =
-      LAGO_SKINS
-        .find(
-          item =>
-            item.id ===
-            id
-        );
+      LAGO_SKINS.find(
+        item =>
+          item.id === id
+      );
 
 
-    if (!skin)
+    if (!skin) {
       return false;
+    }
 
 
     const owned =
-      id ===
-        "default" ||
+      id === "default" ||
       ownedIds().has(
         id
       );
@@ -958,26 +908,20 @@ function mountPreviewHosts(
       );
 
       return false;
-
     }
 
 
-    const ok =
-      window.LAGO
-        ?.selectSkin
-        ?.(
-          id
-        );
-
-
-    if (!ok) {
+    if (
+      !selectSkin(
+        id
+      )
+    ) {
 
       toast(
         "EQUIP FAILED"
       );
 
       return false;
-
     }
 
 
@@ -986,24 +930,15 @@ function mountPreviewHosts(
     );
 
 
-    window.LAGO_CHARACTER_RUNTIME
-      ?.apply
-      ?.();
+    notifyCharacterEquipped(
+      "lago"
+    );
 
 
     render();
 
-
     return true;
-
   }
-
-
-  /*
-   * =========================================================
-   * CURRENT CHARACTER HERO
-   * =========================================================
-   */
 
 
   function renderHero() {
@@ -1030,32 +965,43 @@ function mountPreviewHosts(
       );
 
 
+    const key = [
+      character.id,
+      character.model3d || "",
+      character.asset || ""
+    ].join("|");
+
+
+    if (
+      visual &&
+      (
+        key !== lastHeroKey ||
+        visual.childElementCount === 0
+      )
+    ) {
+
+      lastHeroKey =
+        key;
+
+
+      visual.innerHTML =
+        createHeroVisual(
+          character,
+          "lago-collection-current-image"
+        );
+    }
+
+
     if (visual) {
-
-  destroyPreviewHosts(
-    visual
-  );
-
-
-  visual.innerHTML =
-    createCharacterVisual(
-      character,
-      "lago-collection-current-image"
-    );
-
-
-  mountPreviewHosts(
-    visual
-  );
-
-}
+      mountPreviewHosts(
+        visual
+      );
+    }
 
 
     if (name) {
-
       name.textContent =
         character.name;
-
     }
 
 
@@ -1072,17 +1018,8 @@ function mountPreviewHosts(
           character.rarity ||
           "COMIC"
         );
-
     }
-
   }
-
-
-  /*
-   * =========================================================
-   * CHARACTER GRID
-   * =========================================================
-   */
 
 
   function renderCharacters() {
@@ -1093,75 +1030,59 @@ function mountPreviewHosts(
       );
 
 
-    if (!grid)
+    if (!grid) {
       return;
+    }
+
+
+    const fullCatalog =
+      characters();
+
+
+    const owned =
+      ownedIds();
+
+
+    const selected =
+      selectedCharacterId();
+
+
+    const mobile =
+      window.matchMedia(
+        "(max-width: 560px)"
+      ).matches;
 
 
     /*
- * Full canonical character catalog.
- */
-const fullCatalog =
-  characters();
+     * Smartphone:
+     * only actual inventory.
+     *
+     * Locked character cards are
+     * completely absent.
+     */
+    const catalog =
+      mobile
+        ? fullCatalog.filter(
+            character =>
+              character.id ===
+                "lago" ||
+              owned.has(
+                character.id
+              )
+          )
+        : fullCatalog;
 
 
-const selected =
-  selectedCharacterId();
-
-
-const owned =
-  ownedIds();
-
-
-/*
- * MOBILE COLLECTION
- * =========================================================
- *
- * Smartphone Collection is inventory,
- * not a duplicate of Shop.
- *
- * Therefore:
- *
- * - Lago is always visible
- * - purchased/unlocked characters visible
- * - locked characters completely absent
- *
- * Desktop may still show the complete
- * catalog during R0 development.
- */
-const mobileCollection =
-  window.matchMedia(
-    "(max-width: 560px)"
-  ).matches;
-
-
-const catalog =
-  mobileCollection
-
-    ? fullCatalog.filter(
+    const ownedCount =
+      fullCatalog.filter(
         character =>
-
           character.id ===
             "lago" ||
-
           owned.has(
             character.id
           )
-      )
+      ).length;
 
-    : fullCatalog;
-
-
-   const ownedCharacterCount =
-  fullCatalog.filter(
-    character =>
-
-      character.id ===
-        "lago" ||
-
-      owned.has(
-        character.id
-      )
-  ).length;
 
     const counter =
       document.getElementById(
@@ -1172,17 +1093,51 @@ const catalog =
     if (counter) {
 
       counter.textContent =
-       `${ownedCharacterCount}/${fullCatalog.length}`
+        `${ownedCount}/${fullCatalog.length}`;
     }
 
 
-    destroyPreviewHosts(
-  grid
-);
+    const key = [
+      mobile
+        ? "mobile"
+        : "desktop",
+
+      selected,
+
+      [...owned]
+        .sort()
+        .join(","),
+
+      fullCatalog
+        .map(
+          item =>
+            item.id
+        )
+        .join(",")
+
+    ].join("|");
 
 
-grid.innerHTML =
-  catalog
+    if (
+      key ===
+        lastCharactersKey &&
+      grid.childElementCount > 0
+    ) {
+
+      mountPreviewHosts(
+        grid
+      );
+
+      return;
+    }
+
+
+    lastCharactersKey =
+      key;
+
+
+    grid.innerHTML =
+      catalog
         .map(
           character => {
 
@@ -1204,10 +1159,8 @@ grid.innerHTML =
 
 
             return `
-
               <button
                 type="button"
-
                 class="
                   lago-skin
                   lago-character-card
@@ -1230,41 +1183,37 @@ grid.innerHTML =
                       : ""
                   }
                 "
-
-                data-character="${character.id}"
+                data-character="${escapeAttribute(
+                  character.id
+                )}"
               >
-
                 <div
                   class="
                     lago-skin-visual
                     lago-character-visual
                   "
                 >
-
-                  ${createCharacterVisual(
-  character,
-  "lago-skin-image"
-)}
-
+                  ${createThumbVisual(
+                    character,
+                    "lago-skin-image"
+                  )}
                 </div>
-
 
                 <div
                   class="lago-skin-name"
                 >
-                  ${character.name}
+                  ${escapeAttribute(
+                    character.name
+                  )}
                 </div>
-
 
                 <div
                   class="
                     lago-skin-rarity
-                    ${
-                      rarityClass(
-                        character.rarity ||
-                        "COMIC"
-                      )
-                    }
+                    ${rarityClass(
+                      character.rarity ||
+                      "COMIC"
+                    )}
                   "
                 >
                   ${
@@ -1273,25 +1222,15 @@ grid.innerHTML =
                   }
                 </div>
 
-
-                ${
-                  !isLago
-                    ? `
-                      <div
-                        class="lago-skin-series"
-                      >
-                        COMIC 01
-                      </div>
-                    `
-                    : `
-                      <div
-                        class="lago-skin-series"
-                      >
-                        ORIGINAL
-                      </div>
-                    `
-                }
-
+                <div
+                  class="lago-skin-series"
+                >
+                  ${
+                    isLago
+                      ? "ORIGINAL"
+                      : "COMIC 01"
+                  }
+                </div>
 
                 ${
                   isSelected
@@ -1302,63 +1241,29 @@ grid.innerHTML =
                         ✓
                       </div>
                     `
-                    : !isOwned
-                      ? `
-                        <div
-                          class="lago-skin-lock"
-                        >
-                          🔒
-                        </div>
-                      `
-                      : ""
+                    : (
+                        !isOwned
+                          ? `
+                            <div
+                              class="lago-skin-lock"
+                            >
+                              🔒
+                            </div>
+                          `
+                          : ""
+                      )
                 }
-
               </button>
-
             `;
-
           }
         )
-             .join(
-        ""
-      );
+        .join("");
 
 
-  mountPreviewHosts(
-    grid
-  );
-
-
-  grid
-    .querySelectorAll(
-      "[data-character]"
-    )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              equipCharacter(
-                button.dataset
-                  .character
-              );
-
-            }
-          );
-
-        }
-      );
-
+    mountPreviewHosts(
+      grid
+    );
   }
-
-
-  /*
-   * =========================================================
-   * LAGO SKINS GRID
-   * =========================================================
-   */
 
 
   function renderSkins() {
@@ -1369,28 +1274,48 @@ grid.innerHTML =
       );
 
 
-    if (!grid)
+    if (!grid) {
       return;
+    }
 
 
-    const currentState =
-      state();
-
-
-    const selected =
-      currentState
-        .selectedSkin ||
+    const current =
+      state().selectedSkin ||
       "default";
 
 
     const selectedIsComic =
       isComicCharacter(
-        selected
+        current
       );
 
 
     const owned =
       ownedIds();
+
+
+    const key = [
+      current,
+      selectedIsComic
+        ? "comic"
+        : "lago",
+      [...owned]
+        .sort()
+        .join(",")
+    ].join("|");
+
+
+    if (
+      key ===
+        lastSkinsKey &&
+      grid.childElementCount > 0
+    ) {
+      return;
+    }
+
+
+    lastSkinsKey =
+      key;
 
 
     grid.innerHTML =
@@ -1406,23 +1331,15 @@ grid.innerHTML =
               );
 
 
-            /*
-             * A Lago skin can only be
-             * visually selected while
-             * Lago itself is active.
-             */
-
             const isSelected =
               !selectedIsComic &&
-              selected ===
+              current ===
                 skin.id;
 
 
             return `
-
               <button
                 type="button"
-
                 class="
                   lago-skin
 
@@ -1438,22 +1355,19 @@ grid.innerHTML =
                       : ""
                   }
                 "
-
-                data-lago-skin="${skin.id}"
+                data-lago-skin="${escapeAttribute(
+                  skin.id
+                )}"
               >
-
                 <div
                   class="lago-skin-visual"
                 >
-
                   ${
                     isOwned
                       ? skin.emoji
                       : "❔"
                   }
-
                 </div>
-
 
                 <div
                   class="lago-skin-name"
@@ -1465,20 +1379,16 @@ grid.innerHTML =
                   }
                 </div>
 
-
                 <div
                   class="
                     lago-skin-rarity
-                    ${
-                      rarityClass(
-                        skin.rarity
-                      )
-                    }
+                    ${rarityClass(
+                      skin.rarity
+                    )}
                   "
                 >
                   ${skin.rarity}
                 </div>
-
 
                 ${
                   isSelected
@@ -1489,58 +1399,24 @@ grid.innerHTML =
                         ✓
                       </div>
                     `
-                    : !isOwned
-                      ? `
-                        <div
-                          class="lago-skin-lock"
-                        >
-                          🔒
-                        </div>
-                      `
-                      : ""
+                    : (
+                        !isOwned
+                          ? `
+                            <div
+                              class="lago-skin-lock"
+                            >
+                              🔒
+                            </div>
+                          `
+                          : ""
+                      )
                 }
-
               </button>
-
             `;
-
           }
         )
-        .join(
-          ""
-        );
-
-
-    grid
-      .querySelectorAll(
-        "[data-lago-skin]"
-      )
-      .forEach(
-        button => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              equipLagoSkin(
-                button.dataset
-                  .lagoSkin
-              );
-
-            }
-          );
-
-        }
-      );
-
+        .join("");
   }
-
-
-  /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
 
 
   function render() {
@@ -1548,15 +1424,8 @@ grid.innerHTML =
     create();
 
 
-    /*
-     * If Lago is currently selected,
-     * remember its currently equipped
-     * skin before rendering.
-     */
-
     const selected =
-      state()
-        .selectedSkin ||
+      state().selectedSkin ||
       "default";
 
 
@@ -1569,7 +1438,6 @@ grid.innerHTML =
       rememberLagoSkin(
         selected
       );
-
     }
 
 
@@ -1578,130 +1446,140 @@ grid.innerHTML =
     renderCharacters();
 
     renderSkins();
-
   }
 
 
   function show() {
 
-  create();
+    const page =
+      create();
 
 
-  /*
-   * Page must be visible before GLB previews
-   * measure their real dimensions.
-   */
-  document
-    .getElementById(
-      "lagoCollection"
-    )
-    ?.classList.add(
+    /*
+     * Visible first so preview sizes
+     * are measured correctly.
+     */
+    page.classList.add(
       "active"
     );
 
 
-  render();
-
-}
-
-
-function hide() {
-
-  const page =
-    document.getElementById(
-      "lagoCollection"
-    );
-
-
-  if (!page) {
-
-    return;
-
+    render();
   }
 
 
-  /*
-   * Release Collection WebGL contexts.
-   * They will be recreated next time
-   * Collection is opened.
-   */
-  destroyPreviewHosts(
-    page
-  );
+  function hide() {
+
+    document
+      .getElementById(
+        "lagoCollection"
+      )
+      ?.classList.remove(
+        "active"
+      );
 
 
-  page.classList.remove(
-    "active"
-  );
-
-}
-
-
-  /*
-   * =========================================================
-   * EVENTS
-   * =========================================================
-   */
+    /*
+     * Do NOT destroy static snapshots.
+     *
+     * Each GLB preview was converted
+     * to an ordinary <img>.
+     *
+     * Keeping it makes the next
+     * Collection open instant.
+     */
+  }
 
 
   function renderCollectionIfOpen() {
 
-  const page =
-    document.getElementById(
-      "lagoCollection"
-    );
+    const page =
+      document.getElementById(
+        "lagoCollection"
+      );
 
 
-  if (
-    !page ||
-    !page.classList.contains(
-      "active"
-    )
-  ) {
+    if (
+      !page?.classList.contains(
+        "active"
+      )
+    ) {
+      return;
+    }
 
-    return;
 
+    render();
   }
 
 
-  render();
-
-}
-
-
-document.addEventListener(
-  "lago:character-equipped",
-  renderCollectionIfOpen
-);
-
-
-/*
- * Phone rotation / responsive switch.
- */
-const collectionMobileQuery =
-  window.matchMedia(
-    "(max-width: 560px)"
-  );
-
-
-collectionMobileQuery
-  .addEventListener
-  ?.(
-    "change",
+  document.addEventListener(
+    "lago:character-equipped",
     renderCollectionIfOpen
   );
 
 
-  /*
-   * =========================================================
-   * PUBLIC API
-   * =========================================================
-   */
+  document.addEventListener(
+    "lago:character-unlocked",
+    () => {
+
+      lastCharactersKey =
+        "";
+
+
+      renderCollectionIfOpen();
+    }
+  );
+
+
+  document.addEventListener(
+    "lago:character-3d-ready",
+    () => {
+
+      const page =
+        document.getElementById(
+          "lagoCollection"
+        );
+
+
+      if (
+        !page?.classList.contains(
+          "active"
+        )
+      ) {
+        return;
+      }
+
+
+      mountPreviewHosts(
+        page
+      );
+    }
+  );
+
+
+  const collectionMobileQuery =
+    window.matchMedia(
+      "(max-width: 560px)"
+    );
+
+
+  collectionMobileQuery
+    .addEventListener
+    ?.(
+      "change",
+      () => {
+
+        lastCharactersKey =
+          "";
+
+
+        renderCollectionIfOpen();
+      }
+    );
 
 
   window.LAGO_COLLECTION =
     Object.freeze({
-
       version:
         VERSION,
 
@@ -1715,9 +1593,6 @@ collectionMobileQuery
 
       skins:
         LAGO_SKINS
-
     });
 
-
 })();
-    
