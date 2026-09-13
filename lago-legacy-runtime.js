@@ -1160,6 +1160,145 @@ function checkAchievements() {
 
 }
 
+/*
+ * =========================================================
+ * ACCOUNT ACHIEVEMENT WATCH
+ * =========================================================
+ *
+ * Account Core already emits
+ * lago:account-state after canonical
+ * account/economy mutations.
+ *
+ * Do not scan every legacy achievement
+ * after every physical tap.
+ */
+
+let achievementWatchClicks =
+  getCanonicalClickCount();
+
+
+let achievementWatchLifetimeSP =
+  Math.max(
+    0,
+    Number(
+      window.LAGO_ACCOUNT
+        ?.getSPState
+        ?.()
+        ?.lifetimeEarned
+    ) || 0
+  );
+
+
+function handleAccountAchievementState(
+  event
+) {
+
+  const detail =
+    event?.detail &&
+    typeof event.detail ===
+      "object"
+
+      ? event.detail
+      : {};
+
+
+  const rawClicks =
+    Number(
+      detail.clicks
+    );
+
+
+  const nextClicks =
+    Number.isFinite(
+      rawClicks
+    )
+
+      ? Math.max(
+          0,
+          Math.floor(
+            rawClicks
+          )
+        )
+
+      : getCanonicalClickCount();
+
+
+  const rawLifetimeSP =
+    Number(
+      detail.lifetime
+        ?.spEarned
+    );
+
+
+  const nextLifetimeSP =
+    Number.isFinite(
+      rawLifetimeSP
+    )
+
+      ? Math.max(
+          0,
+          rawLifetimeSP
+        )
+
+      : Math.max(
+          0,
+          Number(
+            window.LAGO_ACCOUNT
+              ?.getSPState
+              ?.()
+              ?.lifetimeEarned
+          ) || 0
+        );
+
+
+  const crossedClick1000 =
+    achievementWatchClicks <
+      1000 &&
+    nextClicks >=
+      1000;
+
+
+  const crossedSP100 =
+    achievementWatchLifetimeSP <
+      100 &&
+    nextLifetimeSP >=
+      100;
+
+
+  achievementWatchClicks =
+    nextClicks;
+
+
+  achievementWatchLifetimeSP =
+    nextLifetimeSP;
+
+
+  if (
+    crossedClick1000 ||
+    crossedSP100
+  ) {
+
+    checkAchievements();
+
+  }
+
+}
+
+
+document.addEventListener(
+  "lago:account-state",
+  handleAccountAchievementState
+);
+
+
+/*
+ * Migration / startup catch-up.
+ *
+ * Existing players may already have
+ * crossed an old achievement threshold
+ * before this watcher existed.
+ */
+checkAchievements();
 
 /* =========================================================
    DAYS
@@ -1186,14 +1325,20 @@ function updateDays() {
   state.days++;
 
 
-  state.lastDay =
+   state.lastDay =
     today;
 
 
   save();
 
-}
 
+  /*
+   * DAY achievements are legacy state,
+   * so check them only when DAY changes.
+   */
+  checkAchievements();
+
+}
 
 updateDays();
 
