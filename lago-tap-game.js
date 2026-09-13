@@ -55,13 +55,6 @@
     [];
 
 
-  function state() {
-
-    return runtime.getState();
-
-  }
-
-
   function publishState() {
 
     const snapshot =
@@ -711,40 +704,6 @@ function tap(
 
   }
 
-
-  /*
-   * =========================================================
-   * LEGACY TAP STATISTICS
-   * =========================================================
-   *
-   * Temporary only.
-   *
-   * Account economy itself is already
-   * fully committed above.
-   */
-
- /*
- * Temporary in-memory compatibility
- * for old achievement/share code.
- *
- * Persistence now belongs exclusively
- * to Account Core.
- */
-
-const current =
-  state();
-
-
-current.totalClicks =
-  Math.max(
-    0,
-    Math.floor(
-      Number(
-        result.clicks
-      ) || 0
-    )
-  );
-  
   /*
    * =========================================================
    * FEEDBACK
@@ -874,7 +833,9 @@ current.totalClicks =
  */
 
 return publishState();
-    
+
+}
+
 
   /*
    * =========================================================
