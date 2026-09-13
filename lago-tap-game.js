@@ -224,40 +224,51 @@
       ) || 0;
 
 
-    if (
-      duration >= 230
-    ) {
+   /*
+ * Pressure-less smartphones.
+ *
+ * MAX strength must still be possible
+ * during a genuinely quick human tap.
+ *
+ * Otherwise strength 5 at 230 ms
+ * could never combine with the
+ * <=150 ms ×1.85 tempo tier.
+ */
 
-      return 5;
+if (
+  duration >= 110
+) {
 
-    }
+  return 5;
 
-
-    if (
-      duration >= 175
-    ) {
-
-      return 4;
-
-    }
-
-
-    if (
-      duration >= 130
-    ) {
-
-      return 3;
-
-    }
+}
 
 
-    if (
-      duration >= 90
-    ) {
+if (
+  duration >= 85
+) {
 
-      return 2;
+  return 4;
 
-    }
+}
+
+
+if (
+  duration >= 65
+) {
+
+  return 3;
+
+}
+
+
+if (
+  duration >= 45
+) {
+
+  return 2;
+
+}
 
 
     return 1;
@@ -498,6 +509,17 @@
 
   }
 
+  function resetTapTempo() {
+
+  lastPhysicalTapAt =
+    0;
+
+
+  tapIntervals.length =
+    0;
+
+}
+
 
   /*
    * =========================================================
@@ -505,67 +527,160 @@
    * =========================================================
    */
 
-  function tap(
-    event = null,
-    sample = null
+function tap(
+  event = null,
+  sample = null
+) {
+
+  const account =
+    window.LAGO_ACCOUNT;
+
+
+  /*
+   * Manual Tap Lago now requires
+   * ONE atomic Account Core API.
+   */
+  if (
+    !account ||
+    typeof account
+      .applyTapReward !==
+      "function"
   ) {
 
-    const account =
-      window.LAGO_ACCOUNT;
+    console.error(
+      "[TAP LAGO] Atomic tap API is missing."
+    );
 
 
-    /*
-     * Fail closed.
-     *
-     * Tap Lago must no longer fall
-     * back to the old fake DUM economy.
-     */
-    if (
-      !account ||
-      typeof account.consumeTapDum !==
-        "function" ||
-      typeof account.addSP !==
-        "function"
-    ) {
-
-      console.error(
-        "[TAP LAGO] Account Core DUM/SP API is missing."
-      );
+    ui.toast(
+      "ACCOUNT CORE ERROR"
+    );
 
 
-      ui.toast(
-        "ACCOUNT CORE ERROR"
-      );
+    return getState();
+
+  }
 
 
-      return getState();
+  /*
+   * =========================================================
+   * PHYSICAL TAP
+   * =========================================================
+   */
 
-    }
+  const tempo =
+    tapTempo();
 
 
-    /*
-     * Account Core decides whether
-     * this tap is allowed and whether
-     * this is the 5th tap that costs
-     * 1 DUM.
-     */
-    const dumResult =
-      account.consumeTapDum({
+  let strength =
+    tapStrength(
+      sample
+    );
+
+
+  /*
+   * Machine-like sustained stream:
+   * force physical strength to 1.
+   */
+  if (
+    tempo.antiBot
+  ) {
+
+    strength =
+      1;
+
+  }
+
+
+  /*
+   * =========================================================
+   * DOUBLE CLICK
+   * =========================================================
+   */
+
+  const doubleClickState =
+    account
+      .getDoubleClickUpgradeState
+      ?.() || {
+
+        unlocked:
+          false,
+
+        multiplier:
+          1
+
+      };
+
+
+  const doubleClickUnlocked =
+    doubleClickState
+      .unlocked ===
+      true;
+
+
+  /*
+   * FAST LIMIT never receives
+   * permanent ×2 upgrade.
+   */
+  const doubleClickMultiplier =
+    (
+      doubleClickUnlocked &&
+      !tempo.antiBot
+    )
+
+      ? 2
+
+      : 1;
+
+
+  /*
+   * =========================================================
+   * REWARD
+   * =========================================================
+   */
+
+  const gain =
+    roundSP(
+      strength *
+      tempo.multiplier *
+      doubleClickMultiplier
+    );
+
+
+  /*
+   * =========================================================
+   * ONE ACCOUNT TRANSACTION
+   * =========================================================
+   */
+
+  const result =
+    account.applyTapReward(
+      gain,
+      {
         gameId:
           "tap-lago"
-      });
+      }
+    );
 
 
-    /*
-     * DUM = 0:
-     * no successful tap,
-     * no SP,
-     * no click progression.
-     */
+  /*
+   * DUM = 0.
+   *
+   * Failed spam must not preload
+   * the fast-tap multiplier.
+   */
+  if (
+    !result ||
+    result.allowed !==
+      true
+  ) {
+
+    resetTapTempo();
+
+
     if (
-      !dumResult ||
-      dumResult.allowed !==
-        true
+      result?.reason ===
+      "dum"
     ) {
 
       ui.toast(
@@ -575,7 +690,7 @@
 
       runtime.beep(
         90,
-        0.1
+        .1
       );
 
 
@@ -583,11 +698,165 @@
         "Lago is out of energy..."
       );
 
+    } else {
 
-      return publishState();
+      ui.toast(
+        "TAP FAILED"
+      );
 
     }
 
+
+    return publishState();
+
+  }
+
+
+  /*
+   * =========================================================
+   * LEGACY TAP STATISTICS
+   * =========================================================
+   *
+   * Temporary only.
+   *
+   * Account economy itself is already
+   * fully committed above.
+   */
+
+  const current =
+    state();
+
+
+  current.totalClicks++;
+
+
+  /*
+   * =========================================================
+   * FEEDBACK
+   * =========================================================
+   */
+
+  ui.animateTap();
+
+
+  ui.setSpeech(
+    randomPhrase()
+  );
+
+
+  playTapSound();
+
+
+  const spentDum =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          result.spent
+        ) || 0
+      )
+    );
+
+
+  const gainLabel =
+    gain.toLocaleString(
+      "en-US",
+      {
+
+        minimumFractionDigits:
+          Number.isInteger(
+            gain
+          )
+            ? 0
+            : 2,
+
+        maximumFractionDigits:
+          2
+
+      }
+    );
+
+
+  const strengthLabel =
+    tapStrengthLabel(
+      strength
+    );
+
+
+  const tempoLabel =
+    tempo.multiplier > 1
+
+      ? `×${tempo.multiplier.toFixed(
+          2
+        )}`
+
+      : "";
+
+
+  const doubleClickLabel =
+    doubleClickMultiplier ===
+      2
+
+      ? "DOUBLE ×2"
+
+      : "";
+
+
+  ui.spawnFloat(
+
+    spentDum > 0
+
+      ? `+${gainLabel} SP · -${spentDum} DUM`
+
+      : `+${gainLabel} SP`,
+
+    event,
+
+    {
+
+      strength,
+
+      strengthLabel,
+
+      tempoMultiplier:
+        tempo.multiplier,
+
+      tempoLabel,
+
+      doubleClick:
+        doubleClickMultiplier ===
+        2,
+
+      doubleClickLabel,
+
+      speedLimited:
+        tempo.antiBot ===
+        true
+
+    }
+
+  );
+
+
+  /*
+   * Achievements operate on updated
+   * account + click state.
+   */
+  runtime.checkAchievements();
+
+
+  /*
+   * Legacy click statistic only.
+   *
+   * Economy has already been saved
+   * exactly once by applyTapReward().
+   */
+  runtime.save();
+
+
+  return publishState();
+
+}
 
     const current =
       state();
