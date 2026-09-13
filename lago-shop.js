@@ -1,87 +1,55 @@
 (() => {
   "use strict";
 
+  const VERSION = 3;
 
- const VERSION =
-  2;
-
-  let root = null;
-
-let structuralRenderQueued =
-  false;
-  
-  /*
-   * =========================================================
-   * HELPERS
-   * =========================================================
-   */
+  let lastRenderKey = "";
 
 
   function account() {
-
-    return (
-      window.LAGO_ACCOUNT ||
-      null
-    );
-
+    return window.LAGO_ACCOUNT || null;
   }
 
 
   function characters() {
-
     return (
       window.LAGO_CHARACTERS
         ?.getShopCharacters
-        ?.() ||
-      []
+        ?.() || []
     );
-
   }
 
 
   function state() {
-
     return (
       account()
         ?.getState
-        ?.() ||
-      null
+        ?.() || null
     );
-
   }
 
 
   function ownedSet() {
-
     const skins =
-      state()
-        ?.skins;
-
+      state()?.skins;
 
     return new Set(
-      Array.isArray(
-        skins
-      )
+      Array.isArray(skins)
         ? skins
         : []
     );
-
   }
 
 
   function currentCharacterId() {
-
     return String(
-      state()
-        ?.selectedSkin ||
+      state()?.selectedSkin ||
       "default"
     );
-
   }
 
 
   function spBalance() {
-
     return Math.max(
       0,
       Number(
@@ -89,87 +57,24 @@ let structuralRenderQueued =
           ?.getSPState
           ?.()
           ?.balance
-      ) ||
-      0
+      ) || 0
     );
-
-  }
-
-function updateBalance() {
-
-  const element =
-    document.getElementById(
-      "lagoShopSP"
-    );
-
-
-  if (
-    !element
-  ) {
-
-    return;
-
   }
 
 
-  element.textContent =
-    formatSP(
-      spBalance()
-    );
-
-}
-  
-/*
- * =========================================================
- * LIVE BALANCE ONLY
- * =========================================================
- *
- * SP may change many times while Shop
- * is open because of TAP / AUTO.
- *
- * Updating one text node is cheap.
- * Rebuilding all character cards is not.
- */
-
-function updateBalance() {
-
-  if (
-    !root
-  ) {
-
-    return;
-
-  }
-
-
- updateBalance();
-  
-  function formatSP(
-    value
-  ) {
-
-    return (
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            value
-          ) ||
-          0
-        )
+  function formatSP(value) {
+    return Math.max(
+      0,
+      Math.floor(
+        Number(value) || 0
       )
-        .toLocaleString(
-          "en-US"
-        )
+    ).toLocaleString(
+      "en-US"
     );
-
   }
 
 
-  function escapeHTML(
-    value
-  ) {
-
+  function escapeHTML(value) {
     return String(
       value ?? ""
     )
@@ -193,77 +98,80 @@ function updateBalance() {
         "'",
         "&#039;"
       );
-
   }
 
 
-  function rarityClass(
-    rarity
-  ) {
-
+  function rarityClass(rarity) {
     return (
       "lago-shop-rarity-" +
       String(
         rarity ||
         "COMMON"
-      )
-        .toLowerCase()
+      ).toLowerCase()
     );
-
   }
 
+
+  /*
+   * Fast card strategy:
+   *
+   * existing 2D asset first;
+   * GLB only when a character
+   * has no thumbnail asset.
+   *
+   * Miki / Oleg currently fall
+   * back to GLB.
+   */
   function createCharacterVisual(
-  character
-) {
-
-  const model3d =
-    typeof character
-      ?.model3d ===
-      "string"
-      ? character.model3d.trim()
-      : "";
-
-
-  /*
-   * Canonical Shop visual = GLB.
-   */
-  if (
-    model3d
+    character
   ) {
 
-    return `
-      <div
-        class="
-          lago-shop-character-image
-          lago-shop-glb-preview
-        "
-        data-lago-glb-preview="${escapeHTML(
-          model3d
-        )}"
-        role="img"
-        aria-label="${escapeHTML(
-          character.name
-        )}"
-      ></div>
-    `;
-
-  }
-
-
-  /*
-   * Temporary fallback only.
-   */
-  const asset =
-    typeof character
-      ?.asset ===
+    const asset =
+      typeof character?.asset ===
       "string"
-      ? character.asset.trim()
-      : "";
+        ? character.asset.trim()
+        : "";
 
 
-  if (
-    !asset
-  ) {
+    if (asset) {
+      return `
+        <img
+          class="lago-shop-character-image"
+          src="${escapeHTML(asset)}"
+          alt="${escapeHTML(character.name)}"
+          draggable="false"
+          loading="lazy"
+          decoding="async"
+        >
+      `;
+    }
+
+
+    const model3d =
+      typeof character?.model3d ===
+      "string"
+        ? character.model3d.trim()
+        : "";
+
+
+    if (model3d) {
+      return `
+        <div
+          class="
+            lago-shop-character-image
+            lago-shop-glb-preview
+          "
+          data-lago-glb-preview="${escapeHTML(
+            model3d
+          )}"
+          role="img"
+          aria-label="${escapeHTML(
+            character.name
+          )}"
+        ></div>
+      `;
+    }
+
 
     return `
       <div
@@ -271,147 +179,86 @@ function updateBalance() {
           lago-shop-character-image
           lago-shop-character-empty
         "
-        role="img"
-        aria-label="${escapeHTML(
-          character.name
-        )}"
       ></div>
     `;
-
   }
 
 
-  return `
-    <img
-      class="lago-shop-character-image"
-      src="${escapeHTML(
-        asset
-      )}"
-      alt="${escapeHTML(
-        character.name
-      )}"
-      draggable="false"
-    >
-  `;
+  function mountPreviewHosts(root) {
 
-}
+    const page =
+      document.getElementById(
+        "lagoShop"
+      );
 
 
-function destroyPreviewHosts(
-  root
-) {
-
-  if (
-    !root
-  ) {
-
-    return;
-
-  }
-
-
-  root
-    .querySelectorAll(
-      "[data-lago-glb-preview]"
-    )
-    .forEach(
-      host => {
-
-        window.LAGO_CHARACTER_3D
-          ?.destroyPreview
-          ?.(
-            host
-          );
-
-      }
-    );
-
-}
-
-
-function mountPreviewHosts(
-  root
-) {
-
-  const page =
-    document.getElementById(
-      "lagoShop"
-    );
-
-
-  /*
-   * Never spend WebGL contexts
-   * while Shop is hidden.
-   */
-  if (
-    !root ||
-    !page
-      ?.classList
-      .contains(
+    if (
+      !root ||
+      !page?.classList.contains(
         "active"
       )
-  ) {
-
-    return;
-
-  }
+    ) {
+      return;
+    }
 
 
-  root
-    .querySelectorAll(
-      "[data-lago-glb-preview]"
-    )
-    .forEach(
-      host => {
+    root
+      .querySelectorAll(
+        "[data-lago-glb-preview]"
+      )
+      .forEach(
+        host => {
 
-        const model3d =
-          host.dataset
-            .lagoGlbPreview;
+          /*
+           * Snapshot already exists:
+           * do absolutely nothing.
+           */
+          if (
+            host.querySelector(
+              ".lago-glb-preview-image"
+            ) ||
+            host
+              ._lago3dPreviewController
+          ) {
+            return;
+          }
 
 
-        if (
-          !model3d
-        ) {
+          const model =
+            host.dataset
+              .lagoGlbPreview;
 
-          return;
 
+          if (!model) {
+            return;
+          }
+
+
+          window.LAGO_CHARACTER_3D
+            ?.mountPreview
+            ?.(
+              host,
+              model
+            );
         }
-
-
-        window.LAGO_CHARACTER_3D
-          ?.mountPreview
-          ?.(
-            host,
-            model3d
-          );
-
-      }
-    );
-
-}
-
-
-  /*
-   * =========================================================
-   * PAGE
-   * =========================================================
-   */
+      );
+  }
 
 
   function create() {
 
-    if (
+    let page =
       document.getElementById(
         "lagoShop"
-      )
-    ) {
+      );
 
-      return;
 
+    if (page) {
+      return page;
     }
 
 
-    const page =
+    page =
       document.createElement(
         "div"
       );
@@ -422,11 +269,9 @@ function mountPreviewHosts(
 
 
     page.innerHTML = `
-
       <header
         class="lago-shop-header"
       >
-
         <button
           id="lagoShopBack"
           class="lago-shop-back"
@@ -436,11 +281,9 @@ function mountPreviewHosts(
           ←
         </button>
 
-
         <div
           class="lago-shop-heading"
         >
-
           <div
             class="lago-shop-title"
           >
@@ -452,14 +295,11 @@ function mountPreviewHosts(
           >
             CHARACTERS
           </div>
-
         </div>
-
 
         <div
           class="lago-shop-balance"
         >
-
           <span
             id="lagoShopSP"
           >
@@ -469,22 +309,17 @@ function mountPreviewHosts(
           <span>
             SP
           </span>
-
         </div>
-
       </header>
-
 
       <main
         class="lago-shop-content"
       >
-
         <section
           id="lagoShopDev"
           class="lago-shop-dev"
           hidden
         >
-
           <div
             class="lago-shop-dev-label"
           >
@@ -496,20 +331,16 @@ function mountPreviewHosts(
           >
             FULL LOCAL TEST ACCESS
           </div>
-
         </section>
-
 
         <section
           class="lago-shop-intro"
         >
-
           <div
             class="lago-shop-intro-kicker"
           >
             COMIC CHARACTERS
           </div>
-
 
           <div
             class="lago-shop-intro-title"
@@ -517,37 +348,30 @@ function mountPreviewHosts(
             Choose your character.
           </div>
 
-
           <div
             class="lago-shop-intro-copy"
           >
             Characters are complete playable identities,
             not Lago skins.
           </div>
-
         </section>
-
 
         <section
           class="lago-shop-grid"
           id="lagoShopGrid"
         ></section>
-
       </main>
-
 
       <div
         class="lago-shop-toast"
         id="lagoShopToast"
       ></div>
-
     `;
 
 
-    document.body
-      .appendChild(
-        page
-      );
+    document.body.appendChild(
+      page
+    );
 
 
     page
@@ -565,20 +389,12 @@ function mountPreviewHosts(
       onPageClick
     );
 
+
+    return page;
   }
 
 
-
-  /*
-   * =========================================================
-   * TOAST
-   * =========================================================
-   */
-
-
-  function toast(
-    message
-  ) {
+  function toast(message) {
 
     const element =
       document.getElementById(
@@ -586,14 +402,14 @@ function mountPreviewHosts(
       );
 
 
-    if (!element)
+    if (!element) {
       return;
+    }
 
 
     element.textContent =
       String(
-        message ||
-        ""
+        message || ""
       );
 
 
@@ -610,33 +426,86 @@ function mountPreviewHosts(
     element._timer =
       setTimeout(
         () => {
-
           element.classList.remove(
             "show"
           );
-
         },
-        1700
+        1600
       );
-
   }
 
-function openCollection() {
 
-  hide();
+  function updateBalance() {
+
+    const element =
+      document.getElementById(
+        "lagoShopSP"
+      );
 
 
-  window.LAGO_COLLECTION
-    ?.show
-    ?.();
+    if (!element) {
+      return;
+    }
 
-}
 
-  /*
-   * =========================================================
-   * PURCHASE
-   * =========================================================
-   */
+    element.textContent =
+      formatSP(
+        spBalance()
+      );
+  }
+
+
+  function updateAffordability() {
+
+    const page =
+      document.getElementById(
+        "lagoShop"
+      );
+
+
+    if (!page) {
+      return;
+    }
+
+
+    const balance =
+      spBalance();
+
+
+    page
+      .querySelectorAll(
+        "[data-shop-buy]"
+      )
+      .forEach(
+        button => {
+
+          const price =
+            Math.max(
+              0,
+              Number(
+                button.dataset
+                  .shopPrice
+              ) || 0
+            );
+
+
+          button.classList.toggle(
+            "insufficient",
+            balance < price
+          );
+        }
+      );
+  }
+
+
+  function openCollection() {
+
+    hide();
+
+    window.LAGO_COLLECTION
+      ?.show
+      ?.();
+  }
 
 
   function buyCharacter(
@@ -653,10 +522,8 @@ function openCollection() {
 
     if (
       !character ||
-      character
-        .shop
-        ?.enabled !==
-      true
+      character.shop
+        ?.enabled !== true
     ) {
 
       toast(
@@ -664,7 +531,6 @@ function openCollection() {
       );
 
       return false;
-
     }
 
 
@@ -672,44 +538,35 @@ function openCollection() {
       ownedSet();
 
 
-   if (
-  owned.has(
-    character.id
-  )
-) {
+    if (
+      owned.has(
+        character.id
+      )
+    ) {
 
-  openCollection();
+      openCollection();
 
-  return true;
+      return true;
+    }
 
-}
 
     const price =
       Math.max(
         0,
         Math.floor(
           Number(
-            character
-              .shop
+            character.shop
               ?.price
-          ) ||
-          0
+          ) || 0
         )
       );
 
 
-    const currency =
-      String(
-        character
-          .shop
-          ?.currency ||
-        ""
-      )
-        .toUpperCase();
-
-
     if (
-      currency !==
+      String(
+        character.shop
+          ?.currency || ""
+      ).toUpperCase() !==
       "SP"
     ) {
 
@@ -718,7 +575,6 @@ function openCollection() {
       );
 
       return false;
-
     }
 
 
@@ -735,16 +591,8 @@ function openCollection() {
       );
 
       return false;
-
     }
 
-
-    /*
-     * Spend CURRENT SP only.
-     *
-     * lifetime.spEarned and LEVEL
-     * must never decrease.
-     */
 
     const spent =
       account()
@@ -767,13 +615,8 @@ function openCollection() {
       );
 
       return false;
-
     }
 
-
-    /*
-     * Add permanent local ownership.
-     */
 
     account()
       ?.addSkin
@@ -782,18 +625,20 @@ function openCollection() {
       );
 
 
+    lastRenderKey =
+      "";
+
+
     document.dispatchEvent(
-
       new CustomEvent(
-
         "lago:character-unlocked",
-
         {
-
           detail: {
-
             id:
               character.id,
+
+            name:
+              character.name,
 
             source:
               "shop",
@@ -802,87 +647,66 @@ function openCollection() {
               "SP",
 
             price
-
           }
-
         }
-
       )
-
     );
 
-
- toast(
-  `${character.name} UNLOCKED`
-);
-
-
-openCollection();
-
-
-return true;
-
-
-/*
- * =========================================================
- * EQUIP
- * =========================================================
- */
-
-
-  function equipCharacter(
-  characterId
-) {
-
-  const character =
-    window.LAGO_CHARACTERS
-      ?.getById
-      ?.(
-        characterId
-      );
-
-
-  if (!character) {
-
-    return false;
-
-  }
-
-
-  if (
-    !ownedSet().has(
-      character.id
-    )
-  ) {
 
     toast(
-      "CHARACTER LOCKED"
+      `${character.name} UNLOCKED`
     );
 
-    return false;
 
+    openCollection();
+
+
+    return true;
   }
-
-
-  openCollection();
-
-
-  return true;
-
-}
-
 
 
   /*
-   * =========================================================
-   * CLICK ROUTER
-   * =========================================================
+   * Shop no longer equips directly.
+   * CHOOSE leads to Collection.
    */
-
-
-  function onPageClick(
-    event
+  function equipCharacter(
+    characterId
   ) {
+
+    const character =
+      window.LAGO_CHARACTERS
+        ?.getById
+        ?.(
+          characterId
+        );
+
+
+    if (!character) {
+      return false;
+    }
+
+
+    if (
+      !ownedSet().has(
+        character.id
+      )
+    ) {
+
+      toast(
+        "CHARACTER LOCKED"
+      );
+
+      return false;
+    }
+
+
+    openCollection();
+
+    return true;
+  }
+
+
+  function onPageClick(event) {
 
     const buy =
       event.target.closest(
@@ -898,34 +722,23 @@ return true;
       );
 
       return;
-
     }
 
 
-    const equip =
+    const choose =
       event.target.closest(
         "[data-shop-equip]"
       );
 
 
-    if (equip) {
+    if (choose) {
 
       equipCharacter(
-        equip.dataset
+        choose.dataset
           .shopEquip
       );
-
     }
-
   }
-
-
-
-  /*
-   * =========================================================
-   * CARD
-   * =========================================================
-   */
 
 
   function characterCard(
@@ -938,44 +751,33 @@ return true;
     const price =
       Math.max(
         0,
-        Number(
-          character
-            .shop
-            ?.price
-        ) ||
-        0
+        Math.floor(
+          Number(
+            character.shop
+              ?.price
+          ) || 0
+        )
       );
 
 
     const canBuy =
-      balance >=
-      price;
+      balance >= price;
 
 
-    const playtimeEnabled =
+    const playtime =
       character
-        .playtimeUnlock
-        ?.enabled ===
-      true;
-
-
-    const minutes =
-      Math.max(
-        0,
-        Number(
-          character
-            .playtimeUnlock
-            ?.minutes
-        ) ||
-        0
-      );
+        .playtimeUnlock;
 
 
     const hours =
-      minutes > 0
+      playtime?.enabled === true
         ? Math.round(
-            minutes /
-            60
+            Math.max(
+              0,
+              Number(
+                playtime.minutes
+              ) || 0
+            ) / 60
           )
         : 0;
 
@@ -984,44 +786,40 @@ return true;
       "";
 
 
-   if (
-  selected
-) {
+    if (selected) {
 
-  actionHTML = `
-    <button
-      class="
-        lago-shop-action
-        owned
-      "
-      type="button"
-      data-shop-equip="${escapeHTML(
-        character.id
-      )}"
-    >
-      COLLECTION
-    </button>
-  `;
+      actionHTML = `
+        <button
+          class="
+            lago-shop-action
+            owned
+          "
+          type="button"
+          data-shop-equip="${escapeHTML(
+            character.id
+          )}"
+        >
+          COLLECTION
+        </button>
+      `;
 
-    } else if (
-  owned
-) {
+    } else if (owned) {
 
-  actionHTML = `
-    <button
-      class="
-        lago-shop-action
-        owned
-      "
-      type="button"
-      data-shop-equip="${escapeHTML(
-        character.id
-      )}"
-    >
-      CHOOSE
-    </button>
-  `;
-      
+      actionHTML = `
+        <button
+          class="
+            lago-shop-action
+            owned
+          "
+          type="button"
+          data-shop-equip="${escapeHTML(
+            character.id
+          )}"
+        >
+          CHOOSE
+        </button>
+      `;
+
     } else {
 
       actionHTML = `
@@ -1038,18 +836,17 @@ return true;
           data-shop-buy="${escapeHTML(
             character.id
           )}"
+          data-shop-price="${price}"
         >
           BUY · ${formatSP(
             price
           )} SP
         </button>
       `;
-
     }
 
 
     return `
-
       <article
         class="
           lago-shop-card
@@ -1065,26 +862,20 @@ return true;
           }
         "
       >
+        <div
+          class="lago-shop-character-stage"
+        >
+          ${createCharacterVisual(
+            character
+          )}
+        </div>
 
-       <div
-  class="lago-shop-character-stage"
->
-
-  ${createCharacterVisual(
-    character
-  )}
-
-</div>
-
-
-<div
-  class="lago-shop-character-info"
->
-
+        <div
+          class="lago-shop-character-info"
+        >
           <div
             class="lago-shop-character-top"
           >
-
             <div
               class="lago-shop-character-name"
             >
@@ -1092,7 +883,6 @@ return true;
                 character.name
               )}
             </div>
-
 
             <div
               class="
@@ -1106,9 +896,7 @@ return true;
                 character.rarity
               )}
             </div>
-
           </div>
-
 
           <div
             class="lago-shop-character-type"
@@ -1116,9 +904,7 @@ return true;
             COMIC CHARACTER
           </div>
 
-
           ${
-            playtimeEnabled &&
             hours > 0
               ? `
                 <div
@@ -1139,49 +925,52 @@ return true;
               `
           }
 
-
           ${actionHTML}
-
         </div>
-
       </article>
-
     `;
-
   }
 
 
+  function structuralKey(
+    catalog,
+    owned,
+    current
+  ) {
 
-  /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
+    return [
+      VERSION,
+
+      current,
+
+      [...owned]
+        .sort()
+        .join(","),
+
+      catalog
+        .map(
+          item =>
+            item.id
+        )
+        .join(","),
+
+      window.LAGO_DEV
+        ?.enabled
+        ?.() === true
+        ? "dev"
+        : "normal"
+
+    ].join("|");
+  }
 
 
-  function render() {
+  function render(
+    force = false
+  ) {
 
     create();
 
-
-    const balance =
-      spBalance();
-
-
-    const balanceElement =
-      document.getElementById(
-        "lagoShopSP"
-      );
-
-
-    if (balanceElement) {
-
-      balanceElement.textContent =
-        formatSP(
-          balance
-        );
-
-    }
+    updateBalance();
 
 
     const dev =
@@ -1191,15 +980,10 @@ return true;
 
 
     if (dev) {
-
       dev.hidden =
-        !(
-          window.LAGO_DEV
-            ?.enabled
-            ?.() ===
-          true
-        );
-
+        window.LAGO_DEV
+          ?.enabled
+          ?.() !== true;
     }
 
 
@@ -1209,12 +993,10 @@ return true;
       );
 
 
-    if (!grid)
+    if (!grid) {
       return;
+    }
 
-    destroyPreviewHosts(
-  grid
-);
 
     const catalog =
       characters();
@@ -1228,9 +1010,42 @@ return true;
       currentCharacterId();
 
 
+    const key =
+      structuralKey(
+        catalog,
+        owned,
+        current
+      );
+
+
+    /*
+     * Same catalog already exists.
+     *
+     * Never rebuild cards just
+     * because Shop was reopened.
+     */
     if (
-      catalog.length ===
-      0
+      !force &&
+      key === lastRenderKey &&
+      grid.childElementCount > 0
+    ) {
+
+      updateAffordability();
+
+      mountPreviewHosts(
+        grid
+      );
+
+      return;
+    }
+
+
+    lastRenderKey =
+      key;
+
+
+    if (
+      catalog.length === 0
     ) {
 
       grid.innerHTML = `
@@ -1241,241 +1056,166 @@ return true;
         </div>
       `;
 
-
       return;
-
     }
+
+
+    const balance =
+      spBalance();
 
 
     grid.innerHTML =
-  catalog
-    .map(
-      character =>
-        characterCard(
-          character,
-          owned.has(
-            character.id
-          ),
-          current ===
-            character.id,
-          balance
+      catalog
+        .map(
+          character =>
+            characterCard(
+              character,
+              owned.has(
+                character.id
+              ),
+              current ===
+                character.id,
+              balance
+            )
         )
-    )
-    .join(
-      ""
+        .join("");
+
+
+    mountPreviewHosts(
+      grid
     );
-
-
-mountPreviewHosts(
-  grid
-);
-
-}
-  /*
-   * =========================================================
-   * SHOW / HIDE
-   * =========================================================
-   */
-
-/*
- * =========================================================
- * STRUCTURAL RENDER SCHEDULER
- * =========================================================
- *
- * Buying/equipping may emit several
- * related events in the same JS turn.
- *
- * Collapse them into ONE card rebuild.
- */
-
-function queueStructuralRender() {
-
-  if (
-    structuralRenderQueued
-  ) {
-
-    return;
-
   }
 
 
-  structuralRenderQueued =
-    true;
+  function show() {
+
+    const page =
+      create();
 
 
-  queueMicrotask(
-    () => {
-
-      structuralRenderQueued =
-        false;
-
-
-      if (
-        !root ||
-        !root.classList.contains(
-          "active"
-        )
-      ) {
-
-        return;
-
-      }
-
-
-      render();
-
-    }
-  );
-
-}
-  
-function show() {
-
-  create();
-
-
-  /*
-   * Show page first so WebGL
-   * receives real dimensions.
-   */
-  document
-    .getElementById(
-      "lagoShop"
-    )
-    ?.classList.add(
+    page.classList.add(
       "active"
     );
 
 
-  render();
-
-}
+    render();
+  }
 
 
   function hide() {
 
-  const page =
-    document.getElementById(
-      "lagoShop"
-    );
+    document
+      .getElementById(
+        "lagoShop"
+      )
+      ?.classList.remove(
+        "active"
+      );
 
-
-  if (
-    !page
-  ) {
-
-    return;
-
+    /*
+     * Static preview images are kept.
+     *
+     * No live WebGL context belongs
+     * to an individual card.
+     *
+     * Reopening Shop is therefore
+     * immediate.
+     */
   }
 
 
-  destroyPreviewHosts(
-    page
-  );
+  document.addEventListener(
+    "lago:account-state",
+    () => {
+
+      const page =
+        document.getElementById(
+          "lagoShop"
+        );
 
 
-  page.classList.remove(
-    "active"
-  );
-
-}
-
-
-
-  /*
-   * =========================================================
-   * EVENTS
-   * =========================================================
-   */
-
-
- /*
- * Economy changes:
- * update only SP text.
- *
- * Never rebuild GLB cards because
- * TAP / AUTO / DUM / SP changed.
- */
-
-document.addEventListener(
-  "lago:account-state",
-  () => {
-
-    const page =
-      document.getElementById(
-        "lagoShop"
-      );
-
-
-    if (
-      page
-        ?.classList
-        .contains(
+      if (
+        !page?.classList.contains(
           "active"
         )
-    ) {
+      ) {
+        return;
+      }
+
 
       updateBalance();
 
+      updateAffordability();
     }
-
-  }
-);
+  );
 
 
-/*
- * DEV is rare and structural.
- * Re-render only if Shop is visible.
- */
-
-document.addEventListener(
-  "lago:dev-mode",
-  () => {
-
-    const page =
-      document.getElementById(
-        "lagoShop"
-      );
-
-
-    if (
-      page
-        ?.classList
-        .contains(
-          "active"
-        )
-    ) {
-
-      render();
-
-    }
-
-  }
-);
   document.addEventListener(
-  "lago:character-3d-ready",
-  () => {
+    "lago:character-unlocked",
+    () => {
 
-    const page =
-      document.getElementById(
-        "lagoShop"
-      );
+      lastRenderKey =
+        "";
 
 
-    if (
-      page
-        ?.classList
-        .contains(
+      const page =
+        document.getElementById(
+          "lagoShop"
+        );
+
+
+      if (
+        page?.classList.contains(
           "active"
         )
-    ) {
-
-      render();
-
+      ) {
+        render();
+      }
     }
+  );
 
-  }
-);
+
+  document.addEventListener(
+    "lago:dev-mode",
+    () => {
+
+      lastRenderKey =
+        "";
+
+
+      const page =
+        document.getElementById(
+          "lagoShop"
+        );
+
+
+      if (
+        page?.classList.contains(
+          "active"
+        )
+      ) {
+        render();
+      }
+    }
+  );
+
+
+  document.addEventListener(
+    "lago:character-3d-ready",
+    () => {
+
+      const grid =
+        document.getElementById(
+          "lagoShopGrid"
+        );
+
+
+      mountPreviewHosts(
+        grid
+      );
+    }
+  );
+
 
   document.addEventListener(
     "keydown",
@@ -1485,26 +1225,14 @@ document.addEventListener(
         event.key ===
         "Escape"
       ) {
-
         hide();
-
       }
-
     }
   );
 
 
-
-  /*
-   * =========================================================
-   * PUBLIC API
-   * =========================================================
-   */
-
-
   window.LAGO_SHOP =
     Object.freeze({
-
       version:
         VERSION,
 
@@ -1517,8 +1245,6 @@ document.addEventListener(
       buyCharacter,
 
       equipCharacter
-
     });
-
 
 })();
