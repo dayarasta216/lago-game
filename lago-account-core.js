@@ -3005,6 +3005,351 @@ function consumeTapDum(
 
 }
 
+  /*
+ * =========================================================
+ * TAP LAGO — ATOMIC MANUAL TAP
+ * =========================================================
+ *
+ * One physical tap =
+ *
+ * DUM accounting
+ * + SP reward
+ * + lifetime progression
+ * + game statistics
+ * + LEVEL update
+ * + ONE save()
+ *
+ * This replaces the old:
+ *
+ * consumeTapDum()
+ * then
+ * addSP()
+ *
+ * sequence for manual taps.
+ */
+
+function applyTapReward(
+  amount = 0,
+  {
+    gameId =
+      "tap-lago"
+  } = {}
+) {
+
+  const gain =
+    Math.max(
+      0,
+      roundSPAmount(
+        amount
+      )
+    );
+
+
+  if (
+    gain <= 0
+  ) {
+
+    return {
+
+      allowed:
+        false,
+
+      reason:
+        "reward",
+
+      spent:
+        0,
+
+      gain:
+        0
+
+    };
+
+  }
+
+
+  /*
+   * Apply offline DUM regeneration,
+   * but DO NOT save yet.
+   *
+   * Everything below will be committed
+   * by one save() at the end.
+   */
+  refreshDumEnergy({
+    persist:
+      false
+  });
+
+
+  /*
+   * No DUM = no successful tap.
+   */
+  if (
+    state.energy.dum <= 0
+  ) {
+
+    return {
+
+      allowed:
+        false,
+
+      reason:
+        "dum",
+
+      spent:
+        0,
+
+      gain:
+        0,
+
+      dum:
+        state.energy.dum,
+
+      max:
+        state.energy.max,
+
+      tapCounter:
+        state.energy.tapCounter
+
+    };
+
+  }
+
+
+  /*
+   * =====================================================
+   * DUM
+   * =====================================================
+   */
+
+  const previousCounter =
+    Math.max(
+      0,
+      Math.min(
+        4,
+        Math.floor(
+          Number(
+            state.energy
+              .tapCounter
+          ) || 0
+        )
+      )
+    );
+
+
+  const nextCounter =
+    previousCounter +
+    1;
+
+
+  let spentDum =
+    0;
+
+
+  if (
+    nextCounter >= 5
+  ) {
+
+    const wasFull =
+      state.energy.dum >=
+      state.energy.max;
+
+
+    state.energy.dum =
+      Math.max(
+        0,
+        state.energy.dum -
+        1
+      );
+
+
+    state.energy.tapCounter =
+      0;
+
+
+    spentDum =
+      1;
+
+
+    state.lifetime.dumSpent =
+      Math.max(
+        0,
+        Number(
+          state.lifetime
+            .dumSpent
+        ) || 0
+      ) +
+      1;
+
+
+    /*
+     * DUM regeneration clock begins
+     * when we leave MAX.
+     */
+    if (
+      wasFull ||
+      !state.energy.updatedAt
+    ) {
+
+      state.energy.updatedAt =
+        new Date()
+          .toISOString();
+
+    }
+
+  } else {
+
+    state.energy.tapCounter =
+      nextCounter;
+
+  }
+
+
+  /*
+   * =====================================================
+   * SP
+   * =====================================================
+   */
+
+  state.economy.sp =
+    roundSPAmount(
+      (
+        Number(
+          state.economy.sp
+        ) || 0
+      ) +
+      gain
+    );
+
+
+  /*
+   * Compatibility mirror.
+   */
+  state.xp =
+    state.economy.sp;
+
+
+  state.lifetime.spEarned =
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime
+            .spEarned
+        ) || 0
+      ) +
+      gain
+    );
+
+
+  /*
+   * =====================================================
+   * GAME STATS
+   * =====================================================
+   */
+
+  const id =
+    String(
+      gameId ||
+      "tap-lago"
+    ).trim();
+
+
+  const game =
+    ensureGame(
+      id
+    );
+
+
+  game.spEarned =
+    roundSPAmount(
+      (
+        Number(
+          game.spEarned
+        ) || 0
+      ) +
+      gain
+    );
+
+
+  /*
+   * Legacy compatibility.
+   */
+  game.xpEarned =
+    game.spEarned;
+
+
+  if (
+    spentDum > 0
+  ) {
+
+    game.dumSpent =
+      Math.max(
+        0,
+        Number(
+          game.dumSpent
+        ) || 0
+      ) +
+      spentDum;
+
+  }
+
+
+  /*
+   * =====================================================
+   * LEVEL
+   * =====================================================
+   */
+
+  updateLevel(
+    state,
+    true
+  );
+
+
+  /*
+   * =====================================================
+   * ONE COMMIT
+   * =====================================================
+   */
+
+  save();
+
+
+  return {
+
+    allowed:
+      true,
+
+    reason:
+      "tap",
+
+    spent:
+      spentDum,
+
+    gain,
+
+    dum:
+      state.energy.dum,
+
+    max:
+      state.energy.max,
+
+    tapCounter:
+      state.energy.tapCounter,
+
+    balance:
+      state.economy.sp,
+
+    lifetimeEarned:
+      state.lifetime.spEarned,
+
+    level:
+      state.level
+
+  };
+
+}
+
 /*
  * =========================================================
  * TAP LAGO AUTO
@@ -4579,8 +4924,10 @@ refreshDumEnergy,
 
 consumeTapDum,
 
-getTapAutoState,
+applyTapReward,
 
+getTapAutoState,
+    
 getTapAutoUpgradeState,
 
 upgradeTapAuto,
