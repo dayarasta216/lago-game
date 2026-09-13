@@ -812,11 +812,13 @@ function tap(
   );
 
 
-  /*
-   * Achievements operate on updated
-   * account + click state.
+    /*
+   * Account achievements are watched
+   * from canonical account-state events.
+   *
+   * No legacy achievement scan belongs
+   * in the physical tap hot path.
    */
-  runtime.checkAchievements();
 
 
   /*
