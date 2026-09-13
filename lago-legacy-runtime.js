@@ -297,6 +297,51 @@ function initTelegramUser() {
 
 initTelegramUser();
 
+function getCanonicalClickCount() {
+
+  const accountState =
+    window.LAGO_ACCOUNT
+      ?.getState
+      ?.();
+
+
+  const accountClicks =
+    Number(
+      accountState
+        ?.clicks
+    );
+
+
+  if (
+    Number.isFinite(
+      accountClicks
+    )
+  ) {
+
+    return Math.max(
+      0,
+      Math.floor(
+        accountClicks
+      )
+    );
+
+  }
+
+
+  /*
+   * Startup / emergency fallback only.
+   * Account Core remains canonical.
+   */
+  return Math.max(
+    0,
+    Math.floor(
+      Number(
+        state.totalClicks
+      ) || 0
+    )
+  );
+
+}
 
 function telegramShare() {
 
@@ -315,16 +360,8 @@ function telegramShare() {
     );
 
 
-  const clicks =
-    Math.max(
-      0,
-
-      Math.floor(
-        Number(
-          state.totalClicks
-        ) || 0
-      )
-    );
+    const clicks =
+    getCanonicalClickCount();
 
 
   const formattedSP =
@@ -734,17 +771,8 @@ function getTapGameSnapshot() {
         )
       ),
 
-    totalClicks:
-      Math.max(
-        0,
-
-        Math.floor(
-          Number(
-            state.totalClicks
-          ) || 0
-        )
-      ),
-
+        totalClicks:
+      getCanonicalClickCount(),
     steals:
       Math.max(
         0,
@@ -978,8 +1006,8 @@ const achievements = [
 
     "Сделать 1000 кликов",
 
-    () =>
-      state.totalClicks >=
+        () =>
+      getCanonicalClickCount() >=
       1000
 
   ],
