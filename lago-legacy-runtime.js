@@ -243,12 +243,6 @@ function save() {
 }
 
 
-setInterval(
-  save,
-  5000
-);
-
-
 /* =========================================================
    TELEGRAM
    ========================================================= */
@@ -271,7 +265,7 @@ function initTelegramUser() {
   }
 
 
-  state.telegramUser = {
+  const nextTelegramUser = {
 
     id:
       user.id,
@@ -285,6 +279,55 @@ function initTelegramUser() {
       ""
 
   };
+
+
+  const previousTelegramUser =
+    state.telegramUser &&
+    typeof state.telegramUser ===
+      "object"
+
+      ? state.telegramUser
+      : null;
+
+
+  const changed =
+    !previousTelegramUser ||
+    String(
+      previousTelegramUser.id ??
+      ""
+    ) !==
+      String(
+        nextTelegramUser.id ??
+        ""
+      ) ||
+    String(
+      previousTelegramUser.first_name ??
+      ""
+    ) !==
+      nextTelegramUser.first_name ||
+    String(
+      previousTelegramUser.username ??
+      ""
+    ) !==
+      nextTelegramUser.username;
+
+
+  state.telegramUser =
+    nextTelegramUser;
+
+
+  /*
+   * Legacy storage is now
+   * change-driven instead of writing
+   * to localStorage every 5 seconds.
+   */
+  if (
+    changed
+  ) {
+
+    save();
+
+  }
 
 
   /*
