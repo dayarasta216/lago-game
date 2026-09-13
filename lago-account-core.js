@@ -1620,75 +1620,123 @@ if (
    */
 
   function save(
-    {
-      emit = true
-    } = {}
+  {
+    emit = true,
+    accountOnly = false
+  } = {}
+) {
+
+  state.updatedAt =
+    new Date()
+      .toISOString();
+
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(
+      state
+    )
+  );
+
+
+  /*
+   * High-frequency gameplay changes
+   * must NOT rebuild Shop / Collection.
+   */
+  if (
+    emit
   ) {
 
-    state.updatedAt =
-      new Date()
-        .toISOString();
+    if (
+      accountOnly
+    ) {
 
+      syncAccountOnly();
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        state
-      )
-    );
-
-
-    if (emit) {
+    } else {
 
       sync();
 
     }
 
-
-    return snapshot();
-
   }
 
 
-  function sync() {
+  return snapshot();
 
-    const detail =
-      snapshot();
-
-
-    /*
-     * New canonical event.
-     */
-
-    document.dispatchEvent(
-
-      new CustomEvent(
-        "lago:account-state",
-        {
-          detail
-        }
-      )
-
-    );
+}
 
 
-    /*
-     * Temporary compatibility
-     * for existing modules.
-     */
+/*
+ * =========================================================
+ * ACCOUNT-ONLY UPDATE
+ * =========================================================
+ *
+ * TAP / AUTO / DUM / SP / gameplay upgrades.
+ *
+ * Updates HUD without sending structural
+ * character/catalog event.
+ */
 
-    document.dispatchEvent(
+function syncAccountOnly() {
 
-      new CustomEvent(
-        "lago:state",
-        {
-          detail
-        }
-      )
+  const detail =
+    snapshot();
 
-    );
 
-  }
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:account-state",
+      {
+        detail
+      }
+    )
+  );
+
+
+  return detail;
+
+}
+
+
+/*
+ * =========================================================
+ * FULL STRUCTURAL UPDATE
+ * =========================================================
+ *
+ * Character ownership / selection /
+ * other low-frequency structural state.
+ */
+
+function sync() {
+
+  const detail =
+    snapshot();
+
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:account-state",
+      {
+        detail
+      }
+    )
+  );
+
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:state",
+      {
+        detail
+      }
+    )
+  );
+
+
+  return detail;
+
+}
 
   /*
  * =========================================================
@@ -2086,13 +2134,12 @@ function unlockDoubleClick() {
  * not character ownership/catalog.
  */
 save({
-  emit:
-    false
+  accountOnly:
+    true
 });
 
 
 syncAccountOnly();
-
 
 document.dispatchEvent(
   new CustomEvent(
@@ -3382,10 +3429,9 @@ function applyTapReward(
  * structural UI rebuilds.
  */
 save({
-  emit:
-    false
+  accountOnly:
+    true
 });
-
 
 syncAccountOnly();
 
@@ -3871,8 +3917,8 @@ function applyAutoReward(
  * because SP or DUM changed.
  */
 save({
-  emit:
-    false
+  accountOnly:
+    true
 });
 
 
