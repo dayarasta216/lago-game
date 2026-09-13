@@ -5,7 +5,11 @@
  const VERSION =
   2;
 
+  let root = null;
 
+let structuralRenderQueued =
+  false;
+  
   /*
    * =========================================================
    * HELPERS
@@ -91,7 +95,55 @@
 
   }
 
+function updateBalance() {
 
+  const element =
+    document.getElementById(
+      "lagoShopSP"
+    );
+
+
+  if (
+    !element
+  ) {
+
+    return;
+
+  }
+
+
+  element.textContent =
+    formatSP(
+      spBalance()
+    );
+
+}
+  
+/*
+ * =========================================================
+ * LIVE BALANCE ONLY
+ * =========================================================
+ *
+ * SP may change many times while Shop
+ * is open because of TAP / AUTO.
+ *
+ * Updating one text node is cheap.
+ * Rebuilding all character cards is not.
+ */
+
+function updateBalance() {
+
+  if (
+    !root
+  ) {
+
+    return;
+
+  }
+
+
+ updateBalance();
+  
   function formatSP(
     value
   ) {
@@ -760,21 +812,15 @@ function openCollection() {
     );
 
 
-  toast(
+ toast(
   `${character.name} UNLOCKED`
 );
-
-
-render();
 
 
 openCollection();
 
 
 return true;
-
-}
-
 
 
 /*
@@ -1231,6 +1277,58 @@ mountPreviewHosts(
    * =========================================================
    */
 
+/*
+ * =========================================================
+ * STRUCTURAL RENDER SCHEDULER
+ * =========================================================
+ *
+ * Buying/equipping may emit several
+ * related events in the same JS turn.
+ *
+ * Collapse them into ONE card rebuild.
+ */
+
+function queueStructuralRender() {
+
+  if (
+    structuralRenderQueued
+  ) {
+
+    return;
+
+  }
+
+
+  structuralRenderQueued =
+    true;
+
+
+  queueMicrotask(
+    () => {
+
+      structuralRenderQueued =
+        false;
+
+
+      if (
+        !root ||
+        !root.classList.contains(
+          "active"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      render();
+
+    }
+  );
+
+}
+  
 function show() {
 
   create();
@@ -1291,23 +1389,69 @@ function show() {
    */
 
 
-  document.addEventListener(
-    "lago:state",
-    render
-  );
+ /*
+ * Economy changes:
+ * update only SP text.
+ *
+ * Never rebuild GLB cards because
+ * TAP / AUTO / DUM / SP changed.
+ */
+
+document.addEventListener(
+  "lago:account-state",
+  () => {
+
+    const page =
+      document.getElementById(
+        "lagoShop"
+      );
 
 
-  document.addEventListener(
-    "lago:dev-mode",
-    render
-  );
+    if (
+      page
+        ?.classList
+        .contains(
+          "active"
+        )
+    ) {
+
+      updateBalance();
+
+    }
+
+  }
+);
 
 
-  document.addEventListener(
-    "lago:character-unlocked",
-    render
-  );
+/*
+ * DEV is rare and structural.
+ * Re-render only if Shop is visible.
+ */
 
+document.addEventListener(
+  "lago:dev-mode",
+  () => {
+
+    const page =
+      document.getElementById(
+        "lagoShop"
+      );
+
+
+    if (
+      page
+        ?.classList
+        .contains(
+          "active"
+        )
+    ) {
+
+      render();
+
+    }
+
+  }
+);
   document.addEventListener(
   "lago:character-3d-ready",
   () => {
