@@ -1613,13 +1613,13 @@ if (
   }
 
 
-  /*
-   * =========================================================
-   * SAVE / EVENTS
-   * =========================================================
-   */
+ /*
+ * =========================================================
+ * SAVE / EVENTS
+ * =========================================================
+ */
 
-  function save(
+function save(
   {
     emit = true,
     accountOnly = false
@@ -1641,7 +1641,10 @@ if (
 
   /*
    * High-frequency gameplay changes
-   * must NOT rebuild Shop / Collection.
+   * emit only account-state.
+   *
+   * Structural changes emit both
+   * account-state and lago:state.
    */
   if (
     emit
@@ -1674,8 +1677,7 @@ if (
  *
  * TAP / AUTO / DUM / SP / gameplay upgrades.
  *
- * Updates HUD without sending structural
- * character/catalog event.
+ * Does NOT rebuild Shop / Collection.
  */
 
 function syncAccountOnly() {
@@ -1705,7 +1707,7 @@ function syncAccountOnly() {
  * =========================================================
  *
  * Character ownership / selection /
- * other low-frequency structural state.
+ * other structural state.
  */
 
 function sync() {
@@ -1727,49 +1729,6 @@ function sync() {
   document.dispatchEvent(
     new CustomEvent(
       "lago:state",
-      {
-        detail
-      }
-    )
-  );
-
-
-  return detail;
-
-}
-
-  /*
- * =========================================================
- * ACCOUNT-ONLY LIVE UPDATE
- * =========================================================
- *
- * Used for high-frequency economy changes:
- *
- * TAP
- * AUTO
- * DUM
- * SP
- * account upgrades
- *
- * IMPORTANT:
- *
- * We deliberately do NOT emit legacy
- * "lago:state" here.
- *
- * Shop / Collection use lago:state for
- * structural character changes and must
- * not rebuild their cards every second.
- */
-
-function syncAccountOnly() {
-
-  const detail =
-    snapshot();
-
-
-  document.dispatchEvent(
-    new CustomEvent(
-      "lago:account-state",
       {
         detail
       }
@@ -2138,8 +2097,6 @@ save({
     true
 });
 
-
-syncAccountOnly();
 
 document.dispatchEvent(
   new CustomEvent(
@@ -3433,8 +3390,6 @@ save({
     true
 });
 
-syncAccountOnly();
-
 
 return {
     allowed:
@@ -3920,9 +3875,6 @@ save({
   accountOnly:
     true
 });
-
-
-syncAccountOnly();
 
 
 return {
