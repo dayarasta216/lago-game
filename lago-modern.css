@@ -1619,9 +1619,7 @@ span:last-child {
     absolute;
 
   inset:
-    18%
-    12%
-    15%;
+    0;
 
   z-index:
     0;
@@ -1629,32 +1627,83 @@ span:last-child {
   pointer-events:
     none;
 
-  border-radius:
-    50%;
+  /*
+   * IMPORTANT:
+   *
+   * No blur.
+   * No solid rectangle.
+   * No filter.
+   *
+   * The glow becomes fully transparent
+   * LONG before it reaches the edges
+   * of the character stage.
+   *
+   * Safari therefore has nothing
+   * visible to clip into a rectangle.
+   */
 
   background:
-    rgba(
-      149,
-      28,
-      243,
-      .22
-    );
+    radial-gradient(
+      ellipse
+      54% 48%
+      at
+      50% 52%,
 
-  filter:
-    blur(
-      42px
+      rgba(
+        157,
+        31,
+        255,
+        .30
+      )
+      0%,
+
+      rgba(
+        150,
+        26,
+        245,
+        .22
+      )
+      24%,
+
+      rgba(
+        135,
+        20,
+        222,
+        .12
+      )
+      40%,
+
+      rgba(
+        105,
+        14,
+        180,
+        .045
+      )
+      54%,
+
+      rgba(
+        90,
+        10,
+        160,
+        0
+      )
+      70%
     );
 
   opacity:
-    .58;
+    .82;
 
   transform:
     scale(
-      1.06
+      1
     );
 
   transform-origin:
     center;
+
+  will-change:
+    opacity,
+    transform;
 
 }
 
@@ -1858,11 +1907,11 @@ span:last-child {
   0% {
 
     opacity:
-      .58;
+      .82;
 
     transform:
       scale(
-        1.06
+        1
       );
 
   }
@@ -1871,11 +1920,11 @@ span:last-child {
   38% {
 
     opacity:
-      .70;
+      1;
 
     transform:
       scale(
-        1.09
+        1.08
       );
 
   }
@@ -1884,11 +1933,11 @@ span:last-child {
   100% {
 
     opacity:
-      .58;
+      .82;
 
     transform:
       scale(
-        1.06
+        1
       );
 
   }
