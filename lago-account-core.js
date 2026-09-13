@@ -3273,6 +3273,28 @@ function applyTapReward(
 
   }
 
+  /*
+ * =====================================================
+ * PHYSICAL CLICK
+ * =====================================================
+ *
+ * One successful physical Tap Lago tap
+ * increments the canonical account click
+ * counter exactly once.
+ *
+ * AUTO never touches this counter.
+ */
+
+state.clicks =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        state.clicks
+      ) || 0
+    )
+  ) +
+  1;
 
   /*
    * =====================================================
@@ -3415,11 +3437,14 @@ return {
     balance:
       state.economy.sp,
 
-    lifetimeEarned:
-      state.lifetime.spEarned,
+   lifetimeEarned:
+  state.lifetime.spEarned,
 
-    level:
-      state.level
+clicks:
+  state.clicks,
+
+level:
+  state.level
 
   };
 
