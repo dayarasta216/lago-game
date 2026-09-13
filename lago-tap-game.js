@@ -723,13 +723,28 @@ function tap(
    * fully committed above.
    */
 
-  const current =
-    state();
+ /*
+ * Temporary in-memory compatibility
+ * for old achievement/share code.
+ *
+ * Persistence now belongs exclusively
+ * to Account Core.
+ */
+
+const current =
+  state();
 
 
-  current.totalClicks++;
-
-
+current.totalClicks =
+  Math.max(
+    0,
+    Math.floor(
+      Number(
+        result.clicks
+      ) || 0
+    )
+  );
+  
   /*
    * =========================================================
    * FEEDBACK
@@ -846,18 +861,19 @@ function tap(
 
 
   /*
-   * Legacy click statistic only.
-   *
-   * Economy has already been saved
-   * exactly once by applyTapReward().
-   */
-  runtime.save();
+ * Account Core already persisted:
+ *
+ * SP
+ * DUM
+ * clicks
+ * lifetime
+ * level
+ * game stats
+ *
+ * No second localStorage write here.
+ */
 
-
-  return publishState();
-
-}
-
+return publishState();
     
 
   /*
@@ -2044,10 +2060,41 @@ function tap(
 
   function getState() {
 
-    return runtime.getTapState();
+  const legacy =
+    runtime.getTapState();
 
-  }
 
+  const accountState =
+    window.LAGO_ACCOUNT
+      ?.getState
+      ?.();
+
+
+  return {
+
+    ...legacy,
+
+    /*
+     * Canonical click count.
+     *
+     * This keeps the UI correct even
+     * immediately after page reload,
+     * before the first new tap.
+     */
+    totalClicks:
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            accountState
+              ?.clicks
+          ) || 0
+        )
+      )
+
+  };
+
+}
 
   /*
    * =========================================================
