@@ -3352,6 +3352,488 @@ function applyTapReward(
 
 /*
  * =========================================================
+ * TAP LAGO — ATOMIC AUTO TICK
+ * =========================================================
+ *
+ * AUTO may perform several virtual
+ * Tap Lago actions per second.
+ *
+ * Old implementation:
+ *
+ * action 1 -> DUM save -> SP save
+ * action 2 -> DUM save -> SP save
+ * action 3 -> ...
+ *
+ * New implementation:
+ *
+ * calculate all AUTO actions
+ * -> DUM
+ * -> SP
+ * -> lifetime
+ * -> game stats
+ * -> LEVEL
+ * -> ONE save()
+ *
+ * No offline AUTO.
+ */
+
+function applyAutoReward(
+  requestedActions = 0,
+  {
+    gameId =
+      "tap-lago"
+  } = {}
+) {
+
+  const requested =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          requestedActions
+        ) || 0
+      )
+    );
+
+
+  if (
+    requested <= 0
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "actions",
+
+      earned:
+        0,
+
+      spent:
+        0
+
+    };
+
+  }
+
+
+  /*
+   * AUTO must not earn while
+   * the browser tab is hidden.
+   *
+   * This preserves the rule:
+   * NO OFFLINE AUTO.
+   */
+  if (
+    document.hidden
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "hidden",
+
+      earned:
+        0,
+
+      spent:
+        0
+
+    };
+
+  }
+
+
+  /*
+   * Apply legitimate realtime DUM
+   * regeneration first.
+   *
+   * Do not save yet.
+   */
+  refreshDumEnergy({
+    persist:
+      false
+  });
+
+
+  const currentDum =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          state.energy.dum
+        ) || 0
+      )
+    );
+
+
+  const currentCounter =
+    Math.max(
+      0,
+      Math.min(
+        4,
+        Math.floor(
+          Number(
+            state.energy
+              .tapCounter
+          ) || 0
+        )
+      )
+    );
+
+
+  /*
+   * DUM = 0:
+   * AUTO cannot execute even the
+   * "free" actions before the next
+   * fifth-action cost.
+   *
+   * This matches manual Tap Lago.
+   */
+  if (
+    currentDum <= 0
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "dum",
+
+      earned:
+        0,
+
+      spent:
+        0,
+
+      dum:
+        0,
+
+      max:
+        state.energy.max,
+
+      tapCounter:
+        currentCounter
+
+    };
+
+  }
+
+
+  /*
+   * =====================================================
+   * HOW MANY ACTIONS CAN ACTUALLY RUN?
+   * =====================================================
+   *
+   * Example:
+   *
+   * DUM = 1
+   * counter = 0
+   *
+   * -> 5 successful actions maximum
+   *
+   * DUM = 1
+   * counter = 4
+   *
+   * -> only 1 successful action
+   *
+   * DUM = 2
+   * counter = 3
+   *
+   * -> 7 successful actions
+   */
+
+  const maximumActionsFromDum =
+    Math.max(
+      0,
+      (
+        currentDum *
+        5
+      ) -
+      currentCounter
+    );
+
+
+  const executed =
+    Math.min(
+      requested,
+      maximumActionsFromDum
+    );
+
+
+  if (
+    executed <= 0
+  ) {
+
+    return {
+
+      ok:
+        false,
+
+      reason:
+        "dum",
+
+      earned:
+        0,
+
+      spent:
+        0,
+
+      dum:
+        currentDum,
+
+      max:
+        state.energy.max,
+
+      tapCounter:
+        currentCounter
+
+    };
+
+  }
+
+
+  /*
+   * =====================================================
+   * DUM ACCOUNTING
+   * =====================================================
+   */
+
+  const combinedCounter =
+    currentCounter +
+    executed;
+
+
+  const spentDum =
+    Math.floor(
+      combinedCounter /
+      5
+    );
+
+
+  const nextCounter =
+    combinedCounter %
+    5;
+
+
+  const wasFull =
+    state.energy.dum >=
+    state.energy.max;
+
+
+  state.energy.dum =
+    Math.max(
+      0,
+      currentDum -
+      spentDum
+    );
+
+
+  state.energy.tapCounter =
+    nextCounter;
+
+
+  if (
+    spentDum > 0
+  ) {
+
+    state.lifetime.dumSpent =
+      Math.max(
+        0,
+        Number(
+          state.lifetime
+            .dumSpent
+        ) || 0
+      ) +
+      spentDum;
+
+
+    /*
+     * Start regeneration clock
+     * when energy leaves MAX.
+     */
+    if (
+      wasFull ||
+      !state.energy.updatedAt
+    ) {
+
+      state.energy.updatedAt =
+        new Date()
+          .toISOString();
+
+    }
+
+  }
+
+
+  /*
+   * =====================================================
+   * SP
+   * =====================================================
+   *
+   * One AUTO action = 1 SP.
+   */
+
+  const earned =
+    executed;
+
+
+  state.economy.sp =
+    roundSPAmount(
+      (
+        Number(
+          state.economy.sp
+        ) || 0
+      ) +
+      earned
+    );
+
+
+  state.xp =
+    state.economy.sp;
+
+
+  state.lifetime.spEarned =
+    roundSPAmount(
+      (
+        Number(
+          state.lifetime
+            .spEarned
+        ) || 0
+      ) +
+      earned
+    );
+
+
+  /*
+   * =====================================================
+   * GAME STATS
+   * =====================================================
+   */
+
+  const id =
+    String(
+      gameId ||
+      "tap-lago"
+    ).trim();
+
+
+  const game =
+    ensureGame(
+      id
+    );
+
+
+  game.spEarned =
+    roundSPAmount(
+      (
+        Number(
+          game.spEarned
+        ) || 0
+      ) +
+      earned
+    );
+
+
+  game.xpEarned =
+    game.spEarned;
+
+
+  if (
+    spentDum > 0
+  ) {
+
+    game.dumSpent =
+      Math.max(
+        0,
+        Number(
+          game.dumSpent
+        ) || 0
+      ) +
+      spentDum;
+
+  }
+
+
+  /*
+   * AUTO is NOT a physical click.
+   *
+   * Do not increment:
+   *
+   * state.clicks
+   * legacy totalClicks
+   */
+
+
+  /*
+   * =====================================================
+   * LEVEL
+   * =====================================================
+   */
+
+  updateLevel(
+    state,
+    true
+  );
+
+
+  /*
+   * =====================================================
+   * ONE SAVE FOR THE ENTIRE SECOND
+   * =====================================================
+   */
+
+  save();
+
+
+  return {
+
+    ok:
+      true,
+
+    reason:
+      "auto",
+
+    requested,
+
+    executed,
+
+    earned,
+
+    spent:
+      spentDum,
+
+    dum:
+      state.energy.dum,
+
+    max:
+      state.energy.max,
+
+    tapCounter:
+      state.energy.tapCounter,
+
+    balance:
+      state.economy.sp,
+
+    lifetimeEarned:
+      state.lifetime.spEarned,
+
+    level:
+      state.level
+
+  };
+
+}
+
+/*
+ * =========================================================
  * TAP LAGO AUTO
  * =========================================================
  *
@@ -4925,6 +5407,8 @@ refreshDumEnergy,
 consumeTapDum,
 
 applyTapReward,
+
+applyAutoReward,
 
 getTapAutoState,
     
