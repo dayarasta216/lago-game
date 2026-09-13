@@ -1690,6 +1690,48 @@ if (
 
   }
 
+  /*
+ * =========================================================
+ * ACCOUNT-ONLY LIVE UPDATE
+ * =========================================================
+ *
+ * Used for high-frequency economy changes:
+ *
+ * TAP
+ * AUTO
+ * DUM
+ * SP
+ * account upgrades
+ *
+ * IMPORTANT:
+ *
+ * We deliberately do NOT emit legacy
+ * "lago:state" here.
+ *
+ * Shop / Collection use lago:state for
+ * structural character changes and must
+ * not rebuild their cards every second.
+ */
+
+function syncAccountOnly() {
+
+  const detail =
+    snapshot();
+
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:account-state",
+      {
+        detail
+      }
+    )
+  );
+
+
+  return detail;
+
+}
 
   /*
  * =========================================================
@@ -2035,14 +2077,37 @@ function unlockDoubleClick() {
     );
 
 
-  state.tapUpgrades.doubleClick =
-    true;
+ state.tapUpgrades.doubleClick =
+  true;
 
 
-  save();
+/*
+ * DOUBLE CLICK changes Tap gameplay,
+ * not character ownership/catalog.
+ */
+save({
+  emit:
+    false
+});
 
 
-  return {
+syncAccountOnly();
+
+
+document.dispatchEvent(
+  new CustomEvent(
+    "lago:tap-upgrade-state",
+    {
+      detail: {
+        doubleClick:
+          true
+      }
+    }
+  )
+);
+
+
+return {
     ok:
       true,
     unlocked:
@@ -3312,11 +3377,20 @@ function applyTapReward(
    * =====================================================
    */
 
-  save();
+ /*
+ * Persist economy without triggering
+ * structural UI rebuilds.
+ */
+save({
+  emit:
+    false
+});
 
 
-  return {
+syncAccountOnly();
 
+
+return {
     allowed:
       true,
 
@@ -3790,10 +3864,22 @@ function applyAutoReward(
    * =====================================================
    */
 
-  save();
+  /*
+ * AUTO may run every second.
+ *
+ * Never rebuild Collection / Shop
+ * because SP or DUM changed.
+ */
+save({
+  emit:
+    false
+});
 
 
-  return {
+syncAccountOnly();
+
+
+return {
 
     ok:
       true,
