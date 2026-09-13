@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-    8;
+  9;
 
 
   const BASE_LAGO_MODEL =
@@ -1716,6 +1716,32 @@ let lastRenderedAt =
 
   }
 
+  function previewDimensions() {
+
+    /*
+     * One canonical square render size.
+     *
+     * The same cached snapshot can be reused in:
+     *
+     * - Shop
+     * - Collection grid
+     * - Collection current character
+     *
+     * CSS handles final card geometry.
+     */
+
+    return {
+
+      width:
+        PREVIEW_SNAPSHOT_SIZE,
+
+      height:
+        PREVIEW_SNAPSHOT_SIZE
+
+    };
+
+  }
+ 
  function attachPreviewImage(
   host,
   dataUrl,
