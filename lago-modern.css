@@ -2632,6 +2632,30 @@ span:last-child {
 
 }
 
+  /*
+   * Same typography as the canonical
+   * Lago interface.
+   *
+   * Upgrade screen lives outside
+   * #lagoModern, therefore it cannot
+   * inherit the main UI font.
+   */
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-synthesis:
+    none;
+
+  -webkit-font-smoothing:
+    antialiased;
+
+  text-rendering:
+    optimizeLegibility;
 
 .lago-upgrade-header {
 
@@ -4001,6 +4025,122 @@ and
 /* =========================================================
    ACCESSIBILITY / REDUCED MOTION
    ========================================================= */
+
+/* =========================================================
+   UPGRADE — CANONICAL LAGO TYPOGRAPHY
+   ========================================================= */
+
+
+.lago-upgrade-screen,
+.lago-upgrade-screen button {
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+}
+
+
+.lago-upgrade-kicker,
+.lago-upgrade-status,
+.lago-upgrade-balance span,
+.lago-upgrade-card-desc,
+.lago-upgrade-auto-next span,
+.lago-upgrade-cost-grid span {
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .08em;
+
+  text-transform:
+    uppercase;
+
+}
+
+
+.lago-upgrade-title {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  line-height:
+    .95;
+
+  letter-spacing:
+    -.035em;
+
+}
+
+
+.lago-upgrade-card-name {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -.02em;
+
+}
+
+
+.lago-upgrade-card-effect,
+.lago-upgrade-balance strong {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    0;
+
+}
+
+
+.lago-upgrade-buy,
+.lago-upgrade-owned {
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .045em;
+
+  text-transform:
+    uppercase;
+
+}
 
 @media (
   prefers-reduced-motion:
