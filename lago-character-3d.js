@@ -1020,79 +1020,150 @@ import {
 
     resize();
 
+/*
+ * =========================================================
+ * FRAME PACING
+ * =========================================================
+ *
+ * MacBook Pro / iPhone Pro may run
+ * requestAnimationFrame at 120 Hz.
+ *
+ * Lago does not need to render the same
+ * GLB 120 times every second.
+ *
+ * Stable 60 FPS:
+ * - lower GPU load
+ * - lower Safari compositor load
+ * - less heat
+ * - more consistent frame delivery
+ * - smoother UI transitions
+ */
 
-    renderer.setAnimationLoop(
-      () => {
-
-        /*
-         * Do not burn GPU while tab
-         * or another full-screen Lago page
-         * is covering PLAY.
-         */
-        if (
-          document.hidden ||
-          canvas.hidden ||
-          !activeModel ||
-          mainOverlayOpen()
-        ) {
-
-          return;
-
-        }
-
-
-        const time =
-          performance.now() *
-          0.001;
+const TARGET_FPS =
+  60;
 
 
-        tapKick *=
-          0.80;
+const FRAME_INTERVAL =
+  1000 /
+  TARGET_FPS;
 
 
-        /*
-         * Extremely light idle animation.
-         */
-        holder.position.y =
-          Math.sin(
-            time *
-            1.55
-          ) *
-          0.035;
+let lastRenderedAt =
+  0;
+  
+   renderer.setAnimationLoop(
+  now => {
+
+    /*
+     * Nothing visible =
+     * zero GLB rendering work.
+     */
+    if (
+      document.hidden ||
+      canvas.hidden ||
+      !activeModel ||
+      mainOverlayOpen()
+    ) {
+
+      lastRenderedAt =
+        now;
+
+      return;
+
+    }
 
 
-        holder.rotation.y =
-          Math.sin(
-            time *
-            0.58
-          ) *
-          0.025;
+    /*
+     * Stable frame pacing.
+     *
+     * On a 120 Hz display this renders
+     * every second display frame.
+     */
+    const elapsed =
+      now -
+      lastRenderedAt;
 
 
-        holder.scale.set(
+    if (
+      elapsed <
+      FRAME_INTERVAL
+    ) {
 
-          1 +
-            tapKick *
-            0.045,
+      return;
 
-          1 -
-            tapKick *
-            0.035,
-
-          1 +
-            tapKick *
-            0.02
-
-        );
+    }
 
 
-        renderer.render(
-          scene,
-          camera
-        );
+    /*
+     * Prevent accumulated timing drift.
+     */
+    lastRenderedAt =
+      now -
+      (
+        elapsed %
+        FRAME_INTERVAL
+      );
 
-      }
+
+    const time =
+      now *
+      0.001;
+
+
+    tapKick *=
+      0.76;
+
+
+    /*
+     * Tiny idle motion.
+     *
+     * Keep movement visually alive,
+     * but do not continuously swing
+     * the whole model aggressively.
+     */
+    holder.position.y =
+      Math.sin(
+        time *
+        1.45
+      ) *
+      0.026;
+
+
+    holder.rotation.y =
+      Math.sin(
+        time *
+        0.52
+      ) *
+      0.018;
+
+
+    /*
+     * Tap response.
+     */
+    holder.scale.set(
+
+      1 +
+        tapKick *
+        0.04,
+
+      1 -
+        tapKick *
+        0.03,
+
+      1 +
+        tapKick *
+        0.016
+
     );
+
+
+    renderer.render(
+      scene,
+      camera
+    );
+
+  }
+);
 
 
     return true;
