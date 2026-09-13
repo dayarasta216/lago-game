@@ -1,20 +1,30 @@
 (() => {
   "use strict";
 
-  const VERSION = 4;
+
+  const VERSION =
+    5;
 
 
   /*
    * =========================================================
-   * COMIC CHARACTER REGISTRY
+   * LAGO CHARACTER REGISTRY
    * =========================================================
    *
-   * Stable technical IDs MUST NOT be renamed later.
+   * Stable IDs MUST NOT be renamed.
    *
-   * Display names may change without breaking saves.
+   * Character != Lago skin.
    *
-   * Comic characters are complete characters.
-   * They are NOT donor parts for Creature Creator.
+   * Canonical playable characters:
+   *
+   * Lago
+   * Narek
+   * Sola
+   * Бамбини "Док"
+   * Марвин
+   * Фарид
+   * Мики
+   * Олег
    * =========================================================
    */
 
@@ -22,11 +32,13 @@
   const CHARACTERS =
     Object.freeze([
 
+
       /*
        * =====================================================
        * NAREK
        * =====================================================
        */
+
       Object.freeze({
 
         id:
@@ -86,6 +98,7 @@
        * SOLA
        * =====================================================
        */
+
       Object.freeze({
 
         id:
@@ -145,6 +158,7 @@
        * БАМБИНИ "ДОК"
        * =====================================================
        */
+
       Object.freeze({
 
         id:
@@ -204,6 +218,7 @@
        * МАРВИН
        * =====================================================
        */
+
       Object.freeze({
 
         id:
@@ -263,6 +278,7 @@
        * ФАРИД
        * =====================================================
        */
+
       Object.freeze({
 
         id:
@@ -284,7 +300,7 @@
           "./assets/characters/comic-farid(5).svg?v=8",
 
         model3d:
-  "./assets/model/comic-fennec.glb?v=3",
+          "./assets/model/comic-fennec.glb?v=3",
 
         shop:
           Object.freeze({
@@ -321,10 +337,8 @@
        * =====================================================
        * МИКИ
        * =====================================================
-       *
-       * GLB-FIRST.
-       * Shop economy is not assigned yet.
        */
+
       Object.freeze({
 
         id:
@@ -336,14 +350,30 @@
         type:
           "comic",
 
-      model3d:
-  "./assets/model/comic-goose.glb?v=2",
+        series:
+          "comic-01",
+
+        rarity:
+          "EPIC",
+
+        model3d:
+          "./assets/model/comic-goose.glb?v=2",
 
         shop:
           Object.freeze({
 
             enabled:
-              false
+              true,
+
+            currency:
+              "SP",
+
+            /*
+             * Temporary balance value.
+             * We tune economy later.
+             */
+            price:
+              420000
 
           }),
 
@@ -368,10 +398,8 @@
        * =====================================================
        * ОЛЕГ
        * =====================================================
-       *
-       * GLB-FIRST.
-       * Shop economy is not assigned yet.
        */
+
       Object.freeze({
 
         id:
@@ -383,6 +411,12 @@
         type:
           "comic",
 
+        series:
+          "comic-01",
+
+        rarity:
+          "LEGENDARY",
+
         model3d:
           "./assets/model/comic-pig.glb?v=2",
 
@@ -390,7 +424,17 @@
           Object.freeze({
 
             enabled:
-              false
+              true,
+
+            currency:
+              "SP",
+
+            /*
+             * Temporary balance value.
+             * We tune economy later.
+             */
+            price:
+              460000
 
           }),
 
@@ -450,17 +494,15 @@
     const key =
       String(
         id || ""
-      )
-        .trim();
+      ).trim();
 
 
     const character =
-      CHARACTERS
-        .find(
-          item =>
-            item.id ===
-            key
-        );
+      CHARACTERS.find(
+        item =>
+          item.id ===
+          key
+      );
 
 
     return character
@@ -502,7 +544,6 @@
               .playtimeUnlock
               ?.minutes
           ) > 0
-
       );
 
   }
@@ -523,19 +564,16 @@
 
   /*
    * =========================================================
-   * INTEGRITY GATE
+   * INTEGRITY
    * =========================================================
-   *
-   * Duplicate IDs would corrupt ownership and saves.
    */
 
 
   const ids =
-    CHARACTERS
-      .map(
-        character =>
-          character.id
-      );
+    CHARACTERS.map(
+      character =>
+        character.id
+    );
 
 
   if (
@@ -571,4 +609,4 @@
     });
 
 
-})(); 
+})();
