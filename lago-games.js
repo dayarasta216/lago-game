@@ -1,9 +1,50 @@
 (() => {
   "use strict";
 
-  const VERSION = 4;
+  const VERSION = 5;
 
-  let overlay = null;
+let overlay = null;
+
+
+/*
+ * Mini-games are loaded only when
+ * the player actually opens them.
+ *
+ * This prevents a broken/heavy game
+ * module from affecting Lago startup.
+ */
+const gameModulePromises =
+  new Map();
+
+
+const GAME_MODULES =
+  Object.freeze({
+
+    "knife-challenge":
+      Object.freeze({
+
+        ready() {
+
+          return (
+            typeof window
+              .LAGO_KNIFE_GAME
+              ?.show ===
+            "function"
+          );
+
+        },
+
+        load() {
+
+          return import(
+            "./lago-game-knife.js?v=7"
+          );
+
+        }
+
+      })
+
+  });
 
 
   const CATALOG = [
@@ -408,6 +449,105 @@ dumCost: 5,
 
       </article>
     `;
+
+  }
+
+    async function ensureGameModule(
+    gameId
+  ) {
+
+    const key =
+      String(
+        gameId || ""
+      ).trim();
+
+
+    const module =
+      GAME_MODULES[
+        key
+      ];
+
+
+    /*
+     * Games without a separate module
+     * do not need lazy loading.
+     */
+    if (!module) {
+      return true;
+    }
+
+
+    if (
+      module.ready()
+    ) {
+
+      return true;
+
+    }
+
+
+    /*
+     * Never start several imports of
+     * the same game from double taps.
+     */
+    if (
+      !gameModulePromises.has(
+        key
+      )
+    ) {
+
+      const promise =
+        module
+          .load()
+          .then(
+            () => {
+
+              if (
+                !module.ready()
+              ) {
+
+                throw new Error(
+                  `${key} module loaded but did not become ready`
+                );
+
+              }
+
+
+              return true;
+
+            }
+          )
+          .catch(
+            error => {
+
+              /*
+               * Allow RETRY after a
+               * failed network/module load.
+               */
+              gameModulePromises
+                .delete(
+                  key
+                );
+
+
+              throw error;
+
+            }
+          );
+
+
+      gameModulePromises.set(
+        key,
+        promise
+      );
+
+    }
+
+
+    return gameModulePromises
+      .get(
+        key
+      );
 
   }
 
@@ -859,9 +999,9 @@ dumCost: 5,
       );
 
 
-    overlay.addEventListener(
+       overlay.addEventListener(
       "click",
-      event => {
+      async event => {
 
         const button =
           event.target.closest(
@@ -885,8 +1025,8 @@ dumCost: 5,
 
 
         /*
-         * Tap Lago is already the
-         * main PLAY screen.
+         * TAP LAGO already lives on
+         * the main PLAY screen.
          */
         if (
           id ===
@@ -900,18 +1040,109 @@ dumCost: 5,
         }
 
 
-        const result =
-          runtime()
-            ?.open
-            ?.(id);
+        const originalText =
+          button.textContent;
 
 
-        if (
-          result?.ok ===
-          true
+        button.disabled =
+          true;
+
+
+        button.textContent =
+          "LOADING";
+
+
+        try {
+
+          /*
+           * Important:
+           *
+           * Wait until the mini-game
+           * module has EXECUTED and
+           * installed its event listener
+           * before runtime.open()
+           * dispatches the open event.
+           */
+          await ensureGameModule(
+            id
+          );
+
+
+          const result =
+            runtime()
+              ?.open
+              ?.(id);
+
+
+          if (
+            result?.ok ===
+            true
+          ) {
+
+            hide();
+
+            return;
+
+          }
+
+
+          console.warn(
+            "[LAGO GAMES] Game cannot open:",
+            id,
+            result
+          );
+
+
+          button.textContent =
+            result?.reason ===
+            "dum"
+
+              ? "NEED DUM"
+
+              : "RETRY";
+
+        } catch (
+          error
         ) {
 
-          hide();
+          console.error(
+            "[LAGO GAMES] Module load failed:",
+            id,
+            error
+          );
+
+
+          button.textContent =
+            "RETRY";
+
+        } finally {
+
+          /*
+           * If the game opened,
+           * Games Hub is already hidden.
+           *
+           * Otherwise restore the button
+           * so player can retry.
+           */
+          if (
+            button.isConnected
+          ) {
+
+            button.disabled =
+              false;
+
+
+            if (
+              button.textContent ===
+              "LOADING"
+            ) {
+
+              button.textContent =
+                originalText;
+
+            }
+
+          }
 
         }
 
