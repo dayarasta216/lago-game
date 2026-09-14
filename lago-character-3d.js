@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  11;
+  12;
 
 
   const BASE_LAGO_MODEL =
@@ -140,6 +140,13 @@ import {
   let previewBusy =
     false;
 
+  let previewPumpScheduled =
+  false;
+
+
+let previewIntersectionObserver =
+  null;
+
 /*
  * =========================================================
  * STATIC PREVIEW CACHE
@@ -153,8 +160,7 @@ import {
  */
 
 const PREVIEW_SNAPSHOT_SIZE =
-  384;
-
+  256;
 
 const previewSnapshotCache =
   new Map();
@@ -1826,6 +1832,302 @@ let lastRenderedAt =
 
 }
 
+    function encodePreviewSnapshot(
+    sourceCanvas
+  ) {
+
+    /*
+     * toDataURL() is synchronous and
+     * can freeze Safari's main thread.
+     *
+     * toBlob() lets the browser encode
+     * the snapshot asynchronously.
+     */
+    if (
+      typeof sourceCanvas
+        ?.toBlob !==
+      "function"
+    ) {
+
+      return Promise.resolve(
+        sourceCanvas.toDataURL(
+          "image/png"
+        )
+      );
+
+    }
+
+
+    return new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        sourceCanvas.toBlob(
+
+          blob => {
+
+            if (!blob) {
+
+              reject(
+                new Error(
+                  "Preview PNG encode failed"
+                )
+              );
+
+              return;
+
+            }
+
+
+            resolve(
+              URL.createObjectURL(
+                blob
+              )
+            );
+
+          },
+
+          "image/png"
+
+        );
+
+      }
+    );
+
+  }
+
+  function previewHostActive(
+    host
+  ) {
+
+    if (
+      !host ||
+      !host.isConnected
+    ) {
+
+      return false;
+
+    }
+
+
+    const page =
+      host.closest(
+        "#lagoShop, #lagoCollection"
+      );
+
+
+    if (!page) {
+      return true;
+    }
+
+
+    return page
+      .classList
+      .contains(
+        "active"
+      );
+
+  }
+
+
+  function schedulePreviewPump() {
+
+    if (
+      previewBusy ||
+      previewPumpScheduled ||
+      previewQueue.length === 0
+    ) {
+
+      return;
+
+    }
+
+
+    previewPumpScheduled =
+      true;
+
+
+    const run =
+      () => {
+
+        previewPumpScheduled =
+          false;
+
+
+        pumpPreviewQueue();
+
+      };
+
+
+    /*
+     * Safari does not consistently
+     * support requestIdleCallback.
+     */
+    if (
+      "requestIdleCallback" in
+      window
+    ) {
+
+      window.requestIdleCallback(
+        run,
+        {
+          timeout:
+            600
+        }
+      );
+
+    } else {
+
+      /*
+       * Let opening animation / layout
+       * finish before parsing another GLB.
+       */
+      window.setTimeout(
+        run,
+        140
+      );
+
+    }
+
+  }
+
+
+  function enqueuePreview(
+    host,
+    modelUrl,
+    controller
+  ) {
+
+    if (
+      controller.destroyed ||
+      controller.queued
+    ) {
+
+      return;
+
+    }
+
+
+    controller.queued =
+      true;
+
+
+    previewQueue.push({
+
+      host,
+
+      modelUrl,
+
+      controller
+
+    });
+
+
+    schedulePreviewPump();
+
+  }
+
+
+  function ensurePreviewObserver() {
+
+    if (
+      previewIntersectionObserver
+    ) {
+
+      return previewIntersectionObserver;
+
+    }
+
+
+    if (
+      !(
+        "IntersectionObserver" in
+        window
+      )
+    ) {
+
+      return null;
+
+    }
+
+
+    previewIntersectionObserver =
+      new IntersectionObserver(
+
+        entries => {
+
+          entries.forEach(
+            entry => {
+
+              if (
+                !entry.isIntersecting
+              ) {
+
+                return;
+
+              }
+
+
+              const host =
+                entry.target;
+
+
+              previewIntersectionObserver
+                .unobserve(
+                  host
+                );
+
+
+              const controller =
+                host
+                  ._lago3dPreviewController;
+
+
+              if (
+                !controller ||
+                controller.destroyed
+              ) {
+
+                return;
+
+              }
+
+
+              enqueuePreview(
+
+                host,
+
+                controller.modelUrl,
+
+                controller
+
+              );
+
+            }
+          );
+
+        },
+
+        {
+          root:
+            null,
+
+          rootMargin:
+            "80px 0px",
+
+          threshold:
+            0.05
+        }
+
+      );
+
+
+    return previewIntersectionObserver;
+
+  }
+  
  async function processPreviewTask(
   task
 ) {
@@ -1847,6 +2149,19 @@ let lastRenderedAt =
 
   }
 
+     if (
+    !previewHostActive(
+      host
+    )
+  ) {
+
+    destroyPreview(
+      host
+    );
+
+    return;
+
+  }
 
   /*
    * =====================================================
@@ -1895,6 +2210,25 @@ let lastRenderedAt =
       modelUrl
     );
 
+     if (
+    !previewHostActive(
+      host
+    )
+  ) {
+
+    destroyPreview(
+      host
+    );
+
+    return;
+
+           previewIntersectionObserver
+      ?.unobserve
+      ?.(
+        host
+      );
+       
+  }
 
   if (
     controller.destroyed ||
@@ -1973,12 +2307,11 @@ let lastRenderedAt =
   );
 
 
-  const dataUrl =
-    previewRenderer
-      .domElement
-      .toDataURL(
-        "image/png"
-      );
+    const dataUrl =
+    await encodePreviewSnapshot(
+      previewRenderer
+        .domElement
+    );
 
 
   /*
@@ -2016,7 +2349,7 @@ let lastRenderedAt =
 
 }
 
-  async function pumpPreviewQueue() {
+    async function pumpPreviewQueue() {
 
     if (
       previewBusy
@@ -2031,12 +2364,8 @@ let lastRenderedAt =
       previewQueue.shift();
 
 
-    if (
-      !task
-    ) {
-
+    if (!task) {
       return;
-
     }
 
 
@@ -2065,6 +2394,15 @@ let lastRenderedAt =
           error
         );
 
+
+        /*
+         * Allow retry next time
+         * the page is opened.
+         */
+        destroyPreview(
+          task.host
+        );
+
       }
 
     } finally {
@@ -2073,164 +2411,159 @@ let lastRenderedAt =
         false;
 
 
-      /*
-       * Give Safari one frame
-       * between heavy GLB previews.
-       */
-      requestAnimationFrame(
-        pumpPreviewQueue
+      schedulePreviewPump();
+
+    }
+
+  }
+
+
+    function mountPreview(
+    host,
+    modelUrl
+  ) {
+
+    if (
+      !host ||
+      typeof modelUrl !==
+        "string"
+    ) {
+
+      return null;
+
+    }
+
+
+    const key =
+      modelUrl.trim();
+
+
+    if (!key) {
+      return null;
+    }
+
+
+    const existing =
+      host
+        ._lago3dPreviewController;
+
+
+    if (
+      existing &&
+      existing.destroyed !==
+        true &&
+      host.dataset
+        .lagoPreviewModel ===
+        key
+    ) {
+
+      return existing;
+
+    }
+
+
+    destroyPreview(
+      host
+    );
+
+
+    const controller = {
+
+      destroyed:
+        false,
+
+      queued:
+        false,
+
+      modelUrl:
+        key,
+
+      image:
+        null,
+
+      destroy() {
+
+        controller.destroyed =
+          true;
+
+
+        previewIntersectionObserver
+          ?.unobserve
+          ?.(
+            host
+          );
+
+
+        controller.image
+          ?.remove
+          ?.();
+
+
+        controller.image =
+          null;
+
+      }
+
+    };
+
+
+    host._lago3dPreviewController =
+      controller;
+
+
+    host.dataset
+      .lagoPreviewModel =
+      key;
+
+
+    const cachedSnapshot =
+      previewSnapshotCache.get(
+        key
+      );
+
+
+    if (cachedSnapshot) {
+
+      attachPreviewImage(
+        host,
+        cachedSnapshot,
+        controller
+      );
+
+
+      return controller;
+
+    }
+
+
+    /*
+     * Do not even queue the GLB until
+     * the card is close to the viewport.
+     */
+    const observer =
+      ensurePreviewObserver();
+
+
+    if (observer) {
+
+      observer.observe(
+        host
+      );
+
+    } else {
+
+      enqueuePreview(
+        host,
+        key,
+        controller
       );
 
     }
-
-  }
-
-
-  function mountPreview(
-  host,
-  modelUrl
-) {
-
-  if (
-    !host ||
-    typeof modelUrl !==
-      "string"
-  ) {
-
-    return null;
-
-  }
-
-
-  const key =
-    modelUrl.trim();
-
-
-  if (
-    !key
-  ) {
-
-    return null;
-
-  }
-
-
-  /*
-   * Do not remount the exact same
-   * preview host unnecessarily.
-   */
-
-  const existing =
-    host
-      ._lago3dPreviewController;
-
-
-  if (
-    existing &&
-    existing.destroyed !==
-      true &&
-    host.dataset
-      .lagoPreviewModel ===
-      key
-  ) {
-
-    return existing;
-
-  }
-
-
-  destroyPreview(
-    host
-  );
-
-
-  const controller = {
-
-    destroyed:
-      false,
-
-    image:
-      null,
-
-    destroy() {
-
-      controller.destroyed =
-        true;
-
-
-      controller.image
-        ?.remove
-        ?.();
-
-
-      controller.image =
-        null;
-
-    }
-
-  };
-
-
-  host._lago3dPreviewController =
-    controller;
-
-
-  host.dataset
-    .lagoPreviewModel =
-    key;
-
-
-  /*
-   * =====================================================
-   * INSTANT CACHE HIT
-   * =====================================================
-   */
-
-  const cachedSnapshot =
-    previewSnapshotCache.get(
-      key
-    );
-
-
-  if (
-    cachedSnapshot
-  ) {
-
-    attachPreviewImage(
-      host,
-      cachedSnapshot,
-      controller
-    );
 
 
     return controller;
 
   }
-
-
-  /*
-   * Only unseen models enter
-   * the WebGL preview queue.
-   */
-
-  previewQueue.push({
-
-    host,
-
-    modelUrl:
-      key,
-
-    controller
-
-  });
-
-
-  pumpPreviewQueue();
-
-
-  return controller;
-
-}
 
 
   function apply() {
@@ -2394,15 +2727,20 @@ let lastRenderedAt =
       startInitial3D,
       {
         timeout:
-          700
+          1200
       }
     );
 
   } else {
 
+    /*
+     * Safari:
+     * show responsive 2D fallback first,
+     * then start the heavy GLB.
+     */
     window.setTimeout(
       startInitial3D,
-      0
+      650
     );
 
   }
