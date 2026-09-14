@@ -3826,7 +3826,7 @@ camera.lookAt(
 
           ? "CENTER"
 
-          : magnitude <
+          magnitude <
             .42
 
             ? "CORRECT IT"
