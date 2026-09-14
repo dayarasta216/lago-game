@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 6;
+  const VERSION = 7;
 
   const GAME_ID =
     "knife-challenge";
@@ -5187,4 +5187,22 @@ import * as THREE from "three";
 
     });
 
+  /*
+   * Explicit module-ready signal.
+   *
+   * Useful for Games Hub diagnostics
+   * and future game loading UI.
+   */
+  document.dispatchEvent(
+    new CustomEvent(
+      "lago:knife-game-ready",
+      {
+        detail: {
+          version:
+            VERSION
+        }
+      }
+    )
+  );
+  
 })();
