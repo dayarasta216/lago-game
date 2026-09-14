@@ -3,7 +3,7 @@
 
 
 const VERSION =
-  3;
+  4;
 
 
   const DEFAULT_ASSET =
@@ -26,18 +26,25 @@ const VERSION =
    */
 
 
-  function selectedId() {
+   function selectedId() {
 
     return String(
+
+      window.LAGO_ACCOUNT
+        ?.getState
+        ?.()
+        ?.selectedSkin ||
+
       window.LAGO
         ?.getState
         ?.()
         ?.selectedSkin ||
+
       "default"
+
     );
 
   }
-
 
   function image() {
 
@@ -221,12 +228,6 @@ const VERSION =
 
   document.addEventListener(
     "lago:state",
-    apply
-  );
-
-
-  document.addEventListener(
-    "lago:character-equipped",
     apply
   );
 
