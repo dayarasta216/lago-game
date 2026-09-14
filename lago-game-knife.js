@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 11;
+  const VERSION = 12;
 
   const GAME_ID =
     "knife-challenge";
@@ -54,6 +54,182 @@ const KNIFE_EDGE_Z =
 
 const BALANCE_FAIL_LIMIT =
   0.92;
+
+  /*
+ * =========================================================
+ * AUTOMATIC LEVEL CURVE
+ * =========================================================
+ *
+ * Player never selects difficulty.
+ *
+ * Every completed level makes
+ * the next one harder automatically.
+ */
+const LEVEL_PROFILES =
+  Object.freeze([
+
+    Object.freeze({
+      level: 1,
+      duration: 9200,
+      gravity: .60,
+      noise: .12,
+      bias: .10,
+      control: 2.95,
+      damping: .38,
+      failLimit: 1.00,
+      dangerGrace: .70,
+      hazardMin: 3200,
+      hazardMax: 4200,
+      hazardImpulse: .08,
+      startBalance: .035,
+      startVelocity: .018,
+      scoreMultiplier: .75
+    }),
+
+    Object.freeze({
+      level: 2,
+      duration: 8800,
+      gravity: .72,
+      noise: .16,
+      bias: .14,
+      control: 2.90,
+      damping: .42,
+      failLimit: .98,
+      dangerGrace: .62,
+      hazardMin: 2800,
+      hazardMax: 3800,
+      hazardImpulse: .10,
+      startBalance: .05,
+      startVelocity: .024,
+      scoreMultiplier: .85
+    }),
+
+    Object.freeze({
+      level: 3,
+      duration: 8400,
+      gravity: .86,
+      noise: .20,
+      bias: .20,
+      control: 2.80,
+      damping: .48,
+      failLimit: .95,
+      dangerGrace: .54,
+      hazardMin: 2400,
+      hazardMax: 3300,
+      hazardImpulse: .13,
+      startBalance: .07,
+      startVelocity: .032,
+      scoreMultiplier: .95
+    }),
+
+    Object.freeze({
+      level: 4,
+      duration: 8000,
+      gravity: 1.02,
+      noise: .25,
+      bias: .25,
+      control: 2.70,
+      damping: .55,
+      failLimit: .92,
+      dangerGrace: .47,
+      hazardMin: 2000,
+      hazardMax: 2900,
+      hazardImpulse: .16,
+      startBalance: .09,
+      startVelocity: .040,
+      scoreMultiplier: 1.05
+    }),
+
+    Object.freeze({
+      level: 5,
+      duration: 7600,
+      gravity: 1.18,
+      noise: .30,
+      bias: .31,
+      control: 2.60,
+      damping: .62,
+      failLimit: .89,
+      dangerGrace: .40,
+      hazardMin: 1650,
+      hazardMax: 2500,
+      hazardImpulse: .20,
+      startBalance: .11,
+      startVelocity: .050,
+      scoreMultiplier: 1.18
+    }),
+
+    Object.freeze({
+      level: 6,
+      duration: 7200,
+      gravity: 1.36,
+      noise: .36,
+      bias: .37,
+      control: 2.50,
+      damping: .69,
+      failLimit: .86,
+      dangerGrace: .34,
+      hazardMin: 1350,
+      hazardMax: 2100,
+      hazardImpulse: .24,
+      startBalance: .13,
+      startVelocity: .062,
+      scoreMultiplier: 1.32
+    }),
+
+    Object.freeze({
+      level: 7,
+      duration: 6800,
+      gravity: 1.55,
+      noise: .42,
+      bias: .44,
+      control: 2.42,
+      damping: .76,
+      failLimit: .83,
+      dangerGrace: .29,
+      hazardMin: 1050,
+      hazardMax: 1750,
+      hazardImpulse: .28,
+      startBalance: .15,
+      startVelocity: .075,
+      scoreMultiplier: 1.48
+    }),
+
+    Object.freeze({
+      level: 8,
+      duration: 6300,
+      gravity: 1.78,
+      noise: .50,
+      bias: .52,
+      control: 2.35,
+      damping: .82,
+      failLimit: .79,
+      dangerGrace: .24,
+      hazardMin: 780,
+      hazardMax: 1350,
+      hazardImpulse: .34,
+      startBalance: .18,
+      startVelocity: .090,
+      scoreMultiplier: 1.70
+    })
+
+  ]);
+
+
+function currentLevelProfile() {
+
+  const index =
+    THREE.MathUtils.clamp(
+      round - 1,
+      0,
+      LEVEL_PROFILES.length - 1
+    );
+
+
+  return LEVEL_PROFILES[
+    index
+  ];
+
+}
 
   const pressedKeys =
     new Set();
@@ -161,6 +337,13 @@ let balanceBias =
 
 
 let nextBalanceBiasAt =
+  0;
+
+  let nextHazardAt =
+  0;
+
+
+let dangerTime =
   0;
   
 
@@ -3772,79 +3955,102 @@ camera.lookAt(
    * Needle directly represents
    * physical character balance.
    */
-  function updateBalanceUi() {
+ function updateBalanceUi() {
 
-    const needle =
-      el(
-        "lagoBalanceNeedle"
-      );
-
-
-    const status =
-      el(
-        "lagoBalanceStatus"
-      );
+  const needle =
+    el(
+      "lagoBalanceNeedle"
+    );
 
 
-    const magnitude =
-      Math.abs(
-        balance
-      );
+  const status =
+    el(
+      "lagoBalanceStatus"
+    );
 
 
-    const degrees =
-      THREE.MathUtils.clamp(
-        balance,
-        -1,
-        1
-      ) *
-      78;
+  const cfg =
+    currentLevelProfile();
 
 
-    if (needle) {
-
-      needle.style.transform =
-        `rotate(${degrees}deg)`;
-
-
-      needle.style.stroke =
-        magnitude <
-        .42
-
-          ? "#ffffff"
-
-          : "#ff6a5f";
-
-    }
+  const magnitude =
+    Math.abs(
+      balance
+    );
 
 
-    if (status) {
+  const normalized =
+    THREE.MathUtils.clamp(
 
-      status.textContent =
-        magnitude <
-        .14
+      balance /
+      cfg.failLimit,
 
-          ? "CENTER"
+      -1,
 
-          : magnitude <
-            .42
+      1
 
-            ? "CORRECT IT"
-
-            : "DANGER";
+    );
 
 
-      status.style.color =
-        magnitude <
-        .42
+  const degrees =
+    normalized *
+    78;
 
-          ? "#ccff00"
 
-          : "#ff5b52";
+  const centerLimit =
+    cfg.failLimit *
+    .20;
 
-    }
+
+  const warningLimit =
+    cfg.failLimit *
+    .60;
+
+
+  if (needle) {
+
+    needle.style.transform =
+      `rotate(${degrees}deg)`;
+
+
+    needle.style.stroke =
+      magnitude <
+      warningLimit
+
+        ? "#ffffff"
+
+        : "#ff6a5f";
 
   }
+
+
+  if (status) {
+
+    status.textContent =
+      magnitude <
+      centerLimit
+
+        ? `LEVEL ${round} · CENTER`
+
+        : magnitude <
+          warningLimit
+
+          ? `LEVEL ${round} · CORRECT`
+
+          : `LEVEL ${round} · DANGER`;
+
+
+    status.style.color =
+      magnitude <
+      warningLimit
+
+        ? "#ccff00"
+
+        : "#ff5b52";
+
+  }
+
+}
 
 
   /*
@@ -4160,118 +4366,141 @@ camera.lookAt(
 
   function startNextRound() {
 
-    clearResolveTimer();
+  clearResolveTimer();
 
-    clearFallPieces();
-
-
-    if (
-      phase !==
-      "running"
-    ) {
-
-      return;
-
-    }
+  clearFallPieces();
 
 
-    if (
-      lives <=
-        0 ||
-      round >=
-        TOTAL_ROUNDS
-    ) {
+  if (
+    phase !==
+    "running"
+  ) {
 
-      finishGame();
-
-      return;
-
-    }
-
-
-    round +=
-      1;
-
-
-    walkProgress =
-      0;
-
-
-    balanceQuality =
-      0;
-
-
-    inputAxis =
-      0;
-
-
-    /*
-     * Small random start.
-     */
-        balance =
-      THREE.MathUtils
-        .randFloat(
-          -.16,
-          .16
-        );
-
-
-    balanceVelocity =
-      THREE.MathUtils
-        .randFloat(
-          -.09,
-          .09
-        );
-
-
-    balanceBias =
-      THREE.MathUtils
-        .randFloat(
-          -.20,
-          .20
-        );
-
-
-    nextBalanceBiasAt =
-      roundStartedAt +
-      350;
-
-
-    roundStartedAt =
-      performance.now();
-
-
-    lastFrameAt =
-      roundStartedAt;
-
-
-    resetCharacterPose();
-
-
-    updateHud();
-
-    updateBalanceUi();
-
-
-    if (
-      el(
-        "lagoKnifeFeedback"
-      )
-    ) {
-
-      el(
-        "lagoKnifeFeedback"
-      ).textContent =
-        `ROUND ${round} · BALANCE`;
-
-    }
-
-
-    requestLoop();
+    return;
 
   }
 
 
+  if (
+    lives <= 0 ||
+    round >= TOTAL_ROUNDS
+  ) {
+
+    finishGame();
+
+    return;
+
+  }
+
+
+  round +=
+    1;
+
+
+  walkProgress =
+    0;
+
+
+  balanceQuality =
+    0;
+
+
+  inputAxis =
+    0;
+
+
+  dangerTime =
+    0;
+
+
+  const cfg =
+    currentLevelProfile();
+
+
+  /*
+   * Set the level clock first.
+   */
+  roundStartedAt =
+    performance.now();
+
+
+  lastFrameAt =
+    roundStartedAt;
+
+
+  balance =
+    THREE.MathUtils.randFloat(
+
+      -cfg.startBalance,
+
+      cfg.startBalance
+
+    );
+
+
+  balanceVelocity =
+    THREE.MathUtils.randFloat(
+
+      -cfg.startVelocity,
+
+      cfg.startVelocity
+
+    );
+
+
+  balanceBias =
+    THREE.MathUtils.randFloat(
+
+      -cfg.bias,
+
+      cfg.bias
+
+    );
+
+
+  nextBalanceBiasAt =
+    roundStartedAt +
+    THREE.MathUtils.randFloat(
+      450,
+      900
+    );
+
+
+  nextHazardAt =
+    roundStartedAt +
+    THREE.MathUtils.randFloat(
+
+      cfg.hazardMin,
+
+      cfg.hazardMax
+
+    );
+
+
+  resetCharacterPose();
+
+  updateHud();
+
+  updateBalanceUi();
+
+
+  const feedback =
+    el(
+      "lagoKnifeFeedback"
+    );
+
+
+  if (feedback) {
+
+    feedback.textContent =
+      `LEVEL ${round}/${TOTAL_ROUNDS}`;
+
+  }
+
+
+  requestLoop();
+
+}
   function requestLoop() {
 
     stopLoop();
@@ -4292,271 +4521,338 @@ camera.lookAt(
    */
 
   function frame(
-    now
+  now
+) {
+
+  animationFrame =
+    0;
+
+
+  if (
+    phase !==
+    "running"
   ) {
 
-    animationFrame =
-      0;
+    renderFrame();
+
+    return;
+
+  }
 
 
-    if (
-      phase !==
-      "running"
-    ) {
-
-      renderFrame();
-
-      return;
-
-    }
+  const cfg =
+    currentLevelProfile();
 
 
-    const dt =
-      THREE.MathUtils.clamp(
-        (
-          now -
-          lastFrameAt
-        ) /
-        1000,
-        .001,
-        .04
-      );
-
-
-    lastFrameAt =
-      now;
-
-    /*
-     * =====================================================
-     * HARDER INVERTED-PENDULUM BALANCE
-     * =====================================================
-     *
-     * Difficulty rises both by round
-     * and while approaching knife tip.
-     */
-    const difficulty =
+  const dt =
+    THREE.MathUtils.clamp(
 
       (
-        1.25 +
-        (
-          round -
-          1
-        ) *
-        .16
-      ) *
+        now -
+        lastFrameAt
+      ) /
+      1000,
 
-      (
-        1 +
-        walkProgress *
-        .55
-      );
+      .001,
 
+      .04
 
-    /*
-     * Chef-table vibration:
-     * several different frequencies
-     * stop the motion becoming predictable.
-     */
-    const noise =
-
-      Math.sin(
-        now *
-        .0027 +
-        round *
-        1.71
-      ) *
-      .62 +
-
-      Math.sin(
-        now *
-        .0061 +
-        round *
-        .57
-      ) *
-      .38 +
-
-      Math.sin(
-        now *
-        .0107
-      ) *
-      .20;
-
-
-    /*
-     * Every 0.4–0.85 sec the center of
-     * gravity receives another small
-     * random push.
-     */
-    if (
-      now >=
-      nextBalanceBiasAt
-    ) {
-
-      balanceBias =
-        THREE.MathUtils
-          .randFloat(
-            -.48,
-            .48
-          ) *
-        (
-          1 +
-          (
-            round -
-            1
-          ) *
-          .045
-        );
-
-
-      nextBalanceBiasAt =
-        now +
-        THREE.MathUtils
-          .randFloat(
-            420,
-            850
-          );
-
-    }
-
-
-    /*
-     * Once the model starts leaning,
-     * gravity actively pulls it farther.
-     */
-    const unstableForce =
-      balance *
-      1.18 *
-      difficulty;
-
-
-    const randomForce =
-      (
-        noise *
-        .34 +
-        balanceBias
-      ) *
-      difficulty;
-
-
-    /*
-     * Controls are strong enough to save
-     * the character but now require
-     * short corrections, not simply
-     * holding one side.
-     */
-    const controlForce =
-      inputAxis *
-      2.55;
-
-
-    balanceVelocity +=
-      (
-        unstableForce +
-        randomForce +
-        controlForce
-      ) *
-      dt;
-
-
-    /*
-     * Much less damping than before.
-     *
-     * Momentum now survives after player
-     * releases LEFT / RIGHT.
-     */
-    balanceVelocity *=
-      Math.pow(
-        .62,
-        dt
-      );
-
-
-    balance +=
-      balanceVelocity *
-      dt;
-
-
-    /*
-     * Reward smooth balanced play.
-     */
-    balanceQuality +=
-      Math.max(
-        0,
-        1 -
-        Math.abs(
-          balance
-        )
-      ) *
-      dt;
-
-
-    walkProgress =
-      THREE.MathUtils.clamp(
-
-        (
-          now -
-          roundStartedAt
-        ) /
-        ROUND_DURATION_MS,
-
-        0,
-        1
-
-      );
-
-
-    updateCharacterPose(
-      now
     );
 
 
-    updateBalanceUi();
+  lastFrameAt =
+    now;
 
 
-    updateFallPieces(
+  /*
+   * Difficulty also rises slightly
+   * while approaching knife tip.
+   */
+  const tipPressure =
+    1 +
+    walkProgress *
+    .24;
+
+
+  /*
+   * Multi-frequency wobble prevents
+   * learning one fixed rhythm.
+   */
+  const noise =
+
+    Math.sin(
+      now *
+      .0029 +
+      round *
+      1.31
+    ) *
+    .58 +
+
+    Math.sin(
+      now *
+      .0067 +
+      round *
+      .73
+    ) *
+    .32 +
+
+    Math.sin(
+      now *
+      .0121
+    ) *
+    .16;
+
+
+  /*
+   * Center of gravity slowly shifts.
+   */
+  if (
+    now >=
+    nextBalanceBiasAt
+  ) {
+
+    balanceBias =
+      THREE.MathUtils.randFloat(
+
+        -cfg.bias,
+
+        cfg.bias
+
+      ) *
+      tipPressure;
+
+
+    nextBalanceBiasAt =
+      now +
+      THREE.MathUtils.randFloat(
+        420,
+        820
+      );
+
+  }
+
+
+  /*
+   * Random kitchen/table impulse.
+   *
+   * Level 1 rarely gets one.
+   * Level 8 gets them frequently.
+   */
+  if (
+    now >=
+    nextHazardAt
+  ) {
+
+    const impulse =
+      THREE.MathUtils.randFloat(
+
+        -cfg.hazardImpulse,
+
+        cfg.hazardImpulse
+
+      ) *
+      tipPressure;
+
+
+    balanceVelocity +=
+      impulse;
+
+
+    nextHazardAt =
+      now +
+      THREE.MathUtils.randFloat(
+
+        cfg.hazardMin,
+
+        cfg.hazardMax
+
+      );
+
+
+    const feedback =
+      el(
+        "lagoKnifeFeedback"
+      );
+
+
+    if (feedback) {
+
+      feedback.textContent =
+        impulse < 0
+
+          ? `LEVEL ${round} · HIT ◀`
+
+          : `LEVEL ${round} · HIT ▶`;
+
+    }
+
+  }
+
+
+  /*
+   * Inverted pendulum.
+   *
+   * Leaning creates additional
+   * force in the same direction.
+   */
+  const unstableForce =
+    balance *
+    cfg.gravity *
+    tipPressure;
+
+
+  const randomForce =
+    (
+      noise *
+      cfg.noise +
+      balanceBias
+    ) *
+    tipPressure;
+
+
+  const controlForce =
+    inputAxis *
+    cfg.control;
+
+
+  balanceVelocity +=
+    (
+      unstableForce +
+      randomForce +
+      controlForce
+    ) *
+    dt;
+
+
+  /*
+   * Higher levels retain more momentum.
+   */
+  balanceVelocity *=
+    Math.pow(
+      cfg.damping,
       dt
     );
 
 
-    /*
-     * Needle reached end =
-     * balance lost.
-     */
-   if (
-  Math.abs(
-    balance
-  ) >=
-  BALANCE_FAIL_LIMIT
-){
-
-      failRound();
-
-      return;
-
-    }
+  balance +=
+    balanceVelocity *
+    dt;
 
 
-    /*
-     * Survived entire blade.
-     */
-    if (
-      walkProgress >=
+  balanceQuality +=
+    Math.max(
+
+      0,
+
+      1 -
+      Math.abs(
+        balance
+      ) /
+      cfg.failLimit
+
+    ) *
+    dt;
+
+
+  walkProgress =
+    THREE.MathUtils.clamp(
+
+      (
+        now -
+        roundStartedAt
+      ) /
+      cfg.duration,
+
+      0,
+
       1
-    ) {
 
-      completeRound();
-
-      return;
-
-    }
+    );
 
 
-    renderFrame();
+  updateCharacterPose(
+    now
+  );
 
 
-    requestLoop();
+  updateBalanceUi();
+
+
+  updateFallPieces(
+    dt
+  );
+
+
+  /*
+   * Danger zone has a rescue window.
+   *
+   * Window becomes shorter each level.
+   */
+  const dangerEdge =
+    cfg.failLimit *
+    .70;
+
+
+  if (
+    Math.abs(
+      balance
+    ) >=
+    dangerEdge
+  ) {
+
+    dangerTime +=
+      dt;
+
+  } else {
+
+    dangerTime =
+      Math.max(
+
+        0,
+
+        dangerTime -
+        dt *
+        2.4
+
+      );
 
   }
+
+
+  if (
+    dangerTime >=
+      cfg.dangerGrace ||
+
+    Math.abs(
+      balance
+    ) >=
+      cfg.failLimit *
+      1.10
+  ) {
+
+    failRound();
+
+    return;
+
+  }
+
+
+  if (
+    walkProgress >= 1
+  ) {
+
+    completeRound();
+
+    return;
+
+  }
+
+
+  renderFrame();
+
+  requestLoop();
+
+}
 
 
     function updateCharacterPose(
@@ -4677,32 +4973,40 @@ camera.lookAt(
       0;
 
 
-    const averageQuality =
-      THREE.MathUtils.clamp(
-
-        balanceQuality /
-        (
-          ROUND_DURATION_MS /
-          1000
-        ),
-
-        0,
-        1
-
-      );
+  const cfg =
+  currentLevelProfile();
 
 
-    const gained =
-      Math.floor(
+const averageQuality =
+  THREE.MathUtils.clamp(
 
-        110 +
-        averageQuality *
-        90 +
-        round *
-        9
+    balanceQuality /
+    (
+      cfg.duration /
+      1000
+    ),
 
-      );
+    0,
 
+    1
+
+  );
+
+
+const gained =
+  Math.floor(
+
+    (
+      100 +
+      averageQuality *
+      90 +
+      round *
+      12
+    ) *
+
+    cfg.scoreMultiplier
+
+  );
 
     score +=
       gained;
