@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  9;
+  10;
 
 
   const BASE_LAGO_MODEL =
@@ -2206,21 +2206,24 @@ let lastRenderedAt =
    */
 
 
-  document.addEventListener(
+   document.addEventListener(
     "lago:state",
     apply
   );
 
-  document.addEventListener(
-    "lago:character-equipped",
-    apply
-  );
 
+  /*
+   * Character selection is canonical
+   * structural account state.
+   *
+   * lago:character-equipped remains a
+   * semantic UI event, but must not
+   * trigger a second GLB apply().
+   */
   document.addEventListener(
     "lago:modern-ready",
     apply
   );
-
 
   document.addEventListener(
     "visibilitychange",
