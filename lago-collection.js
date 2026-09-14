@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 7;
+  const VERSION = 8;
 
 
   const LAGO_CHARACTER =
@@ -820,13 +820,12 @@
       }
 
 
-      notifyCharacterEquipped(
-        "lago"
-      );
+         notifyCharacterEquipped(
+      "lago"
+    );
 
-      return true;
-    }
 
+    return true;
 
     if (
       !isComicCharacter(
