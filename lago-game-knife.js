@@ -1,11 +1,16 @@
 import * as THREE from "three";
 
+import {
+  supportsVolumetricCharacter,
+  createVolumetricCharacter,
+  disposeVolumetricCharacter
+} from "./lago-character-volumetric.js?v=1";
 
 (() => {
   "use strict";
 
 
-  const VERSION = 12;
+  const VERSION = 13;
 
   const GAME_ID =
     "knife-challenge";
@@ -3671,95 +3676,124 @@ camera.lookAt(
 
   async function mountSelectedCharacter() {
 
-    if (!context) {
-      return;
-    }
-
-
-    const url =
-      String(
-        context
-          .characterModel3d ||
-        ""
-      ).trim();
-
-
-    if (!url) {
-
-      throw new Error(
-        "Selected character has no GLB"
-      );
-
-    }
-
-
-    if (
-      characterModel &&
-      activeModelUrl ===
-        url
-    ) {
-
-      characterModel.visible =
-        true;
-
-
-      return;
-
-    }
-
-
-    clearCharacter();
-
-
-    characterModel =
-      await loadCharacter(
-        url
-      );
-
-        prepareCharacterForKnife(
-      characterModel
-    );
-
-
-    activeModelUrl =
-      url;
-
-
-    characterPivot.add(
-      characterModel
-    );
-
-
-    resetCharacterPose();
-
+  if (!context) {
+    return;
   }
 
 
-  function clearCharacter() {
+  const characterId =
+    String(
+      context.characterId || ""
+    );
 
-    clearFallPieces();
+
+  /*
+   * =====================================================
+   * VOLUMETRIC CHARACTER PATH
+   * =====================================================
+   *
+   * Marvin is the pilot.
+   * Other characters still use GLB.
+   */
+ function clearCharacter() {
+
+  clearFallPieces();
+
+
+  if (
+    characterModel &&
+    characterPivot
+  ) {
+
+    characterPivot.remove(
+      characterModel
+    );
 
 
     if (
-      characterModel &&
-      characterPivot
+      characterModel
+        .userData
+        ?.lagoVolumetric ===
+      true
     ) {
 
-      characterPivot.remove(
+      disposeVolumetricCharacter(
         characterModel
       );
 
     }
 
-
-    characterModel =
-      null;
+  }
 
 
-    activeModelUrl =
-      "";
+  characterModel =
+    null;
+
+
+  activeModelUrl =
+    "";
+
+}
+
+  /*
+   * =====================================================
+   * LEGACY GLB FALLBACK
+   * =====================================================
+   */
+  const url =
+    String(
+      context.characterModel3d || ""
+    ).trim();
+
+
+  if (!url) {
+
+    throw new Error(
+      "Selected character has no GLB"
+    );
 
   }
+
+
+  if (
+    characterModel &&
+    activeModelUrl === url
+  ) {
+
+    characterModel.visible =
+      true;
+
+    return;
+
+  }
+
+
+  clearCharacter();
+
+
+  characterModel =
+    await loadCharacter(
+      url
+    );
+
+
+  prepareCharacterForKnife(
+    characterModel
+  );
+
+
+  activeModelUrl =
+    url;
+
+
+  characterPivot.add(
+    characterModel
+  );
+
+
+  resetCharacterPose();
+
+}
 
 
   function resetCharacterPose() {
