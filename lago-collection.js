@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 9;
+  const VERSION = 10;
 
 
   const LAGO_CHARACTER =
@@ -880,7 +880,7 @@
 
   }
 
-  function equipLagoSkin(id) {
+    function equipLagoSkin(id) {
 
     const skin =
       LAGO_SKINS.find(
@@ -930,12 +930,14 @@
     );
 
 
-      notifyCharacterEquipped(
+    notifyCharacterEquipped(
       "lago"
     );
 
 
     return true;
+
+  }
 
 
   function renderHero() {
@@ -1039,31 +1041,6 @@
     const owned =
       ownedIds();
 
-        const mobile =
-      window.matchMedia(
-        "(max-width: 560px)"
-      ).matches;
-
-
-    /*
-     * Smartphone Collection is inventory.
-     *
-     * Do not render locked Lago skins at all.
-     * A skin appears only after ownership.
-     */
-    const skinCatalog =
-      mobile
-
-        ? LAGO_SKINS.filter(
-            skin =>
-              skin.id ===
-                "default" ||
-              owned.has(
-                skin.id
-              )
-          )
-
-        : LAGO_SKINS;
 
     const selected =
       selectedCharacterId();
@@ -1076,14 +1053,15 @@
 
 
     /*
-     * Smartphone:
-     * only actual inventory.
+     * Smartphone Collection =
+     * actual character inventory.
      *
-     * Locked character cards are
-     * completely absent.
+     * Desktop may show the complete
+     * catalogue including locked entries.
      */
     const catalog =
       mobile
+
         ? fullCatalog.filter(
             character =>
               character.id ===
@@ -1092,6 +1070,7 @@
                 character.id
               )
           )
+
         : fullCatalog;
 
 
@@ -1116,16 +1095,16 @@
 
       counter.textContent =
         `${ownedCount}/${fullCatalog.length}`;
+
     }
 
 
-      const key = [
+    const key = [
 
       mobile
         ? "mobile"
         : "desktop",
 
-      current,
       selected,
 
       [...owned]
@@ -1160,8 +1139,8 @@
       key;
 
 
-       grid.innerHTML =
-      skinCatalog
+    grid.innerHTML =
+      catalog
         .map(
           character => {
 
@@ -1287,10 +1266,10 @@
     mountPreviewHosts(
       grid
     );
+
   }
 
-
-  function renderSkins() {
+    function renderSkins() {
 
     const grid =
       document.getElementById(
@@ -1318,14 +1297,49 @@
       ownedIds();
 
 
+    const mobile =
+      window.matchMedia(
+        "(max-width: 560px)"
+      ).matches;
+
+
+    /*
+     * Smartphone:
+     * only owned Lago skins.
+     *
+     * No Mystery Lago cards.
+     */
+    const skinCatalog =
+      mobile
+
+        ? LAGO_SKINS.filter(
+            skin =>
+              skin.id ===
+                "default" ||
+              owned.has(
+                skin.id
+              )
+          )
+
+        : LAGO_SKINS;
+
+
     const key = [
+
+      mobile
+        ? "mobile"
+        : "desktop",
+
       current,
+
       selectedIsComic
         ? "comic"
         : "lago",
+
       [...owned]
         .sort()
         .join(",")
+
     ].join("|");
 
 
@@ -1334,7 +1348,9 @@
         lastSkinsKey &&
       grid.childElementCount > 0
     ) {
+
       return;
+
     }
 
 
@@ -1343,7 +1359,7 @@
 
 
     grid.innerHTML =
-      LAGO_SKINS
+      skinCatalog
         .map(
           skin => {
 
@@ -1440,6 +1456,7 @@
           }
         )
         .join("");
+
   }
 
 
@@ -1587,20 +1604,21 @@
     );
 
 
- collectionMobileQuery
-  .addEventListener
-  ?.(
-    "change",
-    () => {
+  collectionMobileQuery
+    .addEventListener
+    ?.(
+      "change",
+      () => {
 
-      lastCharactersKey =
-        "";
+        lastCharactersKey =
+          "";
 
-      lastSkinsKey =
-        "";
+        lastSkinsKey =
+          "";
 
 
-      renderCollectionIfOpen();
+        renderCollectionIfOpen();
+
       }
     );
 
