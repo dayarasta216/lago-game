@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 9;
+  const VERSION = 10;
 
   const GAME_ID =
     "knife-challenge";
@@ -1830,8 +1830,6 @@ camera.lookAt(
 
     resizeRenderer();
 
-  }
-
       /*
      * Cool rim light separates the GLB
      * from the kitchen background.
@@ -1878,7 +1876,9 @@ camera.lookAt(
       characterLight
     );
 
+  }
 
+    
   function material(
     color,
     roughness = .7,
@@ -2256,8 +2256,6 @@ camera.lookAt(
       );
 
     }
-
-  }
 
       /*
      * =====================================================
@@ -2659,6 +2657,8 @@ camera.lookAt(
 
         }
       );
+
+  }  
 
   /*
    * =======================================================
