@@ -1,11 +1,12 @@
 (() => {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
   const GAME_ID = "knife-challenge";
   const TOTAL_ROUNDS = 8;
   const STARTING_LIVES = 3;
   const ROUND_TIMEOUT_MS = 4200;
+  const RESOLVE_DELAY_MS = 900;
 
   let overlay = null;
   let phase = "closed";
@@ -36,7 +37,7 @@
         ) ||
       null;
 
-  const element =
+  const el =
     id =>
       overlay
         ?.querySelector(
@@ -61,21 +62,12 @@
     style.textContent = `
 
       #lagoKnifeGame {
+        position: fixed;
+        inset: 0;
+        z-index: 22000;
 
-        position:
-          fixed;
-
-        inset:
-          0;
-
-        z-index:
-          22000;
-
-        display:
-          none;
-
-        overflow-y:
-          auto;
+        display: none;
+        overflow-y: auto;
 
         padding:
           calc(
@@ -98,23 +90,18 @@
           Inter,
           system-ui,
           sans-serif;
-
       }
 
 
       #lagoKnifeGame.active {
-
-        display:
-          block;
-
+        display: block;
       }
 
 
       .lago-knife-shell {
-
         width:
           min(
-            900px,
+            1100px,
             100%
           );
 
@@ -132,12 +119,10 @@
 
         flex-direction:
           column;
-
       }
 
 
       .lago-knife-header {
-
         display:
           flex;
 
@@ -149,12 +134,10 @@
 
         gap:
           16px;
-
       }
 
 
       .lago-knife-title {
-
         font-size:
           clamp(
             30px,
@@ -167,12 +150,10 @@
 
         letter-spacing:
           -.06em;
-
       }
 
 
       .lago-knife-subtitle {
-
         margin-top:
           4px;
 
@@ -189,12 +170,10 @@
 
         font-weight:
           900;
-
       }
 
 
       .lago-knife-close {
-
         width:
           44px;
 
@@ -229,12 +208,10 @@
 
         cursor:
           pointer;
-
       }
 
 
       .lago-knife-hud {
-
         margin-top:
           14px;
 
@@ -252,12 +229,10 @@
 
         gap:
           8px;
-
       }
 
 
       .lago-knife-hud-item {
-
         padding:
           10px 12px;
 
@@ -280,12 +255,10 @@
             255,
             .035
           );
-
       }
 
 
       .lago-knife-hud-label {
-
         color:
           rgba(
             255,
@@ -299,12 +272,10 @@
 
         font-weight:
           900;
-
       }
 
 
       .lago-knife-hud-value {
-
         margin-top:
           3px;
 
@@ -316,12 +287,10 @@
 
         font-weight:
           1000;
-
       }
 
 
       .lago-knife-stage {
-
         position:
           relative;
 
@@ -329,7 +298,7 @@
           1;
 
         min-height:
-          430px;
+          560px;
 
         margin-top:
           14px;
@@ -350,73 +319,296 @@
           24px;
 
         background:
-          radial-gradient(
-            circle at 50% 34%,
-            rgba(
-              204,
-              255,
-              0,
-              .07
-            ),
-            transparent
-            34%
-          ),
-          rgba(
-            255,
-            255,
-            255,
-            .025
-          );
+          #17110f;
 
+        isolation:
+          isolate;
+
+        perspective:
+          1200px;
       }
 
 
-      .lago-knife-character {
+      /*
+       * =============================================
+       * KITCHEN
+       * =============================================
+       */
 
+      .lago-kitchen {
+        position:
+          absolute;
+
+        inset:
+          0;
+
+        z-index:
+          0;
+
+        background:
+          linear-gradient(
+            #332c29
+            0 52%,
+            #9d7c54
+            52% 63%,
+            #5d3d2b
+            63% 100%
+          );
+      }
+
+
+      .lago-kitchen-tiles {
+        position:
+          absolute;
+
+        inset:
+          0 0 37%;
+
+        opacity:
+          .48;
+
+        background-image:
+          linear-gradient(
+            rgba(
+              255,
+              255,
+              255,
+              .1
+            )
+            1px,
+            transparent
+            1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(
+              255,
+              255,
+              255,
+              .1
+            )
+            1px,
+            transparent
+            1px
+          );
+
+        background-size:
+          74px 58px;
+      }
+
+
+      .lago-kitchen-cabinet {
         position:
           absolute;
 
         top:
-          24px;
+          20px;
+
+        width:
+          180px;
+
+        height:
+          96px;
+
+        border:
+          4px solid
+          #201612;
+
+        border-radius:
+          10px;
+
+        background:
+          #6e4930;
+
+        box-shadow:
+          0 14px 28px
+          rgba(
+            0,
+            0,
+            0,
+            .18
+          );
+      }
+
+
+      .lago-kitchen-cabinet.left {
+        left:
+          28px;
+      }
+
+
+      .lago-kitchen-cabinet.right {
+        right:
+          28px;
+      }
+
+
+      .lago-kitchen-hood {
+        position:
+          absolute;
+
+        top:
+          12px;
 
         left:
           50%;
 
         width:
-          min(
-            260px,
-            58vw
-          );
+          180px;
 
         height:
-          190px;
+          82px;
 
         transform:
           translateX(
             -50%
           );
 
+        border-radius:
+          12px 12px 4px 4px;
+
+        background:
+          linear-gradient(
+            #666,
+            #27292b
+          );
       }
 
 
-      .lago-knife-character img,
-      .lago-knife-character
-      .lago-glb-preview-image {
+      .lago-kitchen-pot {
+        position:
+          absolute;
+
+        top:
+          120px;
+
+        left:
+          9%;
 
         width:
-          100%;
+          82px;
 
         height:
-          100%;
+          56px;
 
-        object-fit:
-          contain;
+        border:
+          4px solid
+          #151719;
 
+        border-radius:
+          8px 8px 28px 28px;
+
+        background:
+          linear-gradient(
+            135deg,
+            #777,
+            #252729
+          );
+
+        transform:
+          rotate(
+            -4deg
+          );
       }
 
 
-      .lago-knife-blade-wrap {
+      .lago-kitchen-pot::after {
+        content:
+          "";
 
+        position:
+          absolute;
+
+        top:
+          11px;
+
+        right:
+          -54px;
+
+        width:
+          58px;
+
+        height:
+          10px;
+
+        border-radius:
+          999px;
+
+        background:
+          #17191b;
+      }
+
+
+      .lago-kitchen-tools {
+        position:
+          absolute;
+
+        top:
+          112px;
+
+        right:
+          9%;
+
+        width:
+          120px;
+
+        height:
+          105px;
+
+        border-bottom:
+          5px solid
+          #1e1714;
+      }
+
+
+      .lago-kitchen-tools::before,
+      .lago-kitchen-tools::after {
+        content:
+          "";
+
+        position:
+          absolute;
+
+        top:
+          0;
+
+        width:
+          10px;
+
+        height:
+          86px;
+
+        border-radius:
+          999px;
+
+        background:
+          #202224;
+      }
+
+
+      .lago-kitchen-tools::before {
+        left:
+          30px;
+
+        transform:
+          rotate(
+            8deg
+          );
+      }
+
+
+      .lago-kitchen-tools::after {
+        right:
+          34px;
+
+        transform:
+          rotate(
+            -12deg
+          );
+      }
+
+
+      .lago-board {
         position:
           absolute;
 
@@ -427,73 +619,565 @@
           7%;
 
         bottom:
-          105px;
+          54px;
 
         height:
-          90px;
+          220px;
 
+        border:
+          5px solid
+          #6e4426;
+
+        border-radius:
+          22px;
+
+        background:
+          linear-gradient(
+            90deg,
+            #c79255,
+            #b97b42,
+            #ca9254
+          );
+
+        box-shadow:
+          0 24px 40px
+          rgba(
+            0,
+            0,
+            0,
+            .3
+          );
+
+        transform:
+          rotateX(
+            63deg
+          );
+
+        transform-origin:
+          center bottom;
       }
 
 
-      .lago-knife-blade {
+      .lago-tomato {
+        position:
+          absolute;
 
+        right:
+          9%;
+
+        bottom:
+          125px;
+
+        width:
+          58px;
+
+        height:
+          48px;
+
+        z-index:
+          2;
+
+        border:
+          4px solid
+          #1c120e;
+
+        border-radius:
+          52% 48% 48% 52%;
+
+        background:
+          #c9342d;
+      }
+
+
+      .lago-tomato::before {
+        content:
+          "";
+
+        position:
+          absolute;
+
+        top:
+          -12px;
+
+        left:
+          19px;
+
+        width:
+          20px;
+
+        height:
+          16px;
+
+        background:
+          #478531;
+
+        clip-path:
+          polygon(
+            50% 0,
+            65% 35%,
+            100% 20%,
+            75% 55%,
+            100% 80%,
+            60% 68%,
+            50% 100%,
+            40% 67%,
+            0 80%,
+            25% 53%,
+            0 22%,
+            38% 34%
+          );
+      }
+
+
+      .lago-carrot {
+        position:
+          absolute;
+
+        right:
+          18%;
+
+        bottom:
+          88px;
+
+        width:
+          26px;
+
+        height:
+          82px;
+
+        z-index:
+          2;
+
+        border:
+          4px solid
+          #24140a;
+
+        border-radius:
+          14px 14px 70% 70%;
+
+        background:
+          #ef7c20;
+
+        transform:
+          rotate(
+            64deg
+          );
+      }
+
+
+      .lago-carrot::before {
+        content:
+          "";
+
+        position:
+          absolute;
+
+        top:
+          -28px;
+
+        left:
+          -5px;
+
+        width:
+          30px;
+
+        height:
+          32px;
+
+        background:
+          #4f8f3b;
+
+        clip-path:
+          polygon(
+            50% 100%,
+            0 10%,
+            34% 24%,
+            48% 0,
+            63% 27%,
+            100% 12%
+          );
+      }
+
+
+      /*
+       * =============================================
+       * PLATE
+       * =============================================
+       */
+
+      .lago-knife-plate {
+        position:
+          absolute;
+
+        left:
+          50%;
+
+        bottom:
+          26px;
+
+        width:
+          min(
+            360px,
+            48vw
+          );
+
+        height:
+          110px;
+
+        z-index:
+          3;
+
+        transform:
+          translateX(
+            -50%
+          )
+          rotateX(
+            69deg
+          );
+
+        border:
+          7px solid
+          #e8e5dd;
+
+        border-radius:
+          50%;
+
+        background:
+          radial-gradient(
+            ellipse,
+            #f7f4eb
+            0 48%,
+            #d8d5ce
+            50% 66%,
+            #f5f1e7
+            68%
+          );
+
+        box-shadow:
+          0 24px 34px
+          rgba(
+            0,
+            0,
+            0,
+            .34
+          );
+      }
+
+
+      /*
+       * =============================================
+       * VOLUMETRIC KNIFE
+       * =============================================
+       */
+
+      .lago-knife-object {
+        position:
+          absolute;
+
+        left:
+          8%;
+
+        right:
+          8%;
+
+        bottom:
+          154px;
+
+        height:
+          150px;
+
+        z-index:
+          5;
+
+        transform:
+          rotateZ(
+            -2deg
+          );
+      }
+
+
+      .lago-knife-handle {
         position:
           absolute;
 
         left:
           0;
 
+        top:
+          53px;
+
+        width:
+          24%;
+
+        height:
+          46px;
+
+        border:
+          4px solid
+          #16100d;
+
+        border-radius:
+          18px 9px 9px 18px;
+
+        background:
+          linear-gradient(
+            #553525
+            0 45%,
+            #2f1c14
+            46%
+          );
+
+        box-shadow:
+          inset
+          0 5px
+          rgba(
+            255,
+            255,
+            255,
+            .07
+          ),
+          0 15px 18px
+          rgba(
+            0,
+            0,
+            0,
+            .28
+          );
+
+        z-index:
+          3;
+      }
+
+
+      .lago-knife-handle::before,
+      .lago-knife-handle::after {
+        content:
+          "";
+
+        position:
+          absolute;
+
+        top:
+          15px;
+
+        width:
+          10px;
+
+        height:
+          10px;
+
+        border-radius:
+          50%;
+
+        background:
+          #b6a68e;
+
+        box-shadow:
+          inset
+          0 0 0 2px
+          #554f47;
+      }
+
+
+      .lago-knife-handle::before {
+        left:
+          28%;
+      }
+
+
+      .lago-knife-handle::after {
+        right:
+          22%;
+      }
+
+
+      .lago-knife-guard {
+        position:
+          absolute;
+
+        left:
+          22.5%;
+
+        top:
+          47px;
+
+        width:
+          20px;
+
+        height:
+          60px;
+
+        border:
+          3px solid
+          #222;
+
+        border-radius:
+          7px;
+
+        background:
+          linear-gradient(
+            #bfc5c8,
+            #50575c
+          );
+
+        z-index:
+          6;
+      }
+
+
+      .lago-knife-blade {
+        position:
+          absolute;
+
+        left:
+          24%;
+
         right:
           0;
 
         top:
-          38px;
+          36px;
+
+        height:
+          68px;
+
+        background:
+          linear-gradient(
+            #fff 0,
+            #d5d8da 15%,
+            #9ca2a6 58%,
+            #5f6468 78%,
+            #282d31
+          );
+
+        clip-path:
+          polygon(
+            0 15%,
+            86% 0,
+            100% 51%,
+            88% 82%,
+            0 100%
+          );
+
+        box-shadow:
+          0 18px 24px
+          rgba(
+            0,
+            0,
+            0,
+            .4
+          );
+
+        z-index:
+          2;
+      }
+
+
+      .lago-knife-blade::before {
+        content:
+          "";
+
+        position:
+          absolute;
+
+        left:
+          2%;
+
+        right:
+          5%;
+
+        top:
+          8px;
 
         height:
           18px;
 
         background:
           linear-gradient(
-            180deg,
-            #f4f4f4 0%,
-            #8c8c8c 58%,
-            #333 100%
+            rgba(
+              255,
+              255,
+              255,
+              .95
+            ),
+            rgba(
+              255,
+              255,
+              255,
+              .18
+            )
           );
 
         clip-path:
           polygon(
-            0 42%,
+            0 0,
+            98% 0,
+            100% 100%,
+            0 64%
+          );
+      }
+
+
+      .lago-knife-edge {
+        position:
+          absolute;
+
+        left:
+          24.8%;
+
+        right:
+          2%;
+
+        top:
+          96px;
+
+        height:
+          9px;
+
+        background:
+          linear-gradient(
+            #fafafa,
+            #84898d
+          );
+
+        clip-path:
+          polygon(
+            0 0,
             92% 0,
-            100% 50%,
-            92% 100%,
-            0 58%
+            100% 28%,
+            91% 100%,
+            0 70%
           );
 
         box-shadow:
-          0 12px 30px
+          0 5px 7px
           rgba(
             0,
             0,
             0,
-            .48
+            .36
           );
 
+        z-index:
+          7;
       }
 
 
+      /*
+       * Safe balance zone.
+       */
       .lago-knife-target {
-
         position:
           absolute;
 
         top:
-          18px;
+          86px;
 
         height:
-          58px;
+          30px;
 
         border:
-          2px solid
+          3px solid
           #ccff00;
 
         border-radius:
@@ -504,39 +1188,8 @@
             204,
             255,
             0,
-            .12
+            .16
           );
-
-        transform:
-          translateX(
-            -50%
-          );
-
-        pointer-events:
-          none;
-
-      }
-
-
-      .lago-knife-marker {
-
-        position:
-          absolute;
-
-        top:
-          8px;
-
-        width:
-          4px;
-
-        height:
-          76px;
-
-        border-radius:
-          999px;
-
-        background:
-          #fff;
 
         transform:
           translateX(
@@ -544,22 +1197,383 @@
           );
 
         box-shadow:
-          0 0 18px
+          0 0 20px
           rgba(
+            204,
             255,
-            255,
-            255,
-            .5
+            0,
+            .16
           );
 
         pointer-events:
           none;
 
+        z-index:
+          9;
+      }
+
+
+      /*
+       * Old white marker removed.
+       * Character itself is the marker.
+       */
+      .lago-knife-marker {
+        display:
+          none;
+      }
+
+
+      /*
+       * =============================================
+       * CHARACTER ON BLADE
+       * =============================================
+       */
+
+      .lago-knife-character-track {
+        position:
+          absolute;
+
+        left:
+          24%;
+
+        right:
+          6%;
+
+        top:
+          -8px;
+
+        height:
+          128px;
+
+        z-index:
+          12;
+
+        pointer-events:
+          none;
+      }
+
+
+      .lago-knife-character {
+        position:
+          absolute;
+
+        left:
+          0;
+
+        top:
+          0;
+
+        width:
+          clamp(
+            92px,
+            13vw,
+            150px
+          );
+
+        height:
+          114px;
+
+        transform:
+          translateX(
+            -50%
+          );
+
+        transform-origin:
+          50% 82%;
+
+        will-change:
+          left,
+          transform;
+
+        transition:
+          filter
+          .12s ease;
+      }
+
+
+      .lago-knife-character.running {
+        animation:
+          lagoKnifeCrawl
+          .32s
+          steps(
+            2,
+            end
+          )
+          infinite;
+      }
+
+
+      .lago-knife-character.hit {
+        filter:
+          drop-shadow(
+            0 0 16px
+            rgba(
+              204,
+              255,
+              0,
+              .9
+            )
+          );
+      }
+
+
+      .lago-knife-character img,
+      .lago-knife-character
+      .lago-glb-preview-image {
+        width:
+          100%;
+
+        height:
+          100%;
+
+        object-fit:
+          contain;
+
+        pointer-events:
+          none;
+
+        user-select:
+          none;
+      }
+
+
+      @keyframes
+      lagoKnifeCrawl {
+
+        50% {
+          margin-top:
+            -4px;
+        }
+
+      }
+
+
+      /*
+       * =============================================
+       * CARTOON CUT + FALL
+       * no blood / no gore
+       * =============================================
+       */
+
+      .lago-knife-fall-layer {
+        position:
+          absolute;
+
+        inset:
+          0;
+
+        z-index:
+          30;
+
+        pointer-events:
+          none;
+
+        overflow:
+          hidden;
+      }
+
+
+      .lago-knife-fall-piece {
+        position:
+          absolute;
+
+        width:
+          clamp(
+            92px,
+            13vw,
+            150px
+          );
+
+        height:
+          114px;
+
+        left:
+          var(
+            --fall-left
+          );
+
+        top:
+          var(
+            --fall-top
+          );
+
+        transform:
+          translate(
+            -50%,
+            0
+          );
+
+        transform-origin:
+          center;
+      }
+
+
+      .lago-knife-fall-piece img {
+        width:
+          100%;
+
+        height:
+          100%;
+
+        object-fit:
+          contain;
+      }
+
+
+      .lago-knife-fall-piece.left {
+        clip-path:
+          inset(
+            0 50% 0 0
+          );
+
+        animation:
+          lagoFallLeft
+          .82s
+          cubic-bezier(
+            .25,
+            .8,
+            .36,
+            1
+          )
+          forwards;
+      }
+
+
+      .lago-knife-fall-piece.right {
+        clip-path:
+          inset(
+            0 0 0 50%
+          );
+
+        animation:
+          lagoFallRight
+          .82s
+          cubic-bezier(
+            .25,
+            .8,
+            .36,
+            1
+          )
+          forwards;
+      }
+
+
+      @keyframes
+      lagoFallLeft {
+
+        to {
+          transform:
+            translate(
+              -128px,
+              235px
+            )
+            rotate(
+              -74deg
+            )
+            scale(
+              .82
+            );
+        }
+
+      }
+
+
+      @keyframes
+      lagoFallRight {
+
+        to {
+          transform:
+            translate(
+              48px,
+              238px
+            )
+            rotate(
+              82deg
+            )
+            scale(
+              .82
+            );
+        }
+
+      }
+
+
+      .lago-knife-cut-flash {
+        position:
+          absolute;
+
+        left:
+          24%;
+
+        right:
+          4%;
+
+        top:
+          92px;
+
+        height:
+          5px;
+
+        z-index:
+          25;
+
+        opacity:
+          0;
+
+        background:
+          #fff;
+
+        box-shadow:
+          0 0 22px
+          rgba(
+            255,
+            255,
+            255,
+            .95
+          );
+      }
+
+
+      .lago-knife-cut-flash.show {
+        animation:
+          lagoCutFlash
+          .28s
+          ease-out;
+      }
+
+
+      @keyframes
+      lagoCutFlash {
+
+        0% {
+          opacity:
+            0;
+
+          transform:
+            scaleX(
+              .15
+            );
+        }
+
+        45% {
+          opacity:
+            1;
+
+          transform:
+            scaleX(
+              1
+            );
+        }
+
+        100% {
+          opacity:
+            0;
+        }
+
       }
 
 
       .lago-knife-feedback {
-
         position:
           absolute;
 
@@ -567,7 +1581,10 @@
           50%;
 
         bottom:
-          58px;
+          76px;
+
+        z-index:
+          40;
 
         transform:
           translateX(
@@ -589,11 +1606,18 @@
         text-align:
           center;
 
+        text-shadow:
+          0 3px 8px
+          rgba(
+            0,
+            0,
+            0,
+            .55
+          );
       }
 
 
       .lago-knife-tap {
-
         position:
           absolute;
 
@@ -601,7 +1625,10 @@
           50%;
 
         bottom:
-          18px;
+          20px;
+
+        z-index:
+          50;
 
         transform:
           translateX(
@@ -610,7 +1637,7 @@
 
         width:
           min(
-            360px,
+            390px,
             86%
           );
 
@@ -638,11 +1665,18 @@
         cursor:
           pointer;
 
+        box-shadow:
+          0 12px 30px
+          rgba(
+            0,
+            0,
+            0,
+            .28
+          );
       }
 
 
       .lago-knife-panel {
-
         position:
           absolute;
 
@@ -650,7 +1684,7 @@
           0;
 
         z-index:
-          5;
+          80;
 
         display:
           grid;
@@ -666,29 +1700,25 @@
             8,
             4,
             10,
-            .88
+            .86
           );
 
         backdrop-filter:
           blur(
             10px
           );
-
       }
 
 
       .lago-knife-panel[
         hidden
       ] {
-
         display:
           none !important;
-
       }
 
 
       .lago-knife-panel-card {
-
         width:
           min(
             460px,
@@ -704,7 +1734,7 @@
             255,
             255,
             255,
-            .10
+            .1
           );
 
         border-radius:
@@ -715,23 +1745,19 @@
 
         text-align:
           center;
-
       }
 
 
       .lago-knife-panel-title {
-
         font-size:
           25px;
 
         font-weight:
           1000;
-
       }
 
 
       .lago-knife-panel-copy {
-
         margin-top:
           9px;
 
@@ -751,12 +1777,10 @@
 
         line-height:
           1.5;
-
       }
 
 
       .lago-knife-panel-result {
-
         margin-top:
           14px;
 
@@ -768,12 +1792,10 @@
 
         font-weight:
           1000;
-
       }
 
 
       .lago-knife-panel-actions {
-
         margin-top:
           18px;
 
@@ -782,13 +1804,11 @@
 
         gap:
           8px;
-
       }
 
 
       .lago-knife-panel-actions
       button {
-
         padding:
           13px 16px;
 
@@ -809,20 +1829,18 @@
 
         cursor:
           pointer;
-
       }
 
 
       .lago-knife-panel-actions
       button.secondary {
-
         border:
           1px solid
           rgba(
             255,
             255,
             255,
-            .10
+            .1
           );
 
         background:
@@ -835,7 +1853,6 @@
 
         color:
           #fff;
-
       }
 
 
@@ -845,7 +1862,6 @@
       ) {
 
         .lago-knife-hud {
-
           grid-template-columns:
             repeat(
               2,
@@ -854,34 +1870,61 @@
                 1fr
               )
             );
-
         }
 
 
         .lago-knife-stage {
-
           min-height:
-            500px;
-
+            610px;
         }
 
 
-        .lago-knife-character {
-
-          top:
-            34px;
+        .lago-kitchen-cabinet {
+          width:
+            118px;
 
           height:
-            210px;
-
+            74px;
         }
 
 
-        .lago-knife-blade-wrap {
+        .lago-kitchen-hood {
+          width:
+            130px;
+
+          height:
+            65px;
+        }
+
+
+        .lago-knife-object {
+          left:
+            4%;
+
+          right:
+            4%;
 
           bottom:
-            126px;
+            178px;
+        }
 
+
+        .lago-knife-plate {
+          width:
+            280px;
+
+          bottom:
+            32px;
+        }
+
+
+        .lago-knife-character,
+        .lago-knife-fall-piece {
+          width:
+            104px;
+
+          height:
+            100px;
         }
 
       }
@@ -906,26 +1949,18 @@
 
     overlay.innerHTML = `
 
-      <div
-        class="lago-knife-shell"
-      >
+      <div class="lago-knife-shell">
 
-        <header
-          class="lago-knife-header"
-        >
+        <header class="lago-knife-header">
 
           <div>
 
-            <div
-              class="lago-knife-title"
-            >
+            <div class="lago-knife-title">
               KNIFE CHALLENGE
             </div>
 
-            <div
-              class="lago-knife-subtitle"
-            >
-              TAP WHEN THE WHITE LINE IS INSIDE THE LIME ZONE
+            <div class="lago-knife-subtitle">
+              KEEP THE CHARACTER BALANCED ON THE KNIFE EDGE
             </div>
 
           </div>
@@ -949,16 +1984,11 @@
         </header>
 
 
-        <div
-          class="lago-knife-hud"
-        >
+        <div class="lago-knife-hud">
 
-          <div
-            class="lago-knife-hud-item"
-          >
-            <div
-              class="lago-knife-hud-label"
-            >
+          <div class="lago-knife-hud-item">
+
+            <div class="lago-knife-hud-label">
               CHARACTER
             </div>
 
@@ -968,15 +1998,13 @@
             >
               Lago
             </div>
+
           </div>
 
 
-          <div
-            class="lago-knife-hud-item"
-          >
-            <div
-              class="lago-knife-hud-label"
-            >
+          <div class="lago-knife-hud-item">
+
+            <div class="lago-knife-hud-label">
               ROUND
             </div>
 
@@ -986,15 +2014,13 @@
             >
               0/${TOTAL_ROUNDS}
             </div>
+
           </div>
 
 
-          <div
-            class="lago-knife-hud-item"
-          >
-            <div
-              class="lago-knife-hud-label"
-            >
+          <div class="lago-knife-hud-item">
+
+            <div class="lago-knife-hud-label">
               LIVES
             </div>
 
@@ -1004,15 +2030,13 @@
             >
               ${STARTING_LIVES}
             </div>
+
           </div>
 
 
-          <div
-            class="lago-knife-hud-item"
-          >
-            <div
-              class="lago-knife-hud-label"
-            >
+          <div class="lago-knife-hud-item">
+
+            <div class="lago-knife-hud-label">
               SCORE
             </div>
 
@@ -1022,36 +2046,89 @@
             >
               0
             </div>
+
           </div>
 
         </div>
 
 
-        <main
-          class="lago-knife-stage"
-        >
+        <main class="lago-knife-stage">
 
           <div
-            class="
-              lago-knife-character
-              lago-glb-preview-host
-            "
-            id="lagoKnifeCharacter"
+            class="lago-kitchen"
+            aria-hidden="true"
+          >
+
+            <div class="lago-kitchen-tiles"></div>
+
+            <div
+              class="
+                lago-kitchen-cabinet
+                left
+              "
+            ></div>
+
+            <div
+              class="
+                lago-kitchen-cabinet
+                right
+              "
+            ></div>
+
+            <div class="lago-kitchen-hood"></div>
+
+            <div class="lago-kitchen-pot"></div>
+
+            <div class="lago-kitchen-tools"></div>
+
+            <div class="lago-board"></div>
+
+            <div class="lago-tomato"></div>
+
+            <div class="lago-carrot"></div>
+
+          </div>
+
+
+          <div
+            class="lago-knife-plate"
+            aria-hidden="true"
           ></div>
 
 
-          <div
-            class="lago-knife-blade-wrap"
-          >
+          <div class="lago-knife-object">
+
+            <div class="lago-knife-handle"></div>
+
+            <div class="lago-knife-guard"></div>
+
+            <div class="lago-knife-blade"></div>
+
+            <div class="lago-knife-edge"></div>
 
             <div
-              class="lago-knife-blade"
+              class="lago-knife-cut-flash"
+              id="lagoKnifeCutFlash"
             ></div>
 
-            <div
-              class="lago-knife-target"
-              id="lagoKnifeTarget"
-            ></div>
+
+            <div class="lago-knife-character-track">
+
+              <div
+                class="lago-knife-target"
+                id="lagoKnifeTarget"
+              ></div>
+
+              <div
+                class="
+                  lago-knife-character
+                  lago-glb-preview-host
+                "
+                id="lagoKnifeCharacter"
+              ></div>
+
+            </div>
+
 
             <div
               class="lago-knife-marker"
@@ -1059,6 +2136,13 @@
             ></div>
 
           </div>
+
+
+          <div
+            class="lago-knife-fall-layer"
+            id="lagoKnifeFallLayer"
+            aria-hidden="true"
+          ></div>
 
 
           <div
@@ -1072,7 +2156,7 @@
             class="lago-knife-tap"
             id="lagoKnifeTap"
           >
-            TAP / SPACE
+            BALANCE / TAP
           </button>
 
 
@@ -1081,9 +2165,7 @@
             id="lagoKnifePanel"
           >
 
-            <div
-              class="lago-knife-panel-card"
-            >
+            <div class="lago-knife-panel-card">
 
               <div
                 class="lago-knife-panel-title"
@@ -1105,9 +2187,7 @@
               ></div>
 
 
-              <div
-                class="lago-knife-panel-actions"
-              >
+              <div class="lago-knife-panel-actions">
 
                 <button
                   type="button"
@@ -1150,7 +2230,7 @@
       );
 
 
-    element(
+    el(
       "lagoKnifeClose"
     )
       ?.addEventListener(
@@ -1159,20 +2239,22 @@
       );
 
 
-    element(
+    el(
       "lagoKnifeTap"
     )
       ?.addEventListener(
         "click",
         () => {
+
           attempt(
             false
           );
+
         }
       );
 
 
-    element(
+    el(
       "lagoKnifePrimary"
     )
       ?.addEventListener(
@@ -1181,7 +2263,7 @@
       );
 
 
-    element(
+    el(
       "lagoKnifeSecondary"
     )
       ?.addEventListener(
@@ -1214,7 +2296,7 @@
   ) {
 
     const panel =
-      element(
+      el(
         "lagoKnifePanel"
       );
 
@@ -1228,57 +2310,57 @@
       !show;
 
 
-    const titleElement =
-      element(
+    if (
+      el(
         "lagoKnifePanelTitle"
-      );
+      )
+    ) {
 
-
-    if (titleElement) {
-
-      titleElement.textContent =
+      el(
+        "lagoKnifePanelTitle"
+      ).textContent =
         title;
 
     }
 
 
-    const copyElement =
-      element(
+    if (
+      el(
         "lagoKnifePanelCopy"
-      );
+      )
+    ) {
 
-
-    if (copyElement) {
-
-      copyElement.textContent =
+      el(
+        "lagoKnifePanelCopy"
+      ).textContent =
         copy;
 
     }
 
 
-    const resultElement =
-      element(
+    if (
+      el(
         "lagoKnifePanelResult"
-      );
+      )
+    ) {
 
-
-    if (resultElement) {
-
-      resultElement.textContent =
+      el(
+        "lagoKnifePanelResult"
+      ).textContent =
         result;
 
     }
 
 
-    const primaryElement =
-      element(
+    if (
+      el(
         "lagoKnifePrimary"
-      );
+      )
+    ) {
 
-
-    if (primaryElement) {
-
-      primaryElement.textContent =
+      el(
+        "lagoKnifePrimary"
+      ).textContent =
         primary;
 
     }
@@ -1288,15 +2370,15 @@
 
   function updateHud() {
 
-    const characterName =
-      element(
+    if (
+      el(
         "lagoKnifeCharacterName"
-      );
+      )
+    ) {
 
-
-    if (characterName) {
-
-      characterName.textContent =
+      el(
+        "lagoKnifeCharacterName"
+      ).textContent =
         context
           ?.characterName ||
         "Lago";
@@ -1304,29 +2386,29 @@
     }
 
 
-    const roundElement =
-      element(
+    if (
+      el(
         "lagoKnifeRound"
-      );
+      )
+    ) {
 
-
-    if (roundElement) {
-
-      roundElement.textContent =
+      el(
+        "lagoKnifeRound"
+      ).textContent =
         `${round}/${TOTAL_ROUNDS}`;
 
     }
 
 
-    const livesElement =
-      element(
+    if (
+      el(
         "lagoKnifeLives"
-      );
+      )
+    ) {
 
-
-    if (livesElement) {
-
-      livesElement.textContent =
+      el(
+        "lagoKnifeLives"
+      ).textContent =
         String(
           lives
         );
@@ -1334,15 +2416,15 @@
     }
 
 
-    const scoreElement =
-      element(
+    if (
+      el(
         "lagoKnifeScore"
-      );
+      )
+    ) {
 
-
-    if (scoreElement) {
-
-      scoreElement.textContent =
+      el(
+        "lagoKnifeScore"
+      ).textContent =
         String(
           score
         );
@@ -1355,7 +2437,7 @@
   function clearCharacterVisual() {
 
     const host =
-      element(
+      el(
         "lagoKnifeCharacter"
       );
 
@@ -1374,13 +2456,31 @@
 
     host.replaceChildren();
 
+
+    host.classList.remove(
+      "running",
+      "hit"
+    );
+
+
+    host.style.opacity =
+      "1";
+
+
+    host.style.left =
+      "0%";
+
+
+    host.style.transform =
+      "translateX(-50%) rotate(0deg)";
+
   }
 
 
   function mountCharacterVisual() {
 
     const host =
-      element(
+      el(
         "lagoKnifeCharacter"
       );
 
@@ -1444,6 +2544,59 @@
       );
 
     }
+
+  }
+
+
+  function clearFallPieces() {
+
+    el(
+      "lagoKnifeFallLayer"
+    )
+      ?.replaceChildren();
+
+
+    const host =
+      el(
+        "lagoKnifeCharacter"
+      );
+
+
+    if (host) {
+
+      host.style.opacity =
+        "1";
+
+    }
+
+  }
+
+
+  function resetCharacterForRound() {
+
+    const host =
+      el(
+        "lagoKnifeCharacter"
+      );
+
+
+    if (!host) {
+      return;
+    }
+
+
+    host.style.opacity =
+      "1";
+
+
+    host.classList.remove(
+      "hit"
+    );
+
+
+    host.classList.add(
+      "running"
+    );
 
   }
 
@@ -1512,11 +2665,11 @@
         "KNIFE CHALLENGE",
 
       copy:
-        `8 rounds. 3 lives. ${
+        `Crawl along the knife edge and keep balance. ${
           currentGame
             ?.dumCost ||
           0
-        } DUM per run. Tap when the white line crosses the lime zone.`,
+        } DUM per run. Tap while the character is inside the lime balance zone.`,
 
       result:
         stats.plays > 0
@@ -1537,15 +2690,15 @@
     });
 
 
-    const feedback =
-      element(
+    if (
+      el(
         "lagoKnifeFeedback"
-      );
+      )
+    ) {
 
-
-    if (feedback) {
-
-      feedback.textContent =
+      el(
+        "lagoKnifeFeedback"
+      ).textContent =
         "";
 
     }
@@ -1577,6 +2730,9 @@
 
     phase =
       "closed";
+
+
+    clearFallPieces();
 
 
     clearCharacterVisual();
@@ -1670,6 +2826,9 @@
       0;
 
 
+    clearFallPieces();
+
+
     updateHud();
 
 
@@ -1726,9 +2885,9 @@
 
 
     targetCenter =
-      20 +
+      22 +
       Math.random() *
-      60;
+      56;
 
 
     markerPosition =
@@ -1739,8 +2898,14 @@
       performance.now();
 
 
+    clearFallPieces();
+
+
+    resetCharacterForRound();
+
+
     const target =
-      element(
+      el(
         "lagoKnifeTarget"
       );
 
@@ -1757,30 +2922,16 @@
     }
 
 
-    const marker =
-      element(
-        "lagoKnifeMarker"
-      );
-
-
-    if (marker) {
-
-      marker.style.left =
-        "0%";
-
-    }
-
-
-    const feedback =
-      element(
+    if (
+      el(
         "lagoKnifeFeedback"
-      );
+      )
+    ) {
 
-
-    if (feedback) {
-
-      feedback.textContent =
-        `ROUND ${round}`;
+      el(
+        "lagoKnifeFeedback"
+      ).textContent =
+        `ROUND ${round} · HOLD BALANCE`;
 
     }
 
@@ -1843,7 +2994,7 @@
 
     markerPosition =
       raw <=
-      0.5
+      .5
 
         ? raw *
           200
@@ -1855,16 +3006,56 @@
           200;
 
 
-    const marker =
-      element(
-        "lagoKnifeMarker"
+    const host =
+      el(
+        "lagoKnifeCharacter"
       );
 
 
-    if (marker) {
+    if (host) {
 
-      marker.style.left =
-        `${markerPosition}%`;
+      const progress =
+        Math.max(
+          0,
+          Math.min(
+            100,
+            markerPosition
+          )
+        );
+
+
+      const balanceTilt =
+        Math.sin(
+          (
+            now -
+            roundStartedAt
+          ) /
+          95
+        ) *
+        (
+          7 +
+          round *
+          1.15
+        );
+
+
+      const edgeTilt =
+        (
+          progress -
+          50
+        ) *
+        .06;
+
+
+      host.style.left =
+        `${progress}%`;
+
+
+      host.style.transform =
+        `translateX(-50%) rotate(${
+          balanceTilt +
+          edgeTilt
+        }deg)`;
 
     }
 
@@ -1872,6 +3063,196 @@
     frameId =
       requestAnimationFrame(
         frame
+      );
+
+  }
+
+
+  function getCurrentCharacterImage() {
+
+    const image =
+      el(
+        "lagoKnifeCharacter"
+      )
+        ?.querySelector(
+          ".lago-glb-preview-image, img"
+        );
+
+
+    const src =
+      image
+        ?.getAttribute(
+          "src"
+        );
+
+
+    if (!src) {
+      return null;
+    }
+
+
+    return {
+
+      src,
+
+      alt:
+        image.getAttribute(
+          "alt"
+        ) ||
+        context
+          ?.characterName ||
+        "Lago"
+
+    };
+
+  }
+
+
+  function spawnSplitFall() {
+
+    const host =
+      el(
+        "lagoKnifeCharacter"
+      );
+
+
+    const layer =
+      el(
+        "lagoKnifeFallLayer"
+      );
+
+
+    const stage =
+      overlay
+        ?.querySelector(
+          ".lago-knife-stage"
+        );
+
+
+    if (
+      !host ||
+      !layer ||
+      !stage
+    ) {
+
+      return;
+
+    }
+
+
+    const hostRect =
+      host.getBoundingClientRect();
+
+
+    const stageRect =
+      stage.getBoundingClientRect();
+
+
+    const left =
+      hostRect.left -
+      stageRect.left +
+      hostRect.width /
+      2;
+
+
+    const top =
+      hostRect.top -
+      stageRect.top;
+
+
+    const visual =
+      getCurrentCharacterImage();
+
+
+    host.style.opacity =
+      "0";
+
+
+    const flash =
+      el(
+        "lagoKnifeCutFlash"
+      );
+
+
+    if (flash) {
+
+      flash.classList.remove(
+        "show"
+      );
+
+
+      void flash.offsetWidth;
+
+
+      flash.classList.add(
+        "show"
+      );
+
+    }
+
+
+    if (!visual) {
+      return;
+    }
+
+
+    [
+      "left",
+      "right"
+    ]
+      .forEach(
+        side => {
+
+          const piece =
+            document.createElement(
+              "div"
+            );
+
+
+          piece.className =
+            `lago-knife-fall-piece ${side}`;
+
+
+          piece.style.setProperty(
+            "--fall-left",
+            `${left}px`
+          );
+
+
+          piece.style.setProperty(
+            "--fall-top",
+            `${top}px`
+          );
+
+
+          const image =
+            document.createElement(
+              "img"
+            );
+
+
+          image.src =
+            visual.src;
+
+
+          image.alt =
+            visual.alt;
+
+
+          image.draggable =
+            false;
+
+
+          piece.appendChild(
+            image
+          );
+
+
+          layer.appendChild(
+            piece
+          );
+
+        }
       );
 
   }
@@ -1916,9 +3297,15 @@
         half;
 
 
-    const feedback =
-      element(
-        "lagoKnifeFeedback"
+    const host =
+      el(
+        "lagoKnifeCharacter"
+      );
+
+
+    host
+      ?.classList.remove(
+        "running"
       );
 
 
@@ -1945,10 +3332,22 @@
         gained;
 
 
-      if (feedback) {
+      host
+        ?.classList.add(
+          "hit"
+        );
 
-        feedback.textContent =
-          `HIT +${gained}`;
+
+      if (
+        el(
+          "lagoKnifeFeedback"
+        )
+      ) {
+
+        el(
+          "lagoKnifeFeedback"
+        ).textContent =
+          `BALANCED +${gained}`;
 
       }
 
@@ -1962,12 +3361,23 @@
         );
 
 
-      if (feedback) {
+      spawnSplitFall();
 
-        feedback.textContent =
+
+      if (
+        el(
+          "lagoKnifeFeedback"
+        )
+      ) {
+
+        el(
+          "lagoKnifeFeedback"
+        ).textContent =
           timeoutMiss
-            ? "TOO SLOW"
-            : "MISS";
+
+            ? "LOST BALANCE"
+
+            : "CUT — MISSED BALANCE";
 
       }
 
@@ -1977,7 +3387,7 @@
     updateHud();
 
 
-        resolveTimer =
+    resolveTimer =
       window.setTimeout(
         () => {
 
@@ -1999,7 +3409,7 @@
           }
 
         },
-        520
+        RESOLVE_DELAY_MS
       );
 
   }
@@ -2028,7 +3438,7 @@
 
         Math.floor(
           score *
-          0.2
+          .2
         )
 
       );
@@ -2070,7 +3480,7 @@
       title:
         lives > 0
           ? "RUN COMPLETE"
-          : "FELL OFF THE BLADE",
+          : "CHEF'S PLATE",
 
       copy:
         `Score ${Math.floor(
@@ -2130,9 +3540,8 @@
 
     }
 
-  }
 
-      if (
+    if (
       resolveTimer
     ) {
 
@@ -2145,6 +3554,9 @@
         0;
 
     }
+
+  }
+
 
   document.addEventListener(
     "lago:mini-game-open",
@@ -2219,14 +3631,10 @@
   );
 
 
-   document.addEventListener(
+  document.addEventListener(
     "visibilitychange",
     () => {
 
-      /*
-       * An active paid run must never
-       * continue in a hidden tab.
-       */
       if (
         document.hidden &&
         sessionId
@@ -2238,6 +3646,7 @@
 
     }
   );
+
 
   window.LAGO_KNIFE_GAME =
     Object.freeze({
