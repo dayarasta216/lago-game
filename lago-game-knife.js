@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 7;
+  const VERSION = 8;
 
   const GAME_ID =
     "knife-challenge";
@@ -33,18 +33,27 @@ import * as THREE from "three";
    * World coordinates of the
    * actual sharp knife edge.
    */
-  const KNIFE_START_X =
-    -2.30;
+  /*
+ * Knife is now standing on its side.
+ *
+ * The character walks on the real
+ * upper cutting edge.
+ */
+const KNIFE_START_X =
+  -2.20;
 
-  const KNIFE_END_X =
-    2.85;
+const KNIFE_END_X =
+  2.48;
 
-  const KNIFE_EDGE_Y =
-    1.24;
+const KNIFE_EDGE_Y =
+  1.90;
 
-  const KNIFE_EDGE_Z =
-    0.63;
+const KNIFE_EDGE_Z =
+  0.05;
 
+
+const BALANCE_FAIL_LIMIT =
+  0.92;
 
   const pressedKeys =
     new Set();
@@ -142,6 +151,18 @@ import * as THREE from "three";
   let walkProgress =
     0;
 
+/*
+ * Short unpredictable pushes make
+ * balance something the player must
+ * constantly correct.
+ */
+let balanceBias =
+  0;
+
+
+let nextBalanceBiasAt =
+  0;
+  
 
   const runtime =
     () =>
@@ -623,17 +644,19 @@ import * as THREE from "three";
       }
 
 
-      .lago-balance-safe {
-        stroke:
-          #ccff00;
+    .lago-balance-safe {
+  stroke:
+    #ccff00;
 
-        stroke-dasharray:
-          28 72;
+  /*
+   * Narrow central safe zone.
+   */
+  stroke-dasharray:
+    18 82;
 
-        stroke-dashoffset:
-          -36;
-      }
-
+  stroke-dashoffset:
+    -41;
+}
 
       .lago-balance-danger-left,
       .lago-balance-danger-right {
@@ -1651,28 +1674,32 @@ import * as THREE from "three";
         24
       );
 
-
-    camera =
-      new THREE.PerspectiveCamera(
-        38,
-        1,
-        0.1,
-        60
-      );
-
-
-    camera.position.set(
-      7.8,
-      5.8,
-      11.5
-    );
+camera =
+  new THREE.PerspectiveCamera(
+    36,
+    1,
+    0.1,
+    60
+  );
 
 
-    camera.lookAt(
-      0,
-      1.25,
-      .45
-    );
+/*
+ * Lower, closer camera:
+ * blade thickness + character volume
+ * become much more obvious.
+ */
+camera.position.set(
+  7.25,
+  4.35,
+  9.25
+);
+
+
+camera.lookAt(
+  0,
+  1.35,
+  .25
+);
 
 
     scene.add(
@@ -1804,6 +1831,52 @@ import * as THREE from "three";
     resizeRenderer();
 
   }
+
+      /*
+     * Cool rim light separates the GLB
+     * from the kitchen background.
+     */
+    const rimLight =
+      new THREE.DirectionalLight(
+        0x9fdcff,
+        1.65
+      );
+
+
+    rimLight.position.set(
+      -4.5,
+      4.8,
+      5.5
+    );
+
+
+    scene.add(
+      rimLight
+    );
+
+
+    /*
+     * Warm local kitchen light.
+     */
+    const characterLight =
+      new THREE.PointLight(
+        0xffe0ad,
+        7,
+        9,
+        2
+      );
+
+
+    characterLight.position.set(
+      0,
+      4.1,
+      3.6
+    );
+
+
+    scene.add(
+      characterLight
+    );
 
 
   function material(
@@ -2186,6 +2259,406 @@ import * as THREE from "three";
 
   }
 
+      /*
+     * =====================================================
+     * EXTRA CARTOON KITCHEN PROPS
+     * =====================================================
+     */
+
+
+    /*
+     * Wooden wall shelf.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          3.7,
+          .15,
+          .72
+        ),
+        0x8d5632,
+        new THREE.Vector3(
+          -1.85,
+          2.82,
+          -2.88
+        ),
+        .78
+      )
+    );
+
+
+    /*
+     * Colorful ingredient jars.
+     */
+    [
+      {
+        x: -2.75,
+        color: 0xe6c24c
+      },
+      {
+        x: -1.90,
+        color: 0xb64732
+      },
+      {
+        x: -1.05,
+        color: 0x5b9d55
+      }
+    ]
+      .forEach(
+        item => {
+
+          const jar =
+            new THREE.Mesh(
+
+              new THREE
+                .CylinderGeometry(
+                  .24,
+                  .24,
+                  .62,
+                  20
+                ),
+
+              material(
+                item.color,
+                .55
+              )
+
+            );
+
+
+          jar.position.set(
+            item.x,
+            3.18,
+            -2.72
+          );
+
+
+          jar.castShadow =
+            true;
+
+
+          world.add(
+            jar
+          );
+
+
+          const lid =
+            new THREE.Mesh(
+
+              new THREE
+                .CylinderGeometry(
+                  .26,
+                  .26,
+                  .09,
+                  20
+                ),
+
+              material(
+                0x292929,
+                .32,
+                .55
+              )
+
+            );
+
+
+          lid.position.set(
+            item.x,
+            3.535,
+            -2.72
+          );
+
+
+          world.add(
+            lid
+          );
+
+        }
+      );
+
+
+    /*
+     * Cartoon frying pan hanging
+     * on the wall.
+     */
+    const pan =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+            .62,
+            .62,
+            .15,
+            28
+          ),
+
+        material(
+          0x252729,
+          .36,
+          .65
+        )
+
+      );
+
+
+    pan.rotation.x =
+      Math.PI /
+      2;
+
+
+    pan.position.set(
+      -4.45,
+      2.45,
+      -3.12
+    );
+
+
+    pan.castShadow =
+      true;
+
+
+    world.add(
+      pan
+    );
+
+
+    const panHandle =
+      box(
+        new THREE.Vector3(
+          .24,
+          1.35,
+          .15
+        ),
+        0x202122,
+        new THREE.Vector3(
+          -4.45,
+          1.57,
+          -3.10
+        ),
+        .50,
+        .35
+      );
+
+
+    panHandle.rotation.z =
+      -.15;
+
+
+    world.add(
+      panHandle
+    );
+
+
+    /*
+     * Bright chef towel.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          .95,
+          1.15,
+          .08
+        ),
+        0xd85846,
+        new THREE.Vector3(
+          4.55,
+          2.18,
+          -3.15
+        ),
+        .92
+      )
+    );
+
+
+    /*
+     * Salt + pepper grinders.
+     */
+    [
+      {
+        x: -4.50,
+        color: 0xf0e8d4
+      },
+      {
+        x: -3.95,
+        color: 0x292322
+      }
+    ]
+      .forEach(
+        item => {
+
+          const grinder =
+            new THREE.Mesh(
+
+              new THREE
+                .CylinderGeometry(
+                  .15,
+                  .20,
+                  .72,
+                  16
+                ),
+
+              material(
+                item.color,
+                .64
+              )
+
+            );
+
+
+          grinder.position.set(
+            item.x,
+            .66,
+            1.05
+          );
+
+
+          grinder.castShadow =
+            true;
+
+
+          world.add(
+            grinder
+          );
+
+        }
+      );
+
+
+    /*
+     * Small bowl.
+     */
+    const bowl =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+            .58,
+            .42,
+            .30,
+            28,
+            1,
+            true
+          ),
+
+        material(
+          0x60a9c4,
+          .58
+        )
+
+      );
+
+
+    bowl.position.set(
+      -3.15,
+      .45,
+      2.40
+    );
+
+
+    bowl.castShadow =
+      true;
+
+
+    world.add(
+      bowl
+    );
+
+
+    /*
+     * Cartoon lemons in the bowl.
+     */
+    [
+      [-3.38, .72, 2.38],
+      [-3.00, .72, 2.34],
+      [-3.18, .84, 2.58]
+    ]
+      .forEach(
+        position => {
+
+          const lemon =
+            new THREE.Mesh(
+
+              new THREE
+                .SphereGeometry(
+                  .24,
+                  18,
+                  12
+                ),
+
+              material(
+                0xf2c932,
+                .74
+              )
+
+            );
+
+
+          lemon.position.set(
+            ...position
+          );
+
+
+          lemon.scale.set(
+            1.18,
+            .90,
+            .90
+          );
+
+
+          lemon.castShadow =
+            true;
+
+
+          world.add(
+            lemon
+          );
+
+        }
+      );
+
+
+    /*
+     * Chopped vegetables scattered
+     * around the cutting board.
+     */
+    [
+      [-2.0, .39, 1.50, 0x67a84a],
+      [-1.62, .39, 1.78, 0xe8cd48],
+      [2.15, .39, 2.12, 0x67a84a],
+      [2.52, .39, 1.88, 0xdd5a38],
+      [3.02, .39, 2.32, 0xe8cd48]
+    ]
+      .forEach(
+        item => {
+
+          const cube =
+            box(
+              new THREE.Vector3(
+                .28,
+                .22,
+                .28
+              ),
+              item[3],
+              new THREE.Vector3(
+                item[0],
+                item[1],
+                item[2]
+              ),
+              .78
+            );
+
+
+          cube.rotation.y =
+            Math.random() *
+            Math.PI;
+
+
+          world.add(
+            cube
+          );
+
+        }
+      );
 
   /*
    * =======================================================
@@ -2199,15 +2672,20 @@ import * as THREE from "three";
       new THREE.Group();
 
 
+    /*
+     * Knife stands on its side.
+     * Broad blade is vertical.
+     * Sharp edge is at the top.
+     */
     knife.position.set(
-      .1,
-      .42,
-      .1
+      .10,
+      .34,
+      .05
     );
 
 
     knife.rotation.y =
-      -.04;
+      -.035;
 
 
     world.add(
@@ -2216,20 +2694,46 @@ import * as THREE from "three";
 
 
     /*
-     * Handle.
+     * Chunky cartoon wooden handle.
+     */
+    const handle =
+      box(
+        new THREE.Vector3(
+          2.15,
+          .60,
+          .76
+        ),
+        0x4a2b1c,
+        new THREE.Vector3(
+          -3.70,
+          .92,
+          0
+        ),
+        .72
+      );
+
+
+    knife.add(
+      handle
+    );
+
+
+    /*
+     * Lighter top face gives the
+     * handle readable 3D volume.
      */
     knife.add(
       box(
         new THREE.Vector3(
-          2,
-          .52,
-          .92
+          1.92,
+          .12,
+          .78
         ),
-        0x3a241b,
+        0x704126,
         new THREE.Vector3(
-          -3.65,
-          .45,
-          0
+          -3.70,
+          1.18,
+          -.01
         ),
         .68
       )
@@ -2237,23 +2741,23 @@ import * as THREE from "three";
 
 
     /*
-     * Guard.
+     * Metal guard.
      */
     knife.add(
       box(
         new THREE.Vector3(
-          .18,
-          .88,
-          1.18
+          .22,
+          1.30,
+          1.00
         ),
-        0x696e72,
+        0x70767a,
         new THREE.Vector3(
-          -2.66,
-          .47,
+          -2.56,
+          .92,
           0
         ),
-        .26,
-        .82
+        .24,
+        .88
       )
     );
 
@@ -2262,8 +2766,8 @@ import * as THREE from "three";
      * Handle rivets.
      */
     [
-      -4.15,
-      -3.25
+      -4.13,
+      -3.35
     ]
       .forEach(
         x => {
@@ -2273,16 +2777,16 @@ import * as THREE from "three";
 
               new THREE
                 .CylinderGeometry(
-                  .09,
-                  .09,
-                  .96,
+                  .095,
+                  .095,
+                  .80,
                   18
                 ),
 
               material(
-                0xc1b8a7,
-                .28,
-                .75
+                0xc5bbaa,
+                .24,
+                .82
               )
 
             );
@@ -2295,9 +2799,13 @@ import * as THREE from "three";
 
           rivet.position.set(
             x,
-            .45,
+            .93,
             0
           );
+
+
+          rivet.castShadow =
+            true;
 
 
           knife.add(
@@ -2309,7 +2817,11 @@ import * as THREE from "three";
 
 
     /*
-     * Blade silhouette.
+     * Vertical chef blade silhouette.
+     *
+     * Top side is intentionally almost
+     * straight: that is the edge the
+     * character walks along.
      */
     const shape =
       new THREE.Shape();
@@ -2317,72 +2829,100 @@ import * as THREE from "three";
 
     shape.moveTo(
       -2.55,
-      -.54
+      -.58
     );
 
 
     shape.lineTo(
-      2.72,
-      -.50
+      2.66,
+      -.42
     );
 
 
     shape.lineTo(
-      3.65,
-      0
+      3.62,
+      .03
     );
 
 
     shape.lineTo(
-      2.72,
-      .50
+      2.58,
+      .62
     );
 
 
     shape.lineTo(
       -2.55,
-      .54
+      .62
     );
 
 
     shape.closePath();
 
 
+    const bladeGeometry =
+      new THREE.ExtrudeGeometry(
+        shape,
+        {
+          depth:
+            .18,
+
+          bevelEnabled:
+            true,
+
+          bevelSegments:
+            1,
+
+          bevelSize:
+            .025,
+
+          bevelThickness:
+            .025
+        }
+      );
+
+
     /*
-     * Extrusion gives actual
-     * physical thickness.
+     * Center extrusion around Z=0.
      */
+    bladeGeometry.translate(
+      0,
+      0,
+      -.09
+    );
+
+
     const blade =
       new THREE.Mesh(
 
-        new THREE.ExtrudeGeometry(
-          shape,
-          {
-            depth:
-              .15,
+        bladeGeometry,
 
-            bevelEnabled:
-              false
-          }
-        ),
+        new THREE
+          .MeshStandardMaterial({
 
-        material(
-          0xcfd3d5,
-          .22,
-          .95
-        )
+            color:
+              0xc9cfd2,
+
+            roughness:
+              .20,
+
+            metalness:
+              .96
+
+          })
 
       );
 
 
-    blade.rotation.x =
-      Math.PI /
-      2;
-
-
+    /*
+     * IMPORTANT:
+     * no Math.PI / 2 rotation here.
+     *
+     * Blade remains vertical.
+     */
     blade.position.set(
       0,
-      .77,
+      .90,
       0
     );
 
@@ -2401,51 +2941,83 @@ import * as THREE from "three";
 
 
     /*
-     * Polished spine.
+     * Dark lower bevel.
      */
     knife.add(
       box(
         new THREE.Vector3(
-          5.75,
-          .11,
-          .10
+          5.15,
+          .075,
+          .20
         ),
-        0xf4f5f5,
+        0x72797d,
         new THREE.Vector3(
-          .18,
-          .88,
-          -.50
+          -.02,
+          .37,
+          0
         ),
-        .15,
-        1
+        .16,
+        .92
       )
     );
 
 
     /*
-     * Actual sharp edge where
-     * character crawls.
+     * Bright actual cutting edge.
+     *
+     * World Y becomes approximately
+     * KNIFE_EDGE_Y.
+     */
+    const edge =
+      box(
+        new THREE.Vector3(
+          5.18,
+          .038,
+          .17
+        ),
+        0xf9ffff,
+        new THREE.Vector3(
+          .02,
+          1.53,
+          0
+        ),
+        .08,
+        1
+      );
+
+
+    edge.castShadow =
+      false;
+
+
+    knife.add(
+      edge
+    );
+
+
+    /*
+     * Small reflected highlight down
+     * the side of the blade.
      */
     knife.add(
       box(
         new THREE.Vector3(
-          5.75,
+          4.65,
           .055,
-          .07
+          .19
         ),
-        0xffffff,
+        0xeaf2f4,
         new THREE.Vector3(
-          .18,
-          .79,
-          .53
+          -.20,
+          1.36,
+          -.015
         ),
-        .08,
-        1
+        .10,
+        .94
       )
     );
 
   }
-
 
   function buildPlate() {
 
@@ -2822,12 +3394,19 @@ import * as THREE from "three";
   }
 
 
-  function prepareCharacterForKnife(
+    function prepareCharacterForKnife(
     root
   ) {
 
+    /*
+     * Canonical GLB is already normalized
+     * by LAGO_CHARACTER_3D.
+     *
+     * Previous 0.62 made characters read
+     * like tiny figurines.
+     */
     const KNIFE_CHARACTER_SCALE =
-      0.62;
+      0.90;
 
 
     root.scale.multiplyScalar(
@@ -2840,7 +3419,7 @@ import * as THREE from "three";
     );
 
 
-    const box =
+    const bounds =
       new THREE.Box3()
         .setFromObject(
           root
@@ -2848,111 +3427,13 @@ import * as THREE from "three";
 
 
     const center =
-      box.getCenter(
-        new THREE.Vector3()
-      );
-
-
-    root.position.x -=
-      center.x;
-
-
-    root.position.z -=
-      center.z;
-
-
-    /*
-     * Put bottom of character
-     * exactly on local Y=0.
-     */
-    root.position.y -=
-      box.min.y;
-
-
-    root.updateMatrixWorld(
-      true
-    );
-
-  }
-  function normalizeCharacter(
-    root
-  ) {
-
-    root.rotation.set(
-      CHARACTER_ROTATION_X,
-      0,
-      0
-    );
-
-
-    root.position.set(
-      0,
-      0,
-      0
-    );
-
-
-    root.scale.set(
-      1,
-      1,
-      1
-    );
-
-
-    root.updateMatrixWorld(
-      true
-    );
-
-
-    const initial =
-      new THREE.Box3()
-        .setFromObject(
-          root
-        );
-
-
-    const size =
-      initial.getSize(
-        new THREE.Vector3()
-      );
-
-
-    const largest =
-      Math.max(
-        size.x,
-        size.y,
-        size.z,
-        .001
-      );
-
-
-    root.scale.setScalar(
-      1.45 /
-      largest
-    );
-
-
-    root.updateMatrixWorld(
-      true
-    );
-
-
-    const scaled =
-      new THREE.Box3()
-        .setFromObject(
-          root
-        );
-
-
-    const center =
-      scaled.getCenter(
+      bounds.getCenter(
         new THREE.Vector3()
       );
 
 
     /*
-     * Center X/Z.
-     * Put feet/body bottom on Y=0.
+     * Center horizontally.
      */
     root.position.x -=
       center.x;
@@ -2962,13 +3443,12 @@ import * as THREE from "three";
       center.z;
 
 
+    /*
+     * Bottom of actual 3D model sits
+     * directly on the cutting edge.
+     */
     root.position.y -=
-      scaled.min.y;
-
-
-    root.updateMatrixWorld(
-      true
-    );
+      bounds.min.y;
 
 
     root.traverse(
@@ -2983,6 +3463,11 @@ import * as THREE from "three";
         }
 
 
+        /*
+         * Real model shadows are crucial:
+         * they stop the character looking
+         * like a flat sticker.
+         */
         child.castShadow =
           true;
 
@@ -2990,11 +3475,12 @@ import * as THREE from "three";
         child.receiveShadow =
           true;
 
-
-        child.frustumCulled =
-          true;
-
       }
+    );
+
+
+    root.updateMatrixWorld(
+      true
     );
 
   }
@@ -3337,13 +3823,13 @@ import * as THREE from "three";
 
 
       status.textContent =
-        magnitude <
-        .22
+       magnitude <
+.14
 
           ? "CENTER"
 
-          : magnitude <
-            .58
+          magnitude <
+.42
 
             ? "CORRECT IT"
 
@@ -3724,20 +4210,33 @@ import * as THREE from "three";
     /*
      * Small random start.
      */
-    balance =
+        balance =
       THREE.MathUtils
         .randFloat(
-          -.08,
-          .08
+          -.16,
+          .16
         );
 
 
     balanceVelocity =
       THREE.MathUtils
         .randFloat(
-          -.035,
-          .035
+          -.09,
+          .09
         );
+
+
+    balanceBias =
+      THREE.MathUtils
+        .randFloat(
+          -.20,
+          .20
+        );
+
+
+    nextBalanceBiasAt =
+      roundStartedAt +
+      350;
 
 
     roundStartedAt =
@@ -3829,67 +4328,127 @@ import * as THREE from "three";
     lastFrameAt =
       now;
 
-
     /*
-     * Every new round gets slightly
-     * less stable.
+     * =====================================================
+     * HARDER INVERTED-PENDULUM BALANCE
+     * =====================================================
+     *
+     * Difficulty rises both by round
+     * and while approaching knife tip.
      */
     const difficulty =
-      1 +
+
       (
-        round -
-        1
+        1.25 +
+        (
+          round -
+          1
+        ) *
+        .16
       ) *
-      .13;
+
+      (
+        1 +
+        walkProgress *
+        .55
+      );
 
 
     /*
-     * Two frequencies create a
-     * non-repeating wobble.
+     * Chef-table vibration:
+     * several different frequencies
+     * stop the motion becoming predictable.
      */
     const noise =
 
       Math.sin(
         now *
-        .0021 +
+        .0027 +
         round *
-        1.7
+        1.71
       ) *
-      .48 +
+      .62 +
 
       Math.sin(
         now *
-        .0047 +
+        .0061 +
         round *
-        .63
+        .57
       ) *
-      .22;
+      .38 +
+
+      Math.sin(
+        now *
+        .0107
+      ) *
+      .20;
 
 
     /*
-     * Unstable inverted-pendulum:
-     * once character leans,
-     * gravity keeps pulling it farther.
+     * Every 0.4–0.85 sec the center of
+     * gravity receives another small
+     * random push.
+     */
+    if (
+      now >=
+      nextBalanceBiasAt
+    ) {
+
+      balanceBias =
+        THREE.MathUtils
+          .randFloat(
+            -.48,
+            .48
+          ) *
+        (
+          1 +
+          (
+            round -
+            1
+          ) *
+          .045
+        );
+
+
+      nextBalanceBiasAt =
+        now +
+        THREE.MathUtils
+          .randFloat(
+            420,
+            850
+          );
+
+    }
+
+
+    /*
+     * Once the model starts leaning,
+     * gravity actively pulls it farther.
      */
     const unstableForce =
       balance *
-      .62 *
+      1.18 *
       difficulty;
 
 
     const randomForce =
-      noise *
-      .19 *
+      (
+        noise *
+        .34 +
+        balanceBias
+      ) *
       difficulty;
 
 
     /*
-     * LEFT = -1
-     * RIGHT = +1
+     * Controls are strong enough to save
+     * the character but now require
+     * short corrections, not simply
+     * holding one side.
      */
     const controlForce =
       inputAxis *
-      1.7;
+      2.55;
 
 
     balanceVelocity +=
@@ -3902,11 +4461,14 @@ import * as THREE from "three";
 
 
     /*
-     * Physical damping.
+     * Much less damping than before.
+     *
+     * Momentum now survives after player
+     * releases LEFT / RIGHT.
      */
     balanceVelocity *=
       Math.pow(
-        .20,
+        .62,
         dt
       );
 
@@ -3962,12 +4524,12 @@ import * as THREE from "three";
      * Needle reached end =
      * balance lost.
      */
-    if (
-      Math.abs(
-        balance
-      ) >=
-      1
-    ) {
+   if (
+  Math.abs(
+    balance
+  ) >=
+  BALANCE_FAIL_LIMIT
+){
 
       failRound();
 
@@ -3999,7 +4561,7 @@ import * as THREE from "three";
   }
 
 
-  function updateCharacterPose(
+    function updateCharacterPose(
     now
   ) {
 
@@ -4013,10 +4575,6 @@ import * as THREE from "three";
     }
 
 
-    /*
-     * Character physically crawls
-     * from guard toward knife tip.
-     */
     const x =
       THREE.MathUtils.lerp(
         KNIFE_START_X,
@@ -4026,41 +4584,83 @@ import * as THREE from "three";
 
 
     /*
-     * Tiny crawl motion.
+     * Fake gait for non-rigged GLBs.
+     *
+     * We animate the whole body instead
+     * of requiring skeletal animations.
      */
+    const stride =
+      Math.sin(
+        now *
+        .014 +
+        walkProgress *
+        Math.PI *
+        10
+      );
+
+
     const bob =
+      Math.abs(
+        stride
+      ) *
+      .055;
+
+
+    const gaitRock =
+      stride *
+      .055;
+
+
+    const yawRock =
       Math.sin(
         now *
-        .012
+        .006
       ) *
       .035;
 
 
-    const forwardRock =
-      Math.sin(
-        now *
-        .007
-      ) *
-      .035;
+    /*
+     * As balance worsens the whole
+     * character physically shifts away
+     * from the razor edge.
+     */
+    const lateral =
+      balance *
+      .17;
 
 
     characterPivot.position.set(
+
       x,
+
       KNIFE_EDGE_Y +
       bob,
-      KNIFE_EDGE_Z
+
+      KNIFE_EDGE_Z +
+      lateral
+
     );
 
 
     /*
-     * Balance number directly
-     * tilts actual 3D GLB.
+     * Face along the blade (+X).
+     *
+     * X rotation = actual left/right
+     * balance over the thin knife edge.
      */
     characterPivot.rotation.set(
-      forwardRock,
-      -.12,
-      -balance *
-      .82
+
+      balance *
+        .98 +
+      gaitRock *
+        .20,
+
+      Math.PI /
+        2 +
+      yawRock,
+
+      gaitRock
+
     );
 
   }
