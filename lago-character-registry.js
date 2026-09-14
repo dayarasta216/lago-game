@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    5;
+    6;
 
 
   /*
@@ -357,7 +357,7 @@
           "EPIC",
 
         model3d:
-          "./assets/model/comic-goose.glb?v=2",
+          "./assets/model/comic-goose.glb?v=3",
 
         shop:
           Object.freeze({
@@ -418,7 +418,7 @@
           "LEGENDARY",
 
         model3d:
-          "./assets/model/comic-pig.glb?v=2",
+          "./assets/model/comic-pig.glb?v=3",
 
         shop:
           Object.freeze({
