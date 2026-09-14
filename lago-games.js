@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
 
   let overlay = null;
 
@@ -25,7 +25,7 @@
       description:
         "Balance, timing and terrible decisions.",
       icon: "knife",
-      status: "coming",
+      sstatus: "available",
       dumCost: 5,
       maxRewardSP: 250
     },
@@ -203,7 +203,10 @@
   }
 
 
-  function gameMeta(game) {
+   function gameMeta(
+    game,
+    stats = {}
+  ) {
 
     if (
       game.id ===
@@ -240,6 +243,23 @@
     }
 
 
+    if (
+      Number(
+        stats.plays
+      ) > 0
+    ) {
+
+      parts.push(
+        `BEST ${Math.floor(
+          Number(
+            stats.bestScore
+          ) || 0
+        )}`
+      );
+
+    }
+
+
     return parts.join(
       " · "
     );
@@ -247,9 +267,56 @@
   }
 
 
+  function buttonLabel(
+    game,
+    context
+  ) {
+
+    if (
+      game.status !==
+      "available"
+    ) {
+
+      return "COMING SOON";
+
+    }
+
+
+    if (
+      game.requiredCharacter &&
+      game.requiredCharacter !==
+        context.characterId
+    ) {
+
+      return "SELECT CHARACTER";
+
+    }
+
+
+    if (
+      game.dumCost >
+      context.dum
+    ) {
+
+      return "NEED DUM";
+
+    }
+
+
+    return "PLAY";
+
+  }
+
+
   function gameCard(
     game,
     context
+        const stats =
+      runtime()
+        ?.getStats
+        ?.(
+          game.id
+        ) || {};
   ) {
 
     const available =
@@ -311,8 +378,9 @@
           >
             ${escapeHTML(
               gameMeta(
-                game
-              )
+  game,
+  stats
+)
             )}
           </div>
 
@@ -330,11 +398,10 @@
               : "disabled"
           }
         >
-          ${
-            available
-              ? "PLAY"
-              : "COMING SOON"
-          }
+                   ${buttonLabel(
+            game,
+            context
+          )}
         </button>
 
       </article>
@@ -980,6 +1047,24 @@
 
   document.addEventListener(
     "lago:state",
+    () => {
+
+      if (
+        overlay
+          ?.classList.contains(
+            "active"
+          )
+      ) {
+
+        render();
+
+      }
+
+    }
+  );
+
+    document.addEventListener(
+    "lago:account-state",
     () => {
 
       if (
