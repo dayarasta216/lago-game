@@ -2630,7 +2630,6 @@ span:last-child {
       .42
     );
 
-}
 
   /*
    * Same typography as the canonical
@@ -2656,6 +2655,9 @@ span:last-child {
 
   text-rendering:
     optimizeLegibility;
+
+}
+
 
 .lago-upgrade-header {
 
@@ -2735,6 +2737,9 @@ span:last-child {
     0
     0
     44px;
+
+     margin-left:
+    auto;
 
   display:
     grid;
@@ -4166,3 +4171,55 @@ and
   }
 
 }
+
+/* =========================================================
+   MOBILE COLLECTION / SHOP FIT
+   ========================================================= */
+
+@media (
+  max-width:
+  560px
+) {
+
+  /*
+   * Collection on smartphones is an
+   * actual inventory, not a catalogue.
+   *
+   * Locked Lago skins must not occupy
+   * cards with question marks.
+   */
+  #lagoSkinGrid
+  .lago-skin.locked {
+
+    display:
+      none !important;
+
+  }
+
+
+  /*
+   * Marvin is extremely tall.
+   * Give the complete character more
+   * breathing room inside narrow
+   * two-column Shop cards.
+   */
+  .lago-shop-character-image[
+    src*="comic-marvin"
+  ] {
+
+    width:
+      56% !important;
+
+    height:
+      76% !important;
+
+    object-fit:
+      contain !important;
+
+    object-position:
+      center !important;
+
+  }
+
+}
+
