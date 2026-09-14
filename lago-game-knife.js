@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 8;
+  const VERSION = 9;
 
   const GAME_ID =
     "knife-challenge";
@@ -3772,7 +3772,7 @@ camera.lookAt(
    * Needle directly represents
    * physical character balance.
    */
-  function updateBalanceUi() {
+   function updateBalanceUi() {
 
     const needle =
       el(
@@ -3783,6 +3783,12 @@ camera.lookAt(
     const status =
       el(
         "lagoBalanceStatus"
+      );
+
+
+    const magnitude =
+      Math.abs(
+        balance
       );
 
 
@@ -3802,10 +3808,8 @@ camera.lookAt(
 
 
       needle.style.stroke =
-        Math.abs(
-          balance
-        ) <
-        .58
+        magnitude <
+        .42
 
           ? "#ffffff"
 
@@ -3814,6 +3818,33 @@ camera.lookAt(
     }
 
 
+    if (status) {
+
+      status.textContent =
+        magnitude <
+        .14
+
+          ? "CENTER"
+
+          : magnitude <
+            .42
+
+            ? "CORRECT IT"
+
+            : "DANGER";
+
+
+      status.style.color =
+        magnitude <
+        .42
+
+          ? "#ccff00"
+
+          : "#ff5b52";
+
+    }
+
+  }
     if (status) {
 
       const magnitude =
@@ -3828,7 +3859,7 @@ camera.lookAt(
 
           ? "CENTER"
 
-          magnitude <
+          :magnitude <
 .42
 
             ? "CORRECT IT"
