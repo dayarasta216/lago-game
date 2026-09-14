@@ -2412,8 +2412,10 @@ function spendGameplayResources(
 
   }
 
-
-  save();
+ save({
+  accountOnly:
+    true
+});
 
 
   return {
@@ -2517,12 +2519,14 @@ function refreshDumEnergy(
         .toISOString();
 
 
-    if (persist) {
+   if (persist) {
 
-      save();
+  save({
+    accountOnly:
+      true
+  });
 
-    }
-
+}
 
     return 0;
 
@@ -2621,14 +2625,17 @@ function refreshDumEnergy(
   }
 
 
-  if (
-    persist &&
-    gained > 0
-  ) {
+ if (
+  persist &&
+  gained > 0
+) {
 
-    save();
+  save({
+    accountOnly:
+      true
+  });
 
-  }
+}
 
 
   return gained;
@@ -5047,7 +5054,10 @@ state.games[id].dumSpent =
   );
 
 
-  return save();
+  return save({
+  accountOnly:
+    true
+});
 
 }
 
