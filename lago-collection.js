@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 10;
+  const VERSION = 11;
 
 
   const LAGO_CHARACTER =
@@ -367,52 +367,29 @@
   /*
    * Hero = GLB first.
    */
-  function createHeroVisual(
+   function createHeroVisual(
     character,
     className
   ) {
 
-    const model3d =
-      typeof character
-        ?.model3d ===
-        "string"
-        ? character.model3d.trim()
-        : "";
-
-
-    if (model3d) {
-
-      return `
-        <div
-          class="
-            ${className}
-            lago-glb-preview-host
-          "
-          data-lago-glb-preview="${escapeAttribute(
-            model3d
-          )}"
-          role="img"
-          aria-label="${escapeAttribute(
-            character.name
-          )}"
-        ></div>
-      `;
-    }
-
-
+    /*
+     * Collection hero uses the same
+     * fast asset-first strategy as cards.
+     *
+     * Characters with SVG/PNG must never
+     * trigger GLB parsing just because
+     * Collection was opened.
+     *
+     * Miki / Oleg still fall back to
+     * GLB because they currently have
+     * no static asset.
+     */
     return createThumbVisual(
       character,
       className
     );
+
   }
-
-
-  /*
-   * Grid cards = thumbnail first.
-   *
-   * This avoids parsing 5–8 GLBs
-   * merely to open Collection.
-   */
   function createThumbVisual(
     character,
     className
