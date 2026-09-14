@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2;
   const GAME_ID = "knife-challenge";
   const TOTAL_ROUNDS = 8;
   const STARTING_LIVES = 3;
@@ -20,6 +20,7 @@
   let roundStartedAt = 0;
   let frameId = 0;
   let roundTimer = 0;
+  let resolveTimer = 0;
 
   const runtime =
     () =>
@@ -1976,25 +1977,30 @@
     updateHud();
 
 
-    window.setTimeout(
-      () => {
+        resolveTimer =
+      window.setTimeout(
+        () => {
 
-        if (
-          phase ===
-          "resolving"
-        ) {
-
-          phase =
-            "running";
+          resolveTimer =
+            0;
 
 
-          startNextRound();
+          if (
+            phase ===
+            "resolving"
+          ) {
 
-        }
+            phase =
+              "running";
 
-      },
-      520
-    );
+
+            startNextRound();
+
+          }
+
+        },
+        520
+      );
 
   }
 
@@ -2126,6 +2132,19 @@
 
   }
 
+      if (
+      resolveTimer
+    ) {
+
+      clearTimeout(
+        resolveTimer
+      );
+
+
+      resolveTimer =
+        0;
+
+    }
 
   document.addEventListener(
     "lago:mini-game-open",
@@ -2200,14 +2219,17 @@
   );
 
 
-  document.addEventListener(
+   document.addEventListener(
     "visibilitychange",
     () => {
 
+      /*
+       * An active paid run must never
+       * continue in a hidden tab.
+       */
       if (
         document.hidden &&
-        phase ===
-          "running"
+        sessionId
       ) {
 
         closeGame();
@@ -2216,7 +2238,6 @@
 
     }
   );
-
 
   window.LAGO_KNIFE_GAME =
     Object.freeze({
