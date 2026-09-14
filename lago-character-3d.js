@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  10;
+  11;
 
 
   const BASE_LAGO_MODEL =
@@ -564,6 +564,27 @@ const previewSnapshotCache =
 
   }
 
+    /*
+   * Shared model clone for mini-games.
+   *
+   * Uses the canonical parsed GLB cache.
+   * No second download and no second parse.
+   */
+  async function cloneModel(
+    modelUrl
+  ) {
+
+    const template =
+      await getTemplate(
+        modelUrl
+      );
+
+
+    return template.clone(
+      true
+    );
+
+  }
 
   /*
    * =========================================================
@@ -696,13 +717,13 @@ const previewSnapshotCache =
      * 1.35–1.5 stays sharp while keeping
      * stable frame pacing.
      */
-    const cap =
+        const cap =
       window.innerWidth <=
       720
 
-        ? 1.35
+        ? 1.2
 
-        : 1.5;
+        : 1.35;
 
 
     return Math.min(
@@ -786,20 +807,64 @@ const previewSnapshotCache =
   }
 
 
-  function mainOverlayOpen() {
+    function mainOverlayOpen() {
 
     return Boolean(
-      document.querySelector(
-        [
-          "#lagoShop.active",
-          "#lagoCollection.active",
-          "#lagoCreator.active",
-          "#lagoGames.active",
-          "#lagoProfile.active"
-        ].join(
-          ","
+
+      document
+        .getElementById(
+          "lagoShop"
         )
-      )
+        ?.classList
+        .contains(
+          "active"
+        ) ||
+
+      document
+        .getElementById(
+          "lagoCollection"
+        )
+        ?.classList
+        .contains(
+          "active"
+        ) ||
+
+      document
+        .getElementById(
+          "lagoCreator"
+        )
+        ?.classList
+        .contains(
+          "show"
+        ) ||
+
+      document
+        .getElementById(
+          "lagoGamesOverlay"
+        )
+        ?.classList
+        .contains(
+          "active"
+        ) ||
+
+      document
+        .getElementById(
+          "lagoKnifeGame"
+        )
+        ?.classList
+        .contains(
+          "active"
+        ) ||
+
+      document
+        .getElementById(
+          "lagoProfileOverlay"
+        )
+        ?.classList
+        .contains(
+          "active"
+        )
+
     );
 
   }
@@ -1057,13 +1122,12 @@ const previewSnapshotCache =
  * - smoother UI transitions
  */
 
-const TARGET_FPS =
+const IDLE_FPS =
+  30;
+
+
+const TAP_FPS =
   60;
-
-
-const FRAME_INTERVAL =
-  1000 /
-  TARGET_FPS;
 
 
 let lastRenderedAt =
@@ -1097,14 +1161,33 @@ let lastRenderedAt =
      * On a 120 Hz display this renders
      * every second display frame.
      */
-    const elapsed =
+       const elapsed =
       now -
       lastRenderedAt;
 
 
+    /*
+     * Idle character does not need 60 FPS.
+     *
+     * During a physical tap we temporarily
+     * return to 60 FPS for responsiveness.
+     */
+    const targetFps =
+      tapKick >
+        0.025
+
+        ? TAP_FPS
+        : IDLE_FPS;
+
+
+    const frameInterval =
+      1000 /
+      targetFps;
+
+
     if (
       elapsed <
-      FRAME_INTERVAL
+      frameInterval
     ) {
 
       return;
@@ -1112,16 +1195,12 @@ let lastRenderedAt =
     }
 
 
-    /*
-     * Prevent accumulated timing drift.
-     */
     lastRenderedAt =
       now -
       (
         elapsed %
-        FRAME_INTERVAL
+        frameInterval
       );
-
 
     const time =
       now *
@@ -2283,22 +2362,50 @@ let lastRenderedAt =
       version:
         VERSION,
 
-      apply,
+           pulseTap,
 
-      pulseTap,
+      cloneModel,
 
       mountPreview,
 
       destroyPreview
-
     });
 
-
   /*
-   * Initial render.
+   * Let HTML/UI paint first.
+   *
+   * Large GLB decoding must not block
+   * the first interactive frame.
    */
-  apply();
+  const startInitial3D =
+    () => {
 
+      apply();
+
+    };
+
+
+  if (
+    "requestIdleCallback" in
+    window
+  ) {
+
+    window.requestIdleCallback(
+      startInitial3D,
+      {
+        timeout:
+          700
+      }
+    );
+
+  } else {
+
+    window.setTimeout(
+      startInitial3D,
+      0
+    );
+
+  }
 
   document.dispatchEvent(
     new CustomEvent(
