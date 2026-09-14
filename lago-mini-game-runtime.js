@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2;
 
   const VALID_STATUSES =
     new Set([
@@ -261,7 +261,25 @@
 
         : null;
 
+    const character =
+      isComic
 
+        ? comicCharacter
+
+        : {
+            id:
+              "lago",
+
+            name:
+              "Lago",
+
+            asset:
+              "./lago-snail.png",
+
+            model3d:
+              "./assets/model/lago.glb?v=4"
+          };
+    
     const dum =
       api
         ?.getDumEnergy
@@ -287,11 +305,23 @@
 
       characterId,
 
-      characterName:
-        comicCharacter
+          characterName:
+        character
           ?.name ||
         "Lago",
 
+      characterAsset:
+        clean(
+          character
+            ?.asset
+        ),
+
+      characterModel3d:
+        clean(
+          character
+            ?.model3d
+        ),
+      
       dum:
         Math.max(
           0,
@@ -338,6 +368,75 @@
 
   }
 
+    function getStats(id) {
+
+    const key =
+      clean(id)
+        .toLowerCase();
+
+
+    const state =
+      account()
+        ?.getState
+        ?.() || {};
+
+
+    const stats =
+      state.games
+        ?.[key] || {};
+
+
+    return {
+
+      plays:
+        Math.max(
+          0,
+          Math.floor(
+            Number(
+              stats.plays
+            ) || 0
+          )
+        ),
+
+      bestScore:
+        Math.max(
+          0,
+          Number(
+            stats.bestScore
+          ) || 0
+        ),
+
+      lastScore:
+        Math.max(
+          0,
+          Number(
+            stats.lastScore
+          ) || 0
+        ),
+
+      spEarned:
+        Math.max(
+          0,
+          Number(
+            stats.spEarned
+          ) || 0
+        ),
+
+      dumSpent:
+        Math.max(
+          0,
+          Number(
+            stats.dumSpent
+          ) || 0
+        ),
+
+      lastPlayedAt:
+        stats.lastPlayedAt ||
+        null
+
+    };
+
+  }
 
   function checkGame(game) {
 
@@ -860,6 +959,8 @@
       list,
 
       getContext,
+
+      getStats,
 
       open,
 
