@@ -1,15 +1,11 @@
 import * as THREE from "three";
 
-import {
-  GLTFLoader
-} from "three/addons/loaders/GLTFLoader.js";
-
 
 (() => {
   "use strict";
 
 
-  const VERSION = 4;
+  const VERSION = 5;
 
   const GAME_ID =
     "knife-challenge";
@@ -48,14 +44,6 @@ import {
 
   const KNIFE_EDGE_Z =
     0.63;
-
-
-  const loader =
-    new GLTFLoader();
-
-
-  const modelCache =
-    new Map();
 
 
   const pressedKeys =
@@ -1715,11 +1703,11 @@ import {
 
 
     keyLight.shadow
-      .mapSize
-      .set(
-        1024,
-        1024
-      );
+  .mapSize
+  .set(
+    512,
+    512
+  );
 
 
     keyLight.shadow.camera.near =
@@ -2747,13 +2735,17 @@ import {
      * Limit pixel ratio on phones.
      */
     renderer.setPixelRatio(
-      Math.min(
-        window
-          .devicePixelRatio ||
-        1,
-        1.6
-      )
-    );
+  Math.min(
+    window.devicePixelRatio ||
+    1,
+
+    window.innerWidth <=
+      720
+
+      ? 1.15
+      : 1.3
+  )
+);
 
 
     renderer.setSize(
@@ -2780,7 +2772,7 @@ import {
    * =======================================================
    */
 
-  async function loadCharacter(
+   async function loadCharacter(
     modelUrl
   ) {
 
@@ -2800,58 +2792,88 @@ import {
     }
 
 
+    const api =
+      window.LAGO_CHARACTER_3D;
+
+
     if (
-      modelCache.has(
-        key
-      )
+      !api ||
+      typeof api.cloneModel !==
+        "function"
     ) {
 
-      return modelCache
-        .get(
-          key
-        )
-        .clone(
-          true
-        );
+      throw new Error(
+        "Canonical 3D model cache is not ready"
+      );
 
     }
 
 
-    const gltf =
-      await loader
-        .loadAsync(
-          key
-        );
-
-
-    normalizeCharacter(
-      gltf.scene
+    /*
+     * Reuse Lago's already parsed GLB.
+     *
+     * No second GLTFLoader.
+     * No second GLB parse.
+     */
+    return api.cloneModel(
+      key
     );
-
-
-    modelCache.set(
-      key,
-      gltf.scene
-    );
-
-
-    return gltf
-      .scene
-      .clone(
-        true
-      );
 
   }
 
 
-  /*
-   * Same source orientation as
-   * canonical Lago 3D renderer:
-   *
-   * X = width
-   * Y = depth
-   * Z = height
-   */
+  function prepareCharacterForKnife(
+    root
+  ) {
+
+    const KNIFE_CHARACTER_SCALE =
+      0.62;
+
+
+    root.scale.multiplyScalar(
+      KNIFE_CHARACTER_SCALE
+    );
+
+
+    root.updateMatrixWorld(
+      true
+    );
+
+
+    const box =
+      new THREE.Box3()
+        .setFromObject(
+          root
+        );
+
+
+    const center =
+      box.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    root.position.x -=
+      center.x;
+
+
+    root.position.z -=
+      center.z;
+
+
+    /*
+     * Put bottom of character
+     * exactly on local Y=0.
+     */
+    root.position.y -=
+      box.min.y;
+
+
+    root.updateMatrixWorld(
+      true
+    );
+
+  }
   function normalizeCharacter(
     root
   ) {
@@ -3024,6 +3046,10 @@ import {
       await loadCharacter(
         url
       );
+
+        prepareCharacterForKnife(
+      characterModel
+    );
 
 
     activeModelUrl =
