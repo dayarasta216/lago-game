@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 3;
+  const VERSION = 4;
 
   let overlay = null;
 
@@ -24,9 +24,9 @@
       name: "KNIFE CHALLENGE",
       description:
         "Balance, timing and terrible decisions.",
-      icon: "knife",
-      sstatus: "available",
-      dumCost: 5,
+     icon: "knife",
+status: "available",
+dumCost: 5,
       maxRewardSP: 250
     },
 
@@ -308,16 +308,18 @@
   }
 
 
-  function gameCard(
+    function gameCard(
     game,
     context
-        const stats =
+  ) {
+
+    const stats =
       runtime()
         ?.getStats
         ?.(
           game.id
         ) || {};
-  ) {
+
 
     const available =
       game.status ===
@@ -378,9 +380,9 @@
           >
             ${escapeHTML(
               gameMeta(
-  game,
-  stats
-)
+                game,
+                stats
+              )
             )}
           </div>
 
@@ -398,7 +400,7 @@
               : "disabled"
           }
         >
-                   ${buttonLabel(
+          ${buttonLabel(
             game,
             context
           )}
@@ -408,7 +410,6 @@
     `;
 
   }
-
 
   function create() {
 
