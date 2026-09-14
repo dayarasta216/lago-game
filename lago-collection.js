@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 8;
+  const VERSION = 9;
 
 
   const LAGO_CHARACTER =
@@ -796,7 +796,7 @@
   }
 
 
-  function equipCharacter(id) {
+   function equipCharacter(id) {
 
     if (
       id === "lago"
@@ -820,19 +820,24 @@
       }
 
 
-         notifyCharacterEquipped(
-      "lago"
-    );
+      notifyCharacterEquipped(
+        "lago"
+      );
 
 
-    return true;
+      return true;
+
+    }
+
 
     if (
       !isComicCharacter(
         id
       )
     ) {
+
       return false;
+
     }
 
 
@@ -847,6 +852,7 @@
       );
 
       return false;
+
     }
 
 
@@ -861,6 +867,7 @@
       );
 
       return false;
+
     }
 
 
@@ -868,9 +875,10 @@
       id
     );
 
-    return true;
-  }
 
+    return true;
+
+  }
 
   function equipLagoSkin(id) {
 
@@ -922,15 +930,12 @@
     );
 
 
-    notifyCharacterEquipped(
+      notifyCharacterEquipped(
       "lago"
     );
 
 
-    render();
-
     return true;
-  }
 
 
   function renderHero() {
@@ -1034,6 +1039,31 @@
     const owned =
       ownedIds();
 
+        const mobile =
+      window.matchMedia(
+        "(max-width: 560px)"
+      ).matches;
+
+
+    /*
+     * Smartphone Collection is inventory.
+     *
+     * Do not render locked Lago skins at all.
+     * A skin appears only after ownership.
+     */
+    const skinCatalog =
+      mobile
+
+        ? LAGO_SKINS.filter(
+            skin =>
+              skin.id ===
+                "default" ||
+              owned.has(
+                skin.id
+              )
+          )
+
+        : LAGO_SKINS;
 
     const selected =
       selectedCharacterId();
@@ -1089,11 +1119,13 @@
     }
 
 
-    const key = [
+      const key = [
+
       mobile
         ? "mobile"
         : "desktop",
 
+      current,
       selected,
 
       [...owned]
@@ -1128,8 +1160,8 @@
       key;
 
 
-    grid.innerHTML =
-      catalog
+       grid.innerHTML =
+      skinCatalog
         .map(
           character => {
 
@@ -1555,17 +1587,20 @@
     );
 
 
-  collectionMobileQuery
-    .addEventListener
-    ?.(
-      "change",
-      () => {
+ collectionMobileQuery
+  .addEventListener
+  ?.(
+    "change",
+    () => {
 
-        lastCharactersKey =
-          "";
+      lastCharactersKey =
+        "";
+
+      lastSkinsKey =
+        "";
 
 
-        renderCollectionIfOpen();
+      renderCollectionIfOpen();
       }
     );
 
