@@ -5,7 +5,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 5;
+  const VERSION = 6;
 
   const GAME_ID =
     "knife-challenge";
