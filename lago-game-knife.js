@@ -1,32 +1,165 @@
+import * as THREE from "three";
+
+import {
+  GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
+
+
 (() => {
   "use strict";
 
-  const VERSION = 3;
-  const GAME_ID = "knife-challenge";
-  const TOTAL_ROUNDS = 8;
-  const STARTING_LIVES = 3;
-  const ROUND_TIMEOUT_MS = 4200;
-  const RESOLVE_DELAY_MS = 900;
 
-  let overlay = null;
-  let phase = "closed";
-  let sessionId = "";
-  let context = null;
-  let round = 0;
-  let lives = STARTING_LIVES;
-  let score = 0;
-  let targetCenter = 50;
-  let targetWidth = 24;
-  let markerPosition = 0;
-  let roundStartedAt = 0;
-  let frameId = 0;
-  let roundTimer = 0;
-  let resolveTimer = 0;
+  const VERSION = 4;
+
+  const GAME_ID =
+    "knife-challenge";
+
+  const TOTAL_ROUNDS =
+    8;
+
+  const STARTING_LIVES =
+    3;
+
+  const ROUND_DURATION_MS =
+    7600;
+
+  const ROUND_GAP_MS =
+    850;
+
+  const FAIL_GAP_MS =
+    1250;
+
+  const CHARACTER_ROTATION_X =
+    -Math.PI / 2;
+
+
+  /*
+   * World coordinates of the
+   * actual sharp knife edge.
+   */
+  const KNIFE_START_X =
+    -2.30;
+
+  const KNIFE_END_X =
+    2.85;
+
+  const KNIFE_EDGE_Y =
+    1.24;
+
+  const KNIFE_EDGE_Z =
+    0.63;
+
+
+  const loader =
+    new GLTFLoader();
+
+
+  const modelCache =
+    new Map();
+
+
+  const pressedKeys =
+    new Set();
+
+
+  let overlay =
+    null;
+
+  let canvas =
+    null;
+
+  let renderer =
+    null;
+
+  let scene =
+    null;
+
+  let camera =
+    null;
+
+  let resizeObserver =
+    null;
+
+
+  let world =
+    null;
+
+  let plateGroup =
+    null;
+
+  let characterPivot =
+    null;
+
+  let characterModel =
+    null;
+
+  let activeModelUrl =
+    "";
+
+  let fallPieces =
+    [];
+
+
+  let phase =
+    "closed";
+
+  let sessionId =
+    "";
+
+  let context =
+    null;
+
+  let round =
+    0;
+
+  let lives =
+    STARTING_LIVES;
+
+  let score =
+    0;
+
+
+  let animationFrame =
+    0;
+
+  let resolveTimer =
+    0;
+
+  let lastFrameAt =
+    0;
+
+  let roundStartedAt =
+    0;
+
+
+  /*
+   * Continuous balance physics.
+   *
+   * -1 = falling left
+   *  0 = perfect balance
+   * +1 = falling right
+   */
+  let inputAxis =
+    0;
+
+  let balance =
+    0;
+
+  let balanceVelocity =
+    0;
+
+  let balanceQuality =
+    0;
+
+  let walkProgress =
+    0;
+
 
   const runtime =
     () =>
       window.LAGO_MINIGAMES ||
       null;
+
 
   const game =
     () =>
@@ -37,6 +170,7 @@
         ) ||
       null;
 
+
   const el =
     id =>
       overlay
@@ -46,7 +180,13 @@
       null;
 
 
-  function create() {
+  /*
+   * =======================================================
+   * DOM / HUD
+   * =======================================================
+   */
+
+  function createOverlay() {
 
     if (overlay) {
       return overlay;
@@ -64,19 +204,21 @@
       #lagoKnifeGame {
         position: fixed;
         inset: 0;
+
         z-index: 22000;
 
         display: none;
+
         overflow-y: auto;
 
         padding:
           calc(
-            16px +
+            14px +
             env(safe-area-inset-top)
           )
           14px
           calc(
-            20px +
+            18px +
             env(safe-area-inset-bottom)
           );
 
@@ -101,14 +243,14 @@
       .lago-knife-shell {
         width:
           min(
-            1100px,
+            1180px,
             100%
           );
 
         min-height:
           calc(
             100dvh -
-            40px
+            32px
           );
 
         margin:
@@ -123,8 +265,7 @@
 
 
       .lago-knife-header {
-        display:
-          flex;
+        display: flex;
 
         align-items:
           flex-start;
@@ -141,7 +282,7 @@
         font-size:
           clamp(
             30px,
-            6vw,
+            5.2vw,
             58px
           );
 
@@ -213,7 +354,7 @@
 
       .lago-knife-hud {
         margin-top:
-          14px;
+          12px;
 
         display:
           grid;
@@ -290,6 +431,12 @@
       }
 
 
+      /*
+       * Entire gameplay viewport.
+       *
+       * Everything behind HUD =
+       * real Three.js.
+       */
       .lago-knife-stage {
         position:
           relative;
@@ -298,10 +445,10 @@
           1;
 
         min-height:
-          560px;
+          610px;
 
         margin-top:
-          14px;
+          12px;
 
         overflow:
           hidden;
@@ -319,1257 +466,28 @@
           24px;
 
         background:
-          #17110f;
-
-        isolation:
-          isolate;
-
-        perspective:
-          1200px;
+          #19110d;
       }
 
 
-      /*
-       * =============================================
-       * KITCHEN
-       * =============================================
-       */
-
-      .lago-kitchen {
+      #lagoKnifeCanvas {
         position:
           absolute;
 
         inset:
           0;
 
-        z-index:
-          0;
-
-        background:
-          linear-gradient(
-            #332c29
-            0 52%,
-            #9d7c54
-            52% 63%,
-            #5d3d2b
-            63% 100%
-          );
-      }
-
-
-      .lago-kitchen-tiles {
-        position:
-          absolute;
-
-        inset:
-          0 0 37%;
-
-        opacity:
-          .48;
-
-        background-image:
-          linear-gradient(
-            rgba(
-              255,
-              255,
-              255,
-              .1
-            )
-            1px,
-            transparent
-            1px
-          ),
-          linear-gradient(
-            90deg,
-            rgba(
-              255,
-              255,
-              255,
-              .1
-            )
-            1px,
-            transparent
-            1px
-          );
-
-        background-size:
-          74px 58px;
-      }
-
-
-      .lago-kitchen-cabinet {
-        position:
-          absolute;
-
-        top:
-          20px;
-
         width:
-          180px;
+          100%;
 
         height:
-          96px;
+          100%;
 
-        border:
-          4px solid
-          #201612;
-
-        border-radius:
-          10px;
-
-        background:
-          #6e4930;
-
-        box-shadow:
-          0 14px 28px
-          rgba(
-            0,
-            0,
-            0,
-            .18
-          );
-      }
-
-
-      .lago-kitchen-cabinet.left {
-        left:
-          28px;
-      }
-
-
-      .lago-kitchen-cabinet.right {
-        right:
-          28px;
-      }
-
-
-      .lago-kitchen-hood {
-        position:
-          absolute;
-
-        top:
-          12px;
-
-        left:
-          50%;
-
-        width:
-          180px;
-
-        height:
-          82px;
-
-        transform:
-          translateX(
-            -50%
-          );
-
-        border-radius:
-          12px 12px 4px 4px;
-
-        background:
-          linear-gradient(
-            #666,
-            #27292b
-          );
-      }
-
-
-      .lago-kitchen-pot {
-        position:
-          absolute;
-
-        top:
-          120px;
-
-        left:
-          9%;
-
-        width:
-          82px;
-
-        height:
-          56px;
-
-        border:
-          4px solid
-          #151719;
-
-        border-radius:
-          8px 8px 28px 28px;
-
-        background:
-          linear-gradient(
-            135deg,
-            #777,
-            #252729
-          );
-
-        transform:
-          rotate(
-            -4deg
-          );
-      }
-
-
-      .lago-kitchen-pot::after {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        top:
-          11px;
-
-        right:
-          -54px;
-
-        width:
-          58px;
-
-        height:
-          10px;
-
-        border-radius:
-          999px;
-
-        background:
-          #17191b;
-      }
-
-
-      .lago-kitchen-tools {
-        position:
-          absolute;
-
-        top:
-          112px;
-
-        right:
-          9%;
-
-        width:
-          120px;
-
-        height:
-          105px;
-
-        border-bottom:
-          5px solid
-          #1e1714;
-      }
-
-
-      .lago-kitchen-tools::before,
-      .lago-kitchen-tools::after {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        top:
-          0;
-
-        width:
-          10px;
-
-        height:
-          86px;
-
-        border-radius:
-          999px;
-
-        background:
-          #202224;
-      }
-
-
-      .lago-kitchen-tools::before {
-        left:
-          30px;
-
-        transform:
-          rotate(
-            8deg
-          );
-      }
-
-
-      .lago-kitchen-tools::after {
-        right:
-          34px;
-
-        transform:
-          rotate(
-            -12deg
-          );
-      }
-
-
-      .lago-board {
-        position:
-          absolute;
-
-        left:
-          7%;
-
-        right:
-          7%;
-
-        bottom:
-          54px;
-
-        height:
-          220px;
-
-        border:
-          5px solid
-          #6e4426;
-
-        border-radius:
-          22px;
-
-        background:
-          linear-gradient(
-            90deg,
-            #c79255,
-            #b97b42,
-            #ca9254
-          );
-
-        box-shadow:
-          0 24px 40px
-          rgba(
-            0,
-            0,
-            0,
-            .3
-          );
-
-        transform:
-          rotateX(
-            63deg
-          );
-
-        transform-origin:
-          center bottom;
-      }
-
-
-      .lago-tomato {
-        position:
-          absolute;
-
-        right:
-          9%;
-
-        bottom:
-          125px;
-
-        width:
-          58px;
-
-        height:
-          48px;
-
-        z-index:
-          2;
-
-        border:
-          4px solid
-          #1c120e;
-
-        border-radius:
-          52% 48% 48% 52%;
-
-        background:
-          #c9342d;
-      }
-
-
-      .lago-tomato::before {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        top:
-          -12px;
-
-        left:
-          19px;
-
-        width:
-          20px;
-
-        height:
-          16px;
-
-        background:
-          #478531;
-
-        clip-path:
-          polygon(
-            50% 0,
-            65% 35%,
-            100% 20%,
-            75% 55%,
-            100% 80%,
-            60% 68%,
-            50% 100%,
-            40% 67%,
-            0 80%,
-            25% 53%,
-            0 22%,
-            38% 34%
-          );
-      }
-
-
-      .lago-carrot {
-        position:
-          absolute;
-
-        right:
-          18%;
-
-        bottom:
-          88px;
-
-        width:
-          26px;
-
-        height:
-          82px;
-
-        z-index:
-          2;
-
-        border:
-          4px solid
-          #24140a;
-
-        border-radius:
-          14px 14px 70% 70%;
-
-        background:
-          #ef7c20;
-
-        transform:
-          rotate(
-            64deg
-          );
-      }
-
-
-      .lago-carrot::before {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        top:
-          -28px;
-
-        left:
-          -5px;
-
-        width:
-          30px;
-
-        height:
-          32px;
-
-        background:
-          #4f8f3b;
-
-        clip-path:
-          polygon(
-            50% 100%,
-            0 10%,
-            34% 24%,
-            48% 0,
-            63% 27%,
-            100% 12%
-          );
-      }
-
-
-      /*
-       * =============================================
-       * PLATE
-       * =============================================
-       */
-
-      .lago-knife-plate {
-        position:
-          absolute;
-
-        left:
-          50%;
-
-        bottom:
-          26px;
-
-        width:
-          min(
-            360px,
-            48vw
-          );
-
-        height:
-          110px;
-
-        z-index:
-          3;
-
-        transform:
-          translateX(
-            -50%
-          )
-          rotateX(
-            69deg
-          );
-
-        border:
-          7px solid
-          #e8e5dd;
-
-        border-radius:
-          50%;
-
-        background:
-          radial-gradient(
-            ellipse,
-            #f7f4eb
-            0 48%,
-            #d8d5ce
-            50% 66%,
-            #f5f1e7
-            68%
-          );
-
-        box-shadow:
-          0 24px 34px
-          rgba(
-            0,
-            0,
-            0,
-            .34
-          );
-      }
-
-
-      /*
-       * =============================================
-       * VOLUMETRIC KNIFE
-       * =============================================
-       */
-
-      .lago-knife-object {
-        position:
-          absolute;
-
-        left:
-          8%;
-
-        right:
-          8%;
-
-        bottom:
-          154px;
-
-        height:
-          150px;
-
-        z-index:
-          5;
-
-        transform:
-          rotateZ(
-            -2deg
-          );
-      }
-
-
-      .lago-knife-handle {
-        position:
-          absolute;
-
-        left:
-          0;
-
-        top:
-          53px;
-
-        width:
-          24%;
-
-        height:
-          46px;
-
-        border:
-          4px solid
-          #16100d;
-
-        border-radius:
-          18px 9px 9px 18px;
-
-        background:
-          linear-gradient(
-            #553525
-            0 45%,
-            #2f1c14
-            46%
-          );
-
-        box-shadow:
-          inset
-          0 5px
-          rgba(
-            255,
-            255,
-            255,
-            .07
-          ),
-          0 15px 18px
-          rgba(
-            0,
-            0,
-            0,
-            .28
-          );
-
-        z-index:
-          3;
-      }
-
-
-      .lago-knife-handle::before,
-      .lago-knife-handle::after {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        top:
-          15px;
-
-        width:
-          10px;
-
-        height:
-          10px;
-
-        border-radius:
-          50%;
-
-        background:
-          #b6a68e;
-
-        box-shadow:
-          inset
-          0 0 0 2px
-          #554f47;
-      }
-
-
-      .lago-knife-handle::before {
-        left:
-          28%;
-      }
-
-
-      .lago-knife-handle::after {
-        right:
-          22%;
-      }
-
-
-      .lago-knife-guard {
-        position:
-          absolute;
-
-        left:
-          22.5%;
-
-        top:
-          47px;
-
-        width:
-          20px;
-
-        height:
-          60px;
-
-        border:
-          3px solid
-          #222;
-
-        border-radius:
-          7px;
-
-        background:
-          linear-gradient(
-            #bfc5c8,
-            #50575c
-          );
-
-        z-index:
-          6;
-      }
-
-
-      .lago-knife-blade {
-        position:
-          absolute;
-
-        left:
-          24%;
-
-        right:
-          0;
-
-        top:
-          36px;
-
-        height:
-          68px;
-
-        background:
-          linear-gradient(
-            #fff 0,
-            #d5d8da 15%,
-            #9ca2a6 58%,
-            #5f6468 78%,
-            #282d31
-          );
-
-        clip-path:
-          polygon(
-            0 15%,
-            86% 0,
-            100% 51%,
-            88% 82%,
-            0 100%
-          );
-
-        box-shadow:
-          0 18px 24px
-          rgba(
-            0,
-            0,
-            0,
-            .4
-          );
-
-        z-index:
-          2;
-      }
-
-
-      .lago-knife-blade::before {
-        content:
-          "";
-
-        position:
-          absolute;
-
-        left:
-          2%;
-
-        right:
-          5%;
-
-        top:
-          8px;
-
-        height:
-          18px;
-
-        background:
-          linear-gradient(
-            rgba(
-              255,
-              255,
-              255,
-              .95
-            ),
-            rgba(
-              255,
-              255,
-              255,
-              .18
-            )
-          );
-
-        clip-path:
-          polygon(
-            0 0,
-            98% 0,
-            100% 100%,
-            0 64%
-          );
-      }
-
-
-      .lago-knife-edge {
-        position:
-          absolute;
-
-        left:
-          24.8%;
-
-        right:
-          2%;
-
-        top:
-          96px;
-
-        height:
-          9px;
-
-        background:
-          linear-gradient(
-            #fafafa,
-            #84898d
-          );
-
-        clip-path:
-          polygon(
-            0 0,
-            92% 0,
-            100% 28%,
-            91% 100%,
-            0 70%
-          );
-
-        box-shadow:
-          0 5px 7px
-          rgba(
-            0,
-            0,
-            0,
-            .36
-          );
-
-        z-index:
-          7;
-      }
-
-
-      /*
-       * Safe balance zone.
-       */
-      .lago-knife-target {
-        position:
-          absolute;
-
-        top:
-          86px;
-
-        height:
-          30px;
-
-        border:
-          3px solid
-          #ccff00;
-
-        border-radius:
-          10px;
-
-        background:
-          rgba(
-            204,
-            255,
-            0,
-            .16
-          );
-
-        transform:
-          translateX(
-            -50%
-          );
-
-        box-shadow:
-          0 0 20px
-          rgba(
-            204,
-            255,
-            0,
-            .16
-          );
-
-        pointer-events:
-          none;
-
-        z-index:
-          9;
-      }
-
-
-      /*
-       * Old white marker removed.
-       * Character itself is the marker.
-       */
-      .lago-knife-marker {
         display:
+          block;
+
+        touch-action:
           none;
-      }
-
-
-      /*
-       * =============================================
-       * CHARACTER ON BLADE
-       * =============================================
-       */
-
-      .lago-knife-character-track {
-        position:
-          absolute;
-
-        left:
-          24%;
-
-        right:
-          6%;
-
-        top:
-          -8px;
-
-        height:
-          128px;
-
-        z-index:
-          12;
-
-        pointer-events:
-          none;
-      }
-
-
-      .lago-knife-character {
-        position:
-          absolute;
-
-        left:
-          0;
-
-        top:
-          0;
-
-        width:
-          clamp(
-            92px,
-            13vw,
-            150px
-          );
-
-        height:
-          114px;
-
-        transform:
-          translateX(
-            -50%
-          );
-
-        transform-origin:
-          50% 82%;
-
-        will-change:
-          left,
-          transform;
-
-        transition:
-          filter
-          .12s ease;
-      }
-
-
-      .lago-knife-character.running {
-        animation:
-          lagoKnifeCrawl
-          .32s
-          steps(
-            2,
-            end
-          )
-          infinite;
-      }
-
-
-      .lago-knife-character.hit {
-        filter:
-          drop-shadow(
-            0 0 16px
-            rgba(
-              204,
-              255,
-              0,
-              .9
-            )
-          );
-      }
-
-
-      .lago-knife-character img,
-      .lago-knife-character
-      .lago-glb-preview-image {
-        width:
-          100%;
-
-        height:
-          100%;
-
-        object-fit:
-          contain;
-
-        pointer-events:
-          none;
-
-        user-select:
-          none;
-      }
-
-
-      @keyframes
-      lagoKnifeCrawl {
-
-        50% {
-          margin-top:
-            -4px;
-        }
-
-      }
-
-
-      /*
-       * =============================================
-       * CARTOON CUT + FALL
-       * no blood / no gore
-       * =============================================
-       */
-
-      .lago-knife-fall-layer {
-        position:
-          absolute;
-
-        inset:
-          0;
-
-        z-index:
-          30;
-
-        pointer-events:
-          none;
-
-        overflow:
-          hidden;
-      }
-
-
-      .lago-knife-fall-piece {
-        position:
-          absolute;
-
-        width:
-          clamp(
-            92px,
-            13vw,
-            150px
-          );
-
-        height:
-          114px;
-
-        left:
-          var(
-            --fall-left
-          );
-
-        top:
-          var(
-            --fall-top
-          );
-
-        transform:
-          translate(
-            -50%,
-            0
-          );
-
-        transform-origin:
-          center;
-      }
-
-
-      .lago-knife-fall-piece img {
-        width:
-          100%;
-
-        height:
-          100%;
-
-        object-fit:
-          contain;
-      }
-
-
-      .lago-knife-fall-piece.left {
-        clip-path:
-          inset(
-            0 50% 0 0
-          );
-
-        animation:
-          lagoFallLeft
-          .82s
-          cubic-bezier(
-            .25,
-            .8,
-            .36,
-            1
-          )
-          forwards;
-      }
-
-
-      .lago-knife-fall-piece.right {
-        clip-path:
-          inset(
-            0 0 0 50%
-          );
-
-        animation:
-          lagoFallRight
-          .82s
-          cubic-bezier(
-            .25,
-            .8,
-            .36,
-            1
-          )
-          forwards;
-      }
-
-
-      @keyframes
-      lagoFallLeft {
-
-        to {
-          transform:
-            translate(
-              -128px,
-              235px
-            )
-            rotate(
-              -74deg
-            )
-            scale(
-              .82
-            );
-        }
-
-      }
-
-
-      @keyframes
-      lagoFallRight {
-
-        to {
-          transform:
-            translate(
-              48px,
-              238px
-            )
-            rotate(
-              82deg
-            )
-            scale(
-              .82
-            );
-        }
-
-      }
-
-
-      .lago-knife-cut-flash {
-        position:
-          absolute;
-
-        left:
-          24%;
-
-        right:
-          4%;
-
-        top:
-          92px;
-
-        height:
-          5px;
-
-        z-index:
-          25;
-
-        opacity:
-          0;
-
-        background:
-          #fff;
-
-        box-shadow:
-          0 0 22px
-          rgba(
-            255,
-            255,
-            255,
-            .95
-          );
-      }
-
-
-      .lago-knife-cut-flash.show {
-        animation:
-          lagoCutFlash
-          .28s
-          ease-out;
-      }
-
-
-      @keyframes
-      lagoCutFlash {
-
-        0% {
-          opacity:
-            0;
-
-          transform:
-            scaleX(
-              .15
-            );
-        }
-
-        45% {
-          opacity:
-            1;
-
-          transform:
-            scaleX(
-              1
-            );
-        }
-
-        100% {
-          opacity:
-            0;
-        }
-
       }
 
 
@@ -1580,25 +498,39 @@
         left:
           50%;
 
-        bottom:
-          76px;
+        top:
+          18px;
 
         z-index:
-          40;
+          22;
 
         transform:
           translateX(
             -50%
           );
 
-        min-height:
-          24px;
+        min-width:
+          210px;
+
+        padding:
+          8px 12px;
+
+        border-radius:
+          999px;
+
+        background:
+          rgba(
+            8,
+            4,
+            10,
+            .62
+          );
 
         color:
           #fff;
 
         font-size:
-          14px;
+          12px;
 
         font-weight:
           1000;
@@ -1606,18 +538,23 @@
         text-align:
           center;
 
-        text-shadow:
-          0 3px 8px
-          rgba(
-            0,
-            0,
-            0,
-            .55
+        pointer-events:
+          none;
+
+        backdrop-filter:
+          blur(
+            8px
           );
       }
 
 
-      .lago-knife-tap {
+      /*
+       * ===================================================
+       * SEMICIRCLE BALANCE GAUGE
+       * ===================================================
+       */
+
+      .lago-balance-ui {
         position:
           absolute;
 
@@ -1625,36 +562,257 @@
           50%;
 
         bottom:
-          20px;
+          72px;
 
         z-index:
-          50;
+          20;
+
+        width:
+          min(
+            360px,
+            72vw
+          );
 
         transform:
           translateX(
             -50%
           );
 
+        pointer-events:
+          none;
+      }
+
+
+      .lago-balance-svg {
         width:
-          min(
-            390px,
-            86%
+          100%;
+
+        height:
+          auto;
+
+        display:
+          block;
+
+        overflow:
+          visible;
+
+        filter:
+          drop-shadow(
+            0 5px 12px
+            rgba(
+              0,
+              0,
+              0,
+              .45
+            )
+          );
+      }
+
+
+      .lago-balance-arc,
+      .lago-balance-safe,
+      .lago-balance-danger-left,
+      .lago-balance-danger-right {
+        fill:
+          none;
+
+        stroke-width:
+          15;
+
+        stroke-linecap:
+          round;
+      }
+
+
+      .lago-balance-arc {
+        stroke:
+          rgba(
+            255,
+            255,
+            255,
+            .22
+          );
+      }
+
+
+      .lago-balance-safe {
+        stroke:
+          #ccff00;
+
+        stroke-dasharray:
+          28 72;
+
+        stroke-dashoffset:
+          -36;
+      }
+
+
+      .lago-balance-danger-left,
+      .lago-balance-danger-right {
+        stroke:
+          #ff4b4b;
+
+        stroke-dasharray:
+          14 86;
+      }
+
+
+      .lago-balance-danger-left {
+        stroke-dashoffset:
+          0;
+      }
+
+
+      .lago-balance-danger-right {
+        stroke-dashoffset:
+          -86;
+      }
+
+
+      .lago-balance-needle {
+        stroke:
+          #fff;
+
+        stroke-width:
+          5;
+
+        stroke-linecap:
+          round;
+
+        transform-origin:
+          120px 112px;
+
+        transform:
+          rotate(
+            0deg
           );
 
+        transition:
+          stroke
+          .12s ease;
+      }
+
+
+      .lago-balance-center {
+        fill:
+          #fff;
+      }
+
+
+      .lago-balance-labels {
+        display:
+          flex;
+
+        justify-content:
+          space-between;
+
+        margin-top:
+          -2px;
+
         padding:
-          14px 18px;
+          0 4px;
+
+        color:
+          rgba(
+            255,
+            255,
+            255,
+            .75
+          );
+
+        font-size:
+          9px;
+
+        font-weight:
+          1000;
+
+        letter-spacing:
+          .08em;
+      }
+
+
+      .lago-balance-status {
+        margin-top:
+          2px;
+
+        color:
+          #ccff00;
+
+        font-size:
+          11px;
+
+        font-weight:
+          1000;
+
+        text-align:
+          center;
+      }
+
+
+      /*
+       * Left/right controls.
+       */
+      .lago-balance-controls {
+        position:
+          absolute;
+
+        left:
+          50%;
+
+        bottom:
+          14px;
+
+        z-index:
+          25;
+
+        width:
+          min(
+            520px,
+            90%
+          );
+
+        transform:
+          translateX(
+            -50%
+          );
+
+        display:
+          grid;
+
+        grid-template-columns:
+          1fr 1fr;
+
+        gap:
+          10px;
+      }
+
+
+      .lago-balance-button {
+        min-height:
+          48px;
 
         border:
-          0;
+          1px solid
+          rgba(
+            255,
+            255,
+            255,
+            .12
+          );
 
         border-radius:
           14px;
 
         background:
-          #ccff00;
+          rgba(
+            8,
+            4,
+            10,
+            .78
+          );
 
         color:
-          #130614;
+          #fff;
 
         font-size:
           13px;
@@ -1665,17 +823,35 @@
         cursor:
           pointer;
 
-        box-shadow:
-          0 12px 30px
-          rgba(
-            0,
-            0,
-            0,
-            .28
+        user-select:
+          none;
+
+        touch-action:
+          none;
+
+        backdrop-filter:
+          blur(
+            10px
           );
       }
 
 
+      .lago-balance-button:active,
+      .lago-balance-button.active {
+        border-color:
+          #ccff00;
+
+        background:
+          #ccff00;
+
+        color:
+          #130614;
+      }
+
+
+      /*
+       * Intro/result overlay.
+       */
       .lago-knife-panel {
         position:
           absolute;
@@ -1700,12 +876,12 @@
             8,
             4,
             10,
-            .86
+            .82
           );
 
         backdrop-filter:
           blur(
-            10px
+            12px
           );
       }
 
@@ -1721,7 +897,7 @@
       .lago-knife-panel-card {
         width:
           min(
-            460px,
+            470px,
             100%
           );
 
@@ -1734,7 +910,7 @@
             255,
             255,
             255,
-            .1
+            .10
           );
 
         border-radius:
@@ -1766,7 +942,7 @@
             255,
             255,
             255,
-            .52
+            .55
           );
 
         font-size:
@@ -1840,7 +1016,7 @@
             255,
             255,
             255,
-            .1
+            .10
           );
 
         background:
@@ -1875,56 +1051,25 @@
 
         .lago-knife-stage {
           min-height:
-            610px;
+            640px;
         }
 
 
-        .lago-kitchen-cabinet {
-          width:
-            118px;
-
-          height:
-            74px;
-        }
-
-
-        .lago-kitchen-hood {
-          width:
-            130px;
-
-          height:
-            65px;
-        }
-
-
-        .lago-knife-object {
-          left:
-            4%;
-
-          right:
-            4%;
-
+        .lago-balance-ui {
           bottom:
-            178px;
+            82px;
+
+          width:
+            min(
+              330px,
+              84vw
+            );
         }
 
 
-        .lago-knife-plate {
+        .lago-balance-controls {
           width:
-            280px;
-
-          bottom:
-            32px;
-        }
-
-
-        .lago-knife-character,
-        .lago-knife-fall-piece {
-          width:
-            104px;
-
-          height:
-            100px;
+            94%;
         }
 
       }
@@ -1960,7 +1105,7 @@
             </div>
 
             <div class="lago-knife-subtitle">
-              KEEP THE CHARACTER BALANCED ON THE KNIFE EDGE
+              3D KITCHEN · CRAWL THE EDGE · HOLD BALANCE
             </div>
 
           </div>
@@ -2052,112 +1197,152 @@
         </div>
 
 
-        <main class="lago-knife-stage">
+        <main
+          class="lago-knife-stage"
+          id="lagoKnifeStage"
+        >
 
-          <div
-            class="lago-kitchen"
-            aria-hidden="true"
-          >
-
-            <div class="lago-kitchen-tiles"></div>
-
-            <div
-              class="
-                lago-kitchen-cabinet
-                left
-              "
-            ></div>
-
-            <div
-              class="
-                lago-kitchen-cabinet
-                right
-              "
-            ></div>
-
-            <div class="lago-kitchen-hood"></div>
-
-            <div class="lago-kitchen-pot"></div>
-
-            <div class="lago-kitchen-tools"></div>
-
-            <div class="lago-board"></div>
-
-            <div class="lago-tomato"></div>
-
-            <div class="lago-carrot"></div>
-
-          </div>
-
-
-          <div
-            class="lago-knife-plate"
-            aria-hidden="true"
-          ></div>
-
-
-          <div class="lago-knife-object">
-
-            <div class="lago-knife-handle"></div>
-
-            <div class="lago-knife-guard"></div>
-
-            <div class="lago-knife-blade"></div>
-
-            <div class="lago-knife-edge"></div>
-
-            <div
-              class="lago-knife-cut-flash"
-              id="lagoKnifeCutFlash"
-            ></div>
-
-
-            <div class="lago-knife-character-track">
-
-              <div
-                class="lago-knife-target"
-                id="lagoKnifeTarget"
-              ></div>
-
-              <div
-                class="
-                  lago-knife-character
-                  lago-glb-preview-host
-                "
-                id="lagoKnifeCharacter"
-              ></div>
-
-            </div>
-
-
-            <div
-              class="lago-knife-marker"
-              id="lagoKnifeMarker"
-            ></div>
-
-          </div>
-
-
-          <div
-            class="lago-knife-fall-layer"
-            id="lagoKnifeFallLayer"
-            aria-hidden="true"
-          ></div>
+          <!-- Real Three.js world -->
+          <canvas
+            id="lagoKnifeCanvas"
+          ></canvas>
 
 
           <div
             class="lago-knife-feedback"
             id="lagoKnifeFeedback"
-          ></div>
-
-
-          <button
-            type="button"
-            class="lago-knife-tap"
-            id="lagoKnifeTap"
           >
-            BALANCE / TAP
-          </button>
+            KEEP THE NEEDLE NEAR CENTER
+          </div>
+
+
+          <!--
+            Semicircle game HUD.
+            Scene itself remains 3D.
+          -->
+          <div class="lago-balance-ui">
+
+            <svg
+              class="lago-balance-svg"
+              viewBox="0 0 240 125"
+              aria-label="Balance meter"
+            >
+
+              <path
+                class="lago-balance-arc"
+                d="
+                  M20 112
+                  A100 100
+                  0 0 1
+                  220 112
+                "
+                pathLength="100"
+              ></path>
+
+
+              <path
+                class="lago-balance-danger-left"
+                d="
+                  M20 112
+                  A100 100
+                  0 0 1
+                  220 112
+                "
+                pathLength="100"
+              ></path>
+
+
+              <path
+                class="lago-balance-safe"
+                d="
+                  M20 112
+                  A100 100
+                  0 0 1
+                  220 112
+                "
+                pathLength="100"
+              ></path>
+
+
+              <path
+                class="lago-balance-danger-right"
+                d="
+                  M20 112
+                  A100 100
+                  0 0 1
+                  220 112
+                "
+                pathLength="100"
+              ></path>
+
+
+              <line
+                class="lago-balance-needle"
+                id="lagoBalanceNeedle"
+                x1="120"
+                y1="112"
+                x2="120"
+                y2="28"
+              ></line>
+
+
+              <circle
+                class="lago-balance-center"
+                cx="120"
+                cy="112"
+                r="8"
+              ></circle>
+
+            </svg>
+
+
+            <div class="lago-balance-labels">
+
+              <span>
+                LEFT
+              </span>
+
+              <span>
+                BALANCE
+              </span>
+
+              <span>
+                RIGHT
+              </span>
+
+            </div>
+
+
+            <div
+              class="lago-balance-status"
+              id="lagoBalanceStatus"
+            >
+              CENTER
+            </div>
+
+          </div>
+
+
+          <div class="lago-balance-controls">
+
+            <button
+              type="button"
+              class="lago-balance-button"
+              id="lagoBalanceLeft"
+            >
+              ◀ LEFT
+            </button>
+
+
+            <button
+              type="button"
+              class="lago-balance-button"
+              id="lagoBalanceRight"
+            >
+              RIGHT ▶
+            </button>
+
+          </div>
 
 
           <section
@@ -2171,7 +1356,7 @@
                 class="lago-knife-panel-title"
                 id="lagoKnifePanelTitle"
               >
-                KNIFE CHALLENGE
+                KNIFE CHALLENGE 3D
               </div>
 
 
@@ -2230,27 +1415,18 @@
       );
 
 
+    canvas =
+      el(
+        "lagoKnifeCanvas"
+      );
+
+
     el(
       "lagoKnifeClose"
     )
       ?.addEventListener(
         "click",
         closeGame
-      );
-
-
-    el(
-      "lagoKnifeTap"
-    )
-      ?.addEventListener(
-        "click",
-        () => {
-
-          attempt(
-            false
-          );
-
-        }
       );
 
 
@@ -2272,6 +1448,7 @@
 
           closeGame();
 
+
           window.LAGO_GAMES
             ?.show
             ?.();
@@ -2280,10 +1457,1655 @@
       );
 
 
+    bindBalanceButton(
+      el(
+        "lagoBalanceLeft"
+      ),
+      -1
+    );
+
+
+    bindBalanceButton(
+      el(
+        "lagoBalanceRight"
+      ),
+      1
+    );
+
+
     return overlay;
 
   }
 
+
+  function bindBalanceButton(
+    button,
+    direction
+  ) {
+
+    if (!button) {
+      return;
+    }
+
+
+    const press =
+      event => {
+
+        event.preventDefault();
+
+
+        if (
+          phase !==
+          "running"
+        ) {
+
+          return;
+
+        }
+
+
+        inputAxis =
+          direction;
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        button
+          .setPointerCapture
+          ?.(
+            event.pointerId
+          );
+
+      };
+
+
+    const release =
+      event => {
+
+        if (
+          inputAxis ===
+          direction
+        ) {
+
+          inputAxis =
+            0;
+
+        }
+
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        try {
+
+          button
+            .releasePointerCapture
+            ?.(
+              event
+                ?.pointerId
+            );
+
+        } catch (_) {
+
+          /*
+           * Pointer may already
+           * be released.
+           */
+
+        }
+
+      };
+
+
+    button.addEventListener(
+      "pointerdown",
+      press
+    );
+
+
+    button.addEventListener(
+      "pointerup",
+      release
+    );
+
+
+    button.addEventListener(
+      "pointercancel",
+      release
+    );
+
+
+    button.addEventListener(
+      "pointerleave",
+      release
+    );
+
+  }
+
+
+  /*
+   * =======================================================
+   * THREE.JS
+   * =======================================================
+   */
+
+  function createRenderer() {
+
+    if (renderer) {
+      return;
+    }
+
+
+    renderer =
+      new THREE.WebGLRenderer({
+
+        canvas,
+
+        antialias:
+          true,
+
+        alpha:
+          false,
+
+        powerPreference:
+          "high-performance"
+
+      });
+
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+
+    renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+
+
+    renderer.toneMappingExposure =
+      1.12;
+
+
+    renderer.shadowMap.enabled =
+      true;
+
+
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+
+
+    /*
+     * Required for cartoon 3D
+     * split into two halves.
+     */
+    renderer.localClippingEnabled =
+      true;
+
+
+    scene =
+      new THREE.Scene();
+
+
+    scene.background =
+      new THREE.Color(
+        0x21160f
+      );
+
+
+    scene.fog =
+      new THREE.Fog(
+        0x21160f,
+        12,
+        24
+      );
+
+
+    camera =
+      new THREE.PerspectiveCamera(
+        38,
+        1,
+        0.1,
+        60
+      );
+
+
+    camera.position.set(
+      7.8,
+      5.8,
+      11.5
+    );
+
+
+    camera.lookAt(
+      0,
+      1.25,
+      .45
+    );
+
+
+    scene.add(
+      new THREE.HemisphereLight(
+        0xfff1d5,
+        0x2a1710,
+        2.1
+      )
+    );
+
+
+    const keyLight =
+      new THREE.DirectionalLight(
+        0xffffff,
+        3.6
+      );
+
+
+    keyLight.position.set(
+      3.8,
+      8.5,
+      5.8
+    );
+
+
+    keyLight.castShadow =
+      true;
+
+
+    keyLight.shadow
+      .mapSize
+      .set(
+        1024,
+        1024
+      );
+
+
+    keyLight.shadow.camera.near =
+      .1;
+
+    keyLight.shadow.camera.far =
+      24;
+
+    keyLight.shadow.camera.left =
+      -8;
+
+    keyLight.shadow.camera.right =
+      8;
+
+    keyLight.shadow.camera.top =
+      8;
+
+    keyLight.shadow.camera.bottom =
+      -8;
+
+
+    scene.add(
+      keyLight
+    );
+
+
+    const warmLight =
+      new THREE.PointLight(
+        0xffb16b,
+        12,
+        12,
+        2
+      );
+
+
+    warmLight.position.set(
+      -4.5,
+      3.2,
+      2.4
+    );
+
+
+    scene.add(
+      warmLight
+    );
+
+
+    world =
+      new THREE.Group();
+
+
+    scene.add(
+      world
+    );
+
+
+    buildKitchen();
+
+    buildKnife();
+
+    buildPlate();
+
+    buildVegetables();
+
+
+    /*
+     * Character is its own pivot.
+     *
+     * We tilt/move this group while
+     * leaving original GLB untouched.
+     */
+    characterPivot =
+      new THREE.Group();
+
+
+    scene.add(
+      characterPivot
+    );
+
+
+    resizeObserver =
+      new ResizeObserver(
+        resizeRenderer
+      );
+
+
+    resizeObserver.observe(
+      el(
+        "lagoKnifeStage"
+      )
+    );
+
+
+    resizeRenderer();
+
+  }
+
+
+  function material(
+    color,
+    roughness = .7,
+    metalness = 0
+  ) {
+
+    return new THREE
+      .MeshStandardMaterial({
+
+        color,
+
+        roughness,
+
+        metalness
+
+      });
+
+  }
+
+
+  function box(
+    size,
+    color,
+    position,
+    roughness = .7,
+    metalness = 0
+  ) {
+
+    const mesh =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          size.x,
+          size.y,
+          size.z
+        ),
+
+        material(
+          color,
+          roughness,
+          metalness
+        )
+
+      );
+
+
+    mesh.position.copy(
+      position
+    );
+
+
+    mesh.castShadow =
+      true;
+
+
+    mesh.receiveShadow =
+      true;
+
+
+    return mesh;
+
+  }
+
+
+  /*
+   * =======================================================
+   * 3D KITCHEN
+   * =======================================================
+   */
+
+  function buildKitchen() {
+
+    /*
+     * Counter.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          14,
+          .55,
+          7.2
+        ),
+        0x5a3827,
+        new THREE.Vector3(
+          0,
+          -.28,
+          .45
+        ),
+        .84
+      )
+    );
+
+
+    /*
+     * Back wall.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          14,
+          7,
+          .34
+        ),
+        0x3a302c,
+        new THREE.Vector3(
+          0,
+          3.15,
+          -3.42
+        ),
+        .92
+      )
+    );
+
+
+    /*
+     * Cutting board.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          10.4,
+          .22,
+          4.4
+        ),
+        0xb97842,
+        new THREE.Vector3(
+          .2,
+          .16,
+          .55
+        ),
+        .8
+      )
+    );
+
+
+    /*
+     * Tile grid behind kitchen.
+     */
+    const tiles =
+      new THREE.GridHelper(
+        14,
+        14,
+        0x74655d,
+        0x544842
+      );
+
+
+    tiles.rotation.x =
+      Math.PI / 2;
+
+
+    tiles.position.set(
+      0,
+      3.15,
+      -3.23
+    );
+
+
+    tiles.material.opacity =
+      .42;
+
+
+    tiles.material.transparent =
+      true;
+
+
+    world.add(
+      tiles
+    );
+
+
+    /*
+     * Cabinets.
+     */
+    [
+      -4.45,
+      4.45
+    ]
+      .forEach(
+        x => {
+
+          world.add(
+            box(
+              new THREE.Vector3(
+                3.05,
+                1.6,
+                .72
+              ),
+              0x70472f,
+              new THREE.Vector3(
+                x,
+                4.62,
+                -2.86
+              ),
+              .86
+            )
+          );
+
+
+          world.add(
+            box(
+              new THREE.Vector3(
+                .58,
+                .07,
+                .07
+              ),
+              0x242526,
+              new THREE.Vector3(
+                x,
+                4.02,
+                -2.45
+              ),
+              .35,
+              .6
+            )
+          );
+
+        }
+      );
+
+
+    /*
+     * Cooker hood.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          2.4,
+          .7,
+          1.2
+        ),
+        0x54585a,
+        new THREE.Vector3(
+          0,
+          4.42,
+          -2.7
+        ),
+        .34,
+        .75
+      )
+    );
+
+
+    world.add(
+      box(
+        new THREE.Vector3(
+          1.1,
+          1.8,
+          .8
+        ),
+        0x4b4f51,
+        new THREE.Vector3(
+          0,
+          5.65,
+          -2.88
+        ),
+        .34,
+        .72
+      )
+    );
+
+
+    /*
+     * Metal cooking pot.
+     */
+    const pot =
+      new THREE.Mesh(
+
+        new THREE.CylinderGeometry(
+          .68,
+          .62,
+          .72,
+          32
+        ),
+
+        material(
+          0x454a4c,
+          .3,
+          .72
+        )
+
+      );
+
+
+    pot.position.set(
+      -4.25,
+      .52,
+      -1.65
+    );
+
+
+    pot.castShadow =
+      true;
+
+
+    world.add(
+      pot
+    );
+
+
+    world.add(
+      box(
+        new THREE.Vector3(
+          1.2,
+          .16,
+          .2
+        ),
+        0x202223,
+        new THREE.Vector3(
+          -5.05,
+          .67,
+          -1.65
+        ),
+        .55,
+        .25
+      )
+    );
+
+
+    /*
+     * Hanging utensils.
+     */
+    for (
+      let i = 0;
+      i < 4;
+      i++
+    ) {
+
+      const utensil =
+        new THREE.Mesh(
+
+          new THREE
+            .CylinderGeometry(
+              .035,
+              .045,
+              1.5,
+              10
+            ),
+
+          material(
+            0x343638,
+            .32,
+            .65
+          )
+
+        );
+
+
+      utensil.position.set(
+
+        3.15 +
+        i *
+        .36,
+
+        2.8 +
+        (
+          i %
+          2
+        ) *
+        .12,
+
+        -3
+
+      );
+
+
+      utensil.rotation.z =
+        -.08 +
+        i *
+        .045;
+
+
+      world.add(
+        utensil
+      );
+
+    }
+
+  }
+
+
+  /*
+   * =======================================================
+   * REAL 3D KNIFE
+   * =======================================================
+   */
+
+  function buildKnife() {
+
+    const knife =
+      new THREE.Group();
+
+
+    knife.position.set(
+      .1,
+      .42,
+      .1
+    );
+
+
+    knife.rotation.y =
+      -.04;
+
+
+    world.add(
+      knife
+    );
+
+
+    /*
+     * Handle.
+     */
+    knife.add(
+      box(
+        new THREE.Vector3(
+          2,
+          .52,
+          .92
+        ),
+        0x3a241b,
+        new THREE.Vector3(
+          -3.65,
+          .45,
+          0
+        ),
+        .68
+      )
+    );
+
+
+    /*
+     * Guard.
+     */
+    knife.add(
+      box(
+        new THREE.Vector3(
+          .18,
+          .88,
+          1.18
+        ),
+        0x696e72,
+        new THREE.Vector3(
+          -2.66,
+          .47,
+          0
+        ),
+        .26,
+        .82
+      )
+    );
+
+
+    /*
+     * Handle rivets.
+     */
+    [
+      -4.15,
+      -3.25
+    ]
+      .forEach(
+        x => {
+
+          const rivet =
+            new THREE.Mesh(
+
+              new THREE
+                .CylinderGeometry(
+                  .09,
+                  .09,
+                  .96,
+                  18
+                ),
+
+              material(
+                0xc1b8a7,
+                .28,
+                .75
+              )
+
+            );
+
+
+          rivet.rotation.x =
+            Math.PI /
+            2;
+
+
+          rivet.position.set(
+            x,
+            .45,
+            0
+          );
+
+
+          knife.add(
+            rivet
+          );
+
+        }
+      );
+
+
+    /*
+     * Blade silhouette.
+     */
+    const shape =
+      new THREE.Shape();
+
+
+    shape.moveTo(
+      -2.55,
+      -.54
+    );
+
+
+    shape.lineTo(
+      2.72,
+      -.50
+    );
+
+
+    shape.lineTo(
+      3.65,
+      0
+    );
+
+
+    shape.lineTo(
+      2.72,
+      .50
+    );
+
+
+    shape.lineTo(
+      -2.55,
+      .54
+    );
+
+
+    shape.closePath();
+
+
+    /*
+     * Extrusion gives actual
+     * physical thickness.
+     */
+    const blade =
+      new THREE.Mesh(
+
+        new THREE.ExtrudeGeometry(
+          shape,
+          {
+            depth:
+              .15,
+
+            bevelEnabled:
+              false
+          }
+        ),
+
+        material(
+          0xcfd3d5,
+          .22,
+          .95
+        )
+
+      );
+
+
+    blade.rotation.x =
+      Math.PI /
+      2;
+
+
+    blade.position.set(
+      0,
+      .77,
+      0
+    );
+
+
+    blade.castShadow =
+      true;
+
+
+    blade.receiveShadow =
+      true;
+
+
+    knife.add(
+      blade
+    );
+
+
+    /*
+     * Polished spine.
+     */
+    knife.add(
+      box(
+        new THREE.Vector3(
+          5.75,
+          .11,
+          .10
+        ),
+        0xf4f5f5,
+        new THREE.Vector3(
+          .18,
+          .88,
+          -.50
+        ),
+        .15,
+        1
+      )
+    );
+
+
+    /*
+     * Actual sharp edge where
+     * character crawls.
+     */
+    knife.add(
+      box(
+        new THREE.Vector3(
+          5.75,
+          .055,
+          .07
+        ),
+        0xffffff,
+        new THREE.Vector3(
+          .18,
+          .79,
+          .53
+        ),
+        .08,
+        1
+      )
+    );
+
+  }
+
+
+  function buildPlate() {
+
+    plateGroup =
+      new THREE.Group();
+
+
+    plateGroup.position.set(
+      1.2,
+      .36,
+      2.35
+    );
+
+
+    world.add(
+      plateGroup
+    );
+
+
+    const plate =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+            1.82,
+            2.02,
+            .13,
+            64
+          ),
+
+        material(
+          0xeee9dc,
+          .42
+        )
+
+      );
+
+
+    plate.receiveShadow =
+      true;
+
+
+    plate.castShadow =
+      true;
+
+
+    plateGroup.add(
+      plate
+    );
+
+
+    const ring =
+      new THREE.Mesh(
+
+        new THREE
+          .TorusGeometry(
+            1.52,
+            .08,
+            12,
+            64
+          ),
+
+        material(
+          0xc8c3b9,
+          .5
+        )
+
+      );
+
+
+    ring.rotation.x =
+      Math.PI /
+      2;
+
+
+    ring.position.y =
+      .09;
+
+
+    plateGroup.add(
+      ring
+    );
+
+  }
+
+
+  function buildVegetables() {
+
+    /*
+     * Tomato.
+     */
+    const tomato =
+      new THREE.Mesh(
+
+        new THREE
+          .SphereGeometry(
+            .42,
+            28,
+            18
+          ),
+
+        material(
+          0xc9302c,
+          .7
+        )
+
+      );
+
+
+    tomato.scale.y =
+      .82;
+
+
+    tomato.position.set(
+      4.55,
+      .6,
+      1.7
+    );
+
+
+    tomato.castShadow =
+      true;
+
+
+    world.add(
+      tomato
+    );
+
+
+    const stem =
+      new THREE.Mesh(
+
+        new THREE
+          .ConeGeometry(
+            .22,
+            .32,
+            7
+          ),
+
+        material(
+          0x43843b,
+          .8
+        )
+
+      );
+
+
+    stem.position.set(
+      4.55,
+      .98,
+      1.7
+    );
+
+
+    stem.rotation.z =
+      .2;
+
+
+    world.add(
+      stem
+    );
+
+
+    /*
+     * Carrot.
+     */
+    const carrot =
+      new THREE.Mesh(
+
+        new THREE
+          .ConeGeometry(
+            .26,
+            1.35,
+            18
+          ),
+
+        material(
+          0xe87922,
+          .75
+        )
+
+      );
+
+
+    carrot.rotation.z =
+      Math.PI /
+      2.6;
+
+
+    carrot.position.set(
+      3.85,
+      .65,
+      2.55
+    );
+
+
+    carrot.castShadow =
+      true;
+
+
+    world.add(
+      carrot
+    );
+
+
+    /*
+     * Onion.
+     */
+    const onion =
+      new THREE.Mesh(
+
+        new THREE
+          .SphereGeometry(
+            .34,
+            24,
+            16
+          ),
+
+        material(
+          0x7f4a79,
+          .74
+        )
+
+      );
+
+
+    onion.scale.y =
+      1.12;
+
+
+    onion.position.set(
+      -4.7,
+      .58,
+      2.15
+    );
+
+
+    onion.castShadow =
+      true;
+
+
+    world.add(
+      onion
+    );
+
+  }
+
+
+  function resizeRenderer() {
+
+    if (
+      !renderer ||
+      !canvas
+    ) {
+
+      return;
+
+    }
+
+
+    const stage =
+      el(
+        "lagoKnifeStage"
+      );
+
+
+    if (!stage) {
+      return;
+    }
+
+
+    const width =
+      Math.max(
+        1,
+        stage.clientWidth
+      );
+
+
+    const height =
+      Math.max(
+        1,
+        stage.clientHeight
+      );
+
+
+    /*
+     * Limit pixel ratio on phones.
+     */
+    renderer.setPixelRatio(
+      Math.min(
+        window
+          .devicePixelRatio ||
+        1,
+        1.6
+      )
+    );
+
+
+    renderer.setSize(
+      width,
+      height,
+      false
+    );
+
+
+    camera.aspect =
+      width /
+      height;
+
+
+    camera
+      .updateProjectionMatrix();
+
+  }
+
+
+  /*
+   * =======================================================
+   * GLB CHARACTER
+   * =======================================================
+   */
+
+  async function loadCharacter(
+    modelUrl
+  ) {
+
+    const key =
+      String(
+        modelUrl ||
+        ""
+      ).trim();
+
+
+    if (!key) {
+
+      throw new Error(
+        "Missing character model URL"
+      );
+
+    }
+
+
+    if (
+      modelCache.has(
+        key
+      )
+    ) {
+
+      return modelCache
+        .get(
+          key
+        )
+        .clone(
+          true
+        );
+
+    }
+
+
+    const gltf =
+      await loader
+        .loadAsync(
+          key
+        );
+
+
+    normalizeCharacter(
+      gltf.scene
+    );
+
+
+    modelCache.set(
+      key,
+      gltf.scene
+    );
+
+
+    return gltf
+      .scene
+      .clone(
+        true
+      );
+
+  }
+
+
+  /*
+   * Same source orientation as
+   * canonical Lago 3D renderer:
+   *
+   * X = width
+   * Y = depth
+   * Z = height
+   */
+  function normalizeCharacter(
+    root
+  ) {
+
+    root.rotation.set(
+      CHARACTER_ROTATION_X,
+      0,
+      0
+    );
+
+
+    root.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    root.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    root.updateMatrixWorld(
+      true
+    );
+
+
+    const initial =
+      new THREE.Box3()
+        .setFromObject(
+          root
+        );
+
+
+    const size =
+      initial.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const largest =
+      Math.max(
+        size.x,
+        size.y,
+        size.z,
+        .001
+      );
+
+
+    root.scale.setScalar(
+      1.45 /
+      largest
+    );
+
+
+    root.updateMatrixWorld(
+      true
+    );
+
+
+    const scaled =
+      new THREE.Box3()
+        .setFromObject(
+          root
+        );
+
+
+    const center =
+      scaled.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    /*
+     * Center X/Z.
+     * Put feet/body bottom on Y=0.
+     */
+    root.position.x -=
+      center.x;
+
+
+    root.position.z -=
+      center.z;
+
+
+    root.position.y -=
+      scaled.min.y;
+
+
+    root.updateMatrixWorld(
+      true
+    );
+
+
+    root.traverse(
+      child => {
+
+        if (
+          !child.isMesh
+        ) {
+
+          return;
+
+        }
+
+
+        child.castShadow =
+          true;
+
+
+        child.receiveShadow =
+          true;
+
+
+        child.frustumCulled =
+          true;
+
+      }
+    );
+
+  }
+
+
+  async function mountSelectedCharacter() {
+
+    if (!context) {
+      return;
+    }
+
+
+    const url =
+      String(
+        context
+          .characterModel3d ||
+        ""
+      ).trim();
+
+
+    if (!url) {
+
+      throw new Error(
+        "Selected character has no GLB"
+      );
+
+    }
+
+
+    if (
+      characterModel &&
+      activeModelUrl ===
+        url
+    ) {
+
+      characterModel.visible =
+        true;
+
+
+      return;
+
+    }
+
+
+    clearCharacter();
+
+
+    characterModel =
+      await loadCharacter(
+        url
+      );
+
+
+    activeModelUrl =
+      url;
+
+
+    characterPivot.add(
+      characterModel
+    );
+
+
+    resetCharacterPose();
+
+  }
+
+
+  function clearCharacter() {
+
+    clearFallPieces();
+
+
+    if (
+      characterModel &&
+      characterPivot
+    ) {
+
+      characterPivot.remove(
+        characterModel
+      );
+
+    }
+
+
+    characterModel =
+      null;
+
+
+    activeModelUrl =
+      "";
+
+  }
+
+
+  function resetCharacterPose() {
+
+    if (!characterPivot) {
+      return;
+    }
+
+
+    characterPivot.visible =
+      true;
+
+
+    characterPivot.position.set(
+      KNIFE_START_X,
+      KNIFE_EDGE_Y,
+      KNIFE_EDGE_Z
+    );
+
+
+    characterPivot.rotation.set(
+      0,
+      -.12,
+      0
+    );
+
+
+    characterPivot.scale.set(
+      1,
+      1,
+      1
+    );
+
+  }
+
+
+  /*
+   * =======================================================
+   * UI STATE
+   * =======================================================
+   */
 
   function setPanel(
     {
@@ -2434,178 +3256,100 @@
   }
 
 
-  function clearCharacterVisual() {
+  /*
+   * Needle directly represents
+   * physical character balance.
+   */
+  function updateBalanceUi() {
 
-    const host =
+    const needle =
       el(
-        "lagoKnifeCharacter"
+        "lagoBalanceNeedle"
       );
 
 
-    if (!host) {
-      return;
-    }
-
-
-    window.LAGO_CHARACTER_3D
-      ?.destroyPreview
-      ?.(
-        host
-      );
-
-
-    host.replaceChildren();
-
-
-    host.classList.remove(
-      "running",
-      "hit"
-    );
-
-
-    host.style.opacity =
-      "1";
-
-
-    host.style.left =
-      "0%";
-
-
-    host.style.transform =
-      "translateX(-50%) rotate(0deg)";
-
-  }
-
-
-  function mountCharacterVisual() {
-
-    const host =
+    const status =
       el(
-        "lagoKnifeCharacter"
+        "lagoBalanceStatus"
       );
 
 
-    if (
-      !host ||
-      !context
-    ) {
+    const degrees =
+      THREE.MathUtils.clamp(
+        balance,
+        -1,
+        1
+      ) *
+      78;
 
-      return;
+
+    if (needle) {
+
+      needle.style.transform =
+        `rotate(${degrees}deg)`;
+
+
+      needle.style.stroke =
+        Math.abs(
+          balance
+        ) <
+        .58
+
+          ? "#ffffff"
+
+          : "#ff6a5f";
 
     }
 
 
-    clearCharacterVisual();
+    if (status) {
 
-
-    if (
-      context.characterModel3d &&
-      window.LAGO_CHARACTER_3D
-        ?.mountPreview
-    ) {
-
-      window.LAGO_CHARACTER_3D
-        .mountPreview(
-          host,
-          context.characterModel3d
+      const magnitude =
+        Math.abs(
+          balance
         );
 
 
-      return;
+      status.textContent =
+        magnitude <
+        .22
 
-    }
+          ? "CENTER"
 
+          : magnitude <
+            .58
 
-    if (
-      context.characterAsset
-    ) {
+            ? "CORRECT IT"
 
-      const image =
-        document.createElement(
-          "img"
-        );
-
-
-      image.src =
-        context.characterAsset;
+            : "DANGER";
 
 
-      image.alt =
-        context.characterName ||
-        "Lago";
+      status.style.color =
+        magnitude <
+        .58
 
+          ? "#ccff00"
 
-      image.draggable =
-        false;
-
-
-      host.appendChild(
-        image
-      );
+          : "#ff5b52";
 
     }
 
   }
 
 
-  function clearFallPieces() {
+  /*
+   * =======================================================
+   * OPEN / CLOSE
+   * =======================================================
+   */
 
-    el(
-      "lagoKnifeFallLayer"
-    )
-      ?.replaceChildren();
-
-
-    const host =
-      el(
-        "lagoKnifeCharacter"
-      );
-
-
-    if (host) {
-
-      host.style.opacity =
-        "1";
-
-    }
-
-  }
-
-
-  function resetCharacterForRound() {
-
-    const host =
-      el(
-        "lagoKnifeCharacter"
-      );
-
-
-    if (!host) {
-      return;
-    }
-
-
-    host.style.opacity =
-      "1";
-
-
-    host.classList.remove(
-      "hit"
-    );
-
-
-    host.classList.add(
-      "running"
-    );
-
-  }
-
-
-  function show(
+  async function show(
     detail = {}
   ) {
 
-    create();
+    createOverlay();
+
+    createRenderer();
 
 
     context =
@@ -2636,15 +3380,61 @@
       0;
 
 
+    balance =
+      0;
+
+
+    balanceVelocity =
+      0;
+
+
+    inputAxis =
+      0;
+
+
     overlay.classList.add(
       "active"
     );
 
 
+    resizeRenderer();
+
     updateHud();
 
+    updateBalanceUi();
 
-    mountCharacterVisual();
+
+    if (
+      el(
+        "lagoKnifeFeedback"
+      )
+    ) {
+
+      el(
+        "lagoKnifeFeedback"
+      ).textContent =
+        "KEEP THE NEEDLE NEAR CENTER";
+
+    }
+
+
+    try {
+
+      await mountSelectedCharacter();
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "[LAGO KNIFE] character load failed",
+        error
+      );
+
+    }
+
+
+    renderFrame();
 
 
     const currentGame =
@@ -2656,26 +3446,29 @@
         ?.getStats
         ?.(
           GAME_ID
-        ) || {};
+        ) ||
+      {};
 
 
     setPanel({
 
       title:
-        "KNIFE CHALLENGE",
+        "KNIFE CHALLENGE 3D",
 
       copy:
-        `Crawl along the knife edge and keep balance. ${
+        `Hold LEFT / RIGHT to keep balance while the character crawls along the real 3D blade. ${
           currentGame
             ?.dumCost ||
           0
-        } DUM per run. Tap while the character is inside the lime balance zone.`,
+        } DUM per run.`,
 
       result:
-        stats.plays > 0
+        stats.plays >
+        0
 
           ? `BEST ${Math.floor(
-              stats.bestScore ||
+              stats
+                .bestScore ||
               0
             )}`
 
@@ -2689,26 +3482,14 @@
 
     });
 
-
-    if (
-      el(
-        "lagoKnifeFeedback"
-      )
-    ) {
-
-      el(
-        "lagoKnifeFeedback"
-      ).textContent =
-        "";
-
-    }
-
   }
 
 
   function closeGame() {
 
-    stopRoundLoop();
+    stopLoop();
+
+    clearResolveTimer();
 
 
     if (
@@ -2732,10 +3513,14 @@
       "closed";
 
 
+    inputAxis =
+      0;
+
+
+    pressedKeys.clear();
+
+
     clearFallPieces();
-
-
-    clearCharacterVisual();
 
 
     overlay
@@ -2746,7 +3531,13 @@
   }
 
 
-  function startRun() {
+  /*
+   * =======================================================
+   * RUN
+   * =======================================================
+   */
+
+  async function startRun() {
 
     if (
       phase ===
@@ -2806,12 +3597,9 @@
 
 
     sessionId =
-      result.session
+      result
+        .session
         .sessionId;
-
-
-    phase =
-      "running";
 
 
     round =
@@ -2826,7 +3614,8 @@
       0;
 
 
-    clearFallPieces();
+    phase =
+      "running";
 
 
     updateHud();
@@ -2838,6 +3627,22 @@
     });
 
 
+    try {
+
+      await mountSelectedCharacter();
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "[LAGO KNIFE] character load failed",
+        error
+      );
+
+    }
+
+
     startNextRound();
 
   }
@@ -2845,7 +3650,9 @@
 
   function startNextRound() {
 
-    stopRoundLoop();
+    clearResolveTimer();
+
+    clearFallPieces();
 
 
     if (
@@ -2859,7 +3666,8 @@
 
 
     if (
-      lives <= 0 ||
+      lives <=
+        0 ||
       round >=
         TOTAL_ROUNDS
     ) {
@@ -2875,51 +3683,51 @@
       1;
 
 
-    targetWidth =
-      Math.max(
-        12,
-        27 -
-        round *
-        1.7
-      );
-
-
-    targetCenter =
-      22 +
-      Math.random() *
-      56;
-
-
-    markerPosition =
+    walkProgress =
       0;
+
+
+    balanceQuality =
+      0;
+
+
+    inputAxis =
+      0;
+
+
+    /*
+     * Small random start.
+     */
+    balance =
+      THREE.MathUtils
+        .randFloat(
+          -.08,
+          .08
+        );
+
+
+    balanceVelocity =
+      THREE.MathUtils
+        .randFloat(
+          -.035,
+          .035
+        );
 
 
     roundStartedAt =
       performance.now();
 
 
-    clearFallPieces();
+    lastFrameAt =
+      roundStartedAt;
 
 
-    resetCharacterForRound();
+    resetCharacterPose();
 
 
-    const target =
-      el(
-        "lagoKnifeTarget"
-      );
+    updateHud();
 
-
-    if (target) {
-
-      target.style.left =
-        `${targetCenter}%`;
-
-
-      target.style.width =
-        `${targetWidth}%`;
-
-    }
+    updateBalanceUi();
 
 
     if (
@@ -2931,28 +3739,22 @@
       el(
         "lagoKnifeFeedback"
       ).textContent =
-        `ROUND ${round} · HOLD BALANCE`;
+        `ROUND ${round} · BALANCE`;
 
     }
 
 
-    updateHud();
+    requestLoop();
+
+  }
 
 
-    roundTimer =
-      window.setTimeout(
-        () => {
+  function requestLoop() {
 
-          attempt(
-            true
-          );
-
-        },
-        ROUND_TIMEOUT_MS
-      );
+    stopLoop();
 
 
-    frameId =
+    animationFrame =
       requestAnimationFrame(
         frame
       );
@@ -2960,431 +3762,343 @@
   }
 
 
-  function frame(now) {
+  /*
+   * =======================================================
+   * BALANCE PHYSICS
+   * =======================================================
+   */
+
+  function frame(
+    now
+  ) {
+
+    animationFrame =
+      0;
+
 
     if (
       phase !==
       "running"
     ) {
 
+      renderFrame();
+
       return;
 
     }
 
 
-    const cycleMs =
-      Math.max(
-        820,
-        1750 -
-        round *
-        90
+    const dt =
+      THREE.MathUtils.clamp(
+        (
+          now -
+          lastFrameAt
+        ) /
+        1000,
+        .001,
+        .04
       );
 
 
-    const raw =
+    lastFrameAt =
+      now;
+
+
+    /*
+     * Every new round gets slightly
+     * less stable.
+     */
+    const difficulty =
+      1 +
       (
+        round -
+        1
+      ) *
+      .13;
+
+
+    /*
+     * Two frequencies create a
+     * non-repeating wobble.
+     */
+    const noise =
+
+      Math.sin(
+        now *
+        .0021 +
+        round *
+        1.7
+      ) *
+      .48 +
+
+      Math.sin(
+        now *
+        .0047 +
+        round *
+        .63
+      ) *
+      .22;
+
+
+    /*
+     * Unstable inverted-pendulum:
+     * once character leans,
+     * gravity keeps pulling it farther.
+     */
+    const unstableForce =
+      balance *
+      .62 *
+      difficulty;
+
+
+    const randomForce =
+      noise *
+      .19 *
+      difficulty;
+
+
+    /*
+     * LEFT = -1
+     * RIGHT = +1
+     */
+    const controlForce =
+      inputAxis *
+      1.7;
+
+
+    balanceVelocity +=
+      (
+        unstableForce +
+        randomForce +
+        controlForce
+      ) *
+      dt;
+
+
+    /*
+     * Physical damping.
+     */
+    balanceVelocity *=
+      Math.pow(
+        .20,
+        dt
+      );
+
+
+    balance +=
+      balanceVelocity *
+      dt;
+
+
+    /*
+     * Reward smooth balanced play.
+     */
+    balanceQuality +=
+      Math.max(
+        0,
+        1 -
+        Math.abs(
+          balance
+        )
+      ) *
+      dt;
+
+
+    walkProgress =
+      THREE.MathUtils.clamp(
+
         (
           now -
           roundStartedAt
-        ) %
-        cycleMs
-      ) /
-      cycleMs;
+        ) /
+        ROUND_DURATION_MS,
 
+        0,
+        1
 
-    markerPosition =
-      raw <=
-      .5
-
-        ? raw *
-          200
-
-        : (
-            1 -
-            raw
-          ) *
-          200;
-
-
-    const host =
-      el(
-        "lagoKnifeCharacter"
       );
 
 
-    if (host) {
-
-      const progress =
-        Math.max(
-          0,
-          Math.min(
-            100,
-            markerPosition
-          )
-        );
+    updateCharacterPose(
+      now
+    );
 
 
-      const balanceTilt =
-        Math.sin(
-          (
-            now -
-            roundStartedAt
-          ) /
-          95
-        ) *
-        (
-          7 +
-          round *
-          1.15
-        );
+    updateBalanceUi();
 
 
-      const edgeTilt =
-        (
-          progress -
-          50
-        ) *
-        .06;
+    updateFallPieces(
+      dt
+    );
 
 
-      host.style.left =
-        `${progress}%`;
-
-
-      host.style.transform =
-        `translateX(-50%) rotate(${
-          balanceTilt +
-          edgeTilt
-        }deg)`;
-
-    }
-
-
-    frameId =
-      requestAnimationFrame(
-        frame
-      );
-
-  }
-
-
-  function getCurrentCharacterImage() {
-
-    const image =
-      el(
-        "lagoKnifeCharacter"
-      )
-        ?.querySelector(
-          ".lago-glb-preview-image, img"
-        );
-
-
-    const src =
-      image
-        ?.getAttribute(
-          "src"
-        );
-
-
-    if (!src) {
-      return null;
-    }
-
-
-    return {
-
-      src,
-
-      alt:
-        image.getAttribute(
-          "alt"
-        ) ||
-        context
-          ?.characterName ||
-        "Lago"
-
-    };
-
-  }
-
-
-  function spawnSplitFall() {
-
-    const host =
-      el(
-        "lagoKnifeCharacter"
-      );
-
-
-    const layer =
-      el(
-        "lagoKnifeFallLayer"
-      );
-
-
-    const stage =
-      overlay
-        ?.querySelector(
-          ".lago-knife-stage"
-        );
-
-
+    /*
+     * Needle reached end =
+     * balance lost.
+     */
     if (
-      !host ||
-      !layer ||
-      !stage
+      Math.abs(
+        balance
+      ) >=
+      1
     ) {
 
+      failRound();
+
       return;
 
     }
 
 
-    const hostRect =
-      host.getBoundingClientRect();
+    /*
+     * Survived entire blade.
+     */
+    if (
+      walkProgress >=
+      1
+    ) {
 
+      completeRound();
 
-    const stageRect =
-      stage.getBoundingClientRect();
-
-
-    const left =
-      hostRect.left -
-      stageRect.left +
-      hostRect.width /
-      2;
-
-
-    const top =
-      hostRect.top -
-      stageRect.top;
-
-
-    const visual =
-      getCurrentCharacterImage();
-
-
-    host.style.opacity =
-      "0";
-
-
-    const flash =
-      el(
-        "lagoKnifeCutFlash"
-      );
-
-
-    if (flash) {
-
-      flash.classList.remove(
-        "show"
-      );
-
-
-      void flash.offsetWidth;
-
-
-      flash.classList.add(
-        "show"
-      );
-
-    }
-
-
-    if (!visual) {
       return;
+
     }
 
 
-    [
-      "left",
-      "right"
-    ]
-      .forEach(
-        side => {
-
-          const piece =
-            document.createElement(
-              "div"
-            );
+    renderFrame();
 
 
-          piece.className =
-            `lago-knife-fall-piece ${side}`;
-
-
-          piece.style.setProperty(
-            "--fall-left",
-            `${left}px`
-          );
-
-
-          piece.style.setProperty(
-            "--fall-top",
-            `${top}px`
-          );
-
-
-          const image =
-            document.createElement(
-              "img"
-            );
-
-
-          image.src =
-            visual.src;
-
-
-          image.alt =
-            visual.alt;
-
-
-          image.draggable =
-            false;
-
-
-          piece.appendChild(
-            image
-          );
-
-
-          layer.appendChild(
-            piece
-          );
-
-        }
-      );
+    requestLoop();
 
   }
 
 
-  function attempt(
-    timeoutMiss = false
+  function updateCharacterPose(
+    now
   ) {
 
     if (
-      phase !==
-      "running"
+      !characterPivot ||
+      !characterModel
     ) {
 
       return;
 
     }
+
+
+    /*
+     * Character physically crawls
+     * from guard toward knife tip.
+     */
+    const x =
+      THREE.MathUtils.lerp(
+        KNIFE_START_X,
+        KNIFE_END_X,
+        walkProgress
+      );
+
+
+    /*
+     * Tiny crawl motion.
+     */
+    const bob =
+      Math.sin(
+        now *
+        .012
+      ) *
+      .035;
+
+
+    const forwardRock =
+      Math.sin(
+        now *
+        .007
+      ) *
+      .035;
+
+
+    characterPivot.position.set(
+      x,
+      KNIFE_EDGE_Y +
+      bob,
+      KNIFE_EDGE_Z
+    );
+
+
+    /*
+     * Balance number directly
+     * tilts actual 3D GLB.
+     */
+    characterPivot.rotation.set(
+      forwardRock,
+      -.12,
+      -balance *
+      .82
+    );
+
+  }
+
+
+  function completeRound() {
+
+    stopLoop();
 
 
     phase =
       "resolving";
 
 
-    stopRoundLoop();
+    inputAxis =
+      0;
 
 
-    const half =
-      targetWidth /
-      2;
+    const averageQuality =
+      THREE.MathUtils.clamp(
 
+        balanceQuality /
+        (
+          ROUND_DURATION_MS /
+          1000
+        ),
 
-    const distance =
-      Math.abs(
-        markerPosition -
-        targetCenter
+        0,
+        1
+
       );
 
 
-    const hit =
-      !timeoutMiss &&
-      distance <=
-        half;
+    const gained =
+      Math.floor(
 
+        110 +
+        averageQuality *
+        90 +
+        round *
+        9
 
-    const host =
-      el(
-        "lagoKnifeCharacter"
       );
 
 
-    host
-      ?.classList.remove(
-        "running"
-      );
-
-
-    if (hit) {
-
-      const precision =
-        Math.max(
-          0,
-          1 -
-          distance /
-          half
-        );
-
-
-      const gained =
-        Math.floor(
-          100 +
-          precision *
-          50
-        );
-
-
-      score +=
-        gained;
-
-
-      host
-        ?.classList.add(
-          "hit"
-        );
-
-
-      if (
-        el(
-          "lagoKnifeFeedback"
-        )
-      ) {
-
-        el(
-          "lagoKnifeFeedback"
-        ).textContent =
-          `BALANCED +${gained}`;
-
-      }
-
-    } else {
-
-      lives =
-        Math.max(
-          0,
-          lives -
-          1
-        );
-
-
-      spawnSplitFall();
-
-
-      if (
-        el(
-          "lagoKnifeFeedback"
-        )
-      ) {
-
-        el(
-          "lagoKnifeFeedback"
-        ).textContent =
-          timeoutMiss
-
-            ? "LOST BALANCE"
-
-            : "CUT — MISSED BALANCE";
-
-      }
-
-    }
+    score +=
+      gained;
 
 
     updateHud();
+
+
+    if (
+      el(
+        "lagoKnifeFeedback"
+      )
+    ) {
+
+      el(
+        "lagoKnifeFeedback"
+      ).textContent =
+        `BALANCED +${gained}`;
+
+    }
 
 
     resolveTimer =
@@ -3409,23 +4123,683 @@
           }
 
         },
-        RESOLVE_DELAY_MS
+        ROUND_GAP_MS
+      );
+
+
+    renderFrame();
+
+  }
+
+
+  /*
+   * =======================================================
+   * 3D CUT / FALL
+   * =======================================================
+   */
+
+  function failRound() {
+
+    stopLoop();
+
+
+    phase =
+      "resolving";
+
+
+    inputAxis =
+      0;
+
+
+    lives =
+      Math.max(
+        0,
+        lives -
+        1
+      );
+
+
+    updateHud();
+
+
+    if (
+      el(
+        "lagoKnifeFeedback"
+      )
+    ) {
+
+      el(
+        "lagoKnifeFeedback"
+      ).textContent =
+        "LOST BALANCE · CUT";
+
+    }
+
+
+    /*
+     * No blood / no gore.
+     *
+     * GLB itself is duplicated,
+     * clipped into two 3D halves
+     * and both pieces fall toward
+     * the plate.
+     */
+    createSplitFall();
+
+
+    const start =
+      performance.now();
+
+
+    let fallFrameAt =
+      start;
+
+
+    const animateFall =
+      now => {
+
+        if (
+          phase !==
+          "resolving"
+        ) {
+
+          return;
+
+        }
+
+
+        const dt =
+          THREE.MathUtils.clamp(
+
+            (
+              now -
+              fallFrameAt
+            ) /
+            1000,
+
+            .001,
+            .04
+
+          );
+
+
+        fallFrameAt =
+          now;
+
+
+        updateFallPieces(
+          dt
+        );
+
+
+        renderFrame();
+
+
+        if (
+          now -
+          start <
+          1050
+        ) {
+
+          animationFrame =
+            requestAnimationFrame(
+              animateFall
+            );
+
+        }
+
+      };
+
+
+    animationFrame =
+      requestAnimationFrame(
+        animateFall
+      );
+
+
+    resolveTimer =
+      window.setTimeout(
+        () => {
+
+          resolveTimer =
+            0;
+
+
+          if (
+            phase !==
+            "resolving"
+          ) {
+
+            return;
+
+          }
+
+
+          if (
+            lives <=
+            0
+          ) {
+
+            finishGame();
+
+            return;
+
+          }
+
+
+          phase =
+            "running";
+
+
+          startNextRound();
+
+        },
+        FAIL_GAP_MS
       );
 
   }
 
 
-  function finishGame() {
+  function createSplitFall() {
 
-    stopRoundLoop();
+    clearFallPieces();
 
 
     if (
-      !sessionId
+      !characterModel ||
+      !characterPivot ||
+      !scene
     ) {
 
       return;
 
+    }
+
+
+    characterPivot
+      .updateMatrixWorld(
+        true
+      );
+
+
+    const startPosition =
+      new THREE.Vector3();
+
+
+    const startQuaternion =
+      new THREE.Quaternion();
+
+
+    const startScale =
+      new THREE.Vector3();
+
+
+    characterPivot
+      .matrixWorld
+      .decompose(
+        startPosition,
+        startQuaternion,
+        startScale
+      );
+
+
+    /*
+     * Hide original whole model.
+     */
+    characterPivot.visible =
+      false;
+
+
+    const plateTarget =
+      new THREE.Vector3();
+
+
+    plateGroup
+      ?.getWorldPosition(
+        plateTarget
+      );
+
+
+    /*
+     * Create actual two clipped
+     * copies of same GLB.
+     */
+    [
+      -1,
+      1
+    ]
+      .forEach(
+        side => {
+
+          const group =
+            new THREE.Group();
+
+
+          group.position.copy(
+            startPosition
+          );
+
+
+          group.quaternion.copy(
+            startQuaternion
+          );
+
+
+          group.scale.copy(
+            startScale
+          );
+
+
+          const model =
+            characterModel
+              .clone(
+                true
+              );
+
+
+          const plane =
+            new THREE.Plane();
+
+
+          /*
+           * Materials must be cloned
+           * so clipping doesn't affect
+           * original character.
+           */
+          model.traverse(
+            child => {
+
+              if (
+                !child.isMesh
+              ) {
+
+                return;
+
+              }
+
+
+              const source =
+                Array.isArray(
+                  child.material
+                )
+
+                  ? child.material
+
+                  : [
+                      child.material
+                    ];
+
+
+              const cloned =
+                source.map(
+                  mat => {
+
+                    const copy =
+                      mat.clone();
+
+
+                    copy.clippingPlanes =
+                      [
+                        plane
+                      ];
+
+
+                    copy.clipShadows =
+                      true;
+
+
+                    copy.side =
+                      THREE.DoubleSide;
+
+
+                    copy.needsUpdate =
+                      true;
+
+
+                    return copy;
+
+                  }
+                );
+
+
+              child.material =
+                Array.isArray(
+                  child.material
+                )
+
+                  ? cloned
+
+                  : cloned[
+                      0
+                    ];
+
+
+              child.castShadow =
+                true;
+
+
+              child.receiveShadow =
+                true;
+
+            }
+          );
+
+
+          group.add(
+            model
+          );
+
+
+          scene.add(
+            group
+          );
+
+
+          fallPieces.push({
+
+            side,
+
+            group,
+
+            plane,
+
+            target:
+              plateTarget
+                .clone()
+                .add(
+                  new THREE.Vector3(
+                    side *
+                    .48,
+                    .22,
+                    side *
+                    .08
+                  )
+                ),
+
+            velocity:
+              new THREE.Vector3(
+                side *
+                .48,
+                -.35,
+                1.15
+              ),
+
+            rotationSpeed:
+              new THREE.Vector3(
+                side *
+                .75,
+                .25,
+                side *
+                2.4
+              ),
+
+            age:
+              0
+
+          });
+
+        }
+      );
+
+  }
+
+
+  function updateFallPieces(
+    dt
+  ) {
+
+    if (
+      !fallPieces.length
+    ) {
+
+      return;
+
+    }
+
+
+    const tempPos =
+      new THREE.Vector3();
+
+
+    const tempQuat =
+      new THREE.Quaternion();
+
+
+    fallPieces.forEach(
+      piece => {
+
+        piece.age +=
+          dt;
+
+
+        /*
+         * Gravity.
+         */
+        piece.velocity.y -=
+          1.9 *
+          dt;
+
+
+        /*
+         * Weak attraction toward plate
+         * guarantees pieces land there.
+         */
+        piece.velocity.add(
+
+          piece.target
+            .clone()
+            .sub(
+              piece
+                .group
+                .position
+            )
+            .multiplyScalar(
+              .85 *
+              dt
+            )
+
+        );
+
+
+        piece.group.position
+          .addScaledVector(
+            piece.velocity,
+            dt
+          );
+
+
+        piece.group.rotation.x +=
+          piece
+            .rotationSpeed
+            .x *
+          dt;
+
+
+        piece.group.rotation.y +=
+          piece
+            .rotationSpeed
+            .y *
+          dt;
+
+
+        piece.group.rotation.z +=
+          piece
+            .rotationSpeed
+            .z *
+          dt;
+
+
+        piece.group
+          .updateMatrixWorld(
+            true
+          );
+
+
+        /*
+         * Clipping plane travels
+         * with each falling half.
+         */
+        piece.group
+          .getWorldPosition(
+            tempPos
+          );
+
+
+        piece.group
+          .getWorldQuaternion(
+            tempQuat
+          );
+
+
+        const normal =
+          new THREE.Vector3(
+            piece.side,
+            0,
+            0
+          )
+            .applyQuaternion(
+              tempQuat
+            )
+            .normalize();
+
+
+        piece.plane
+          .setFromNormalAndCoplanarPoint(
+            normal,
+            tempPos
+          );
+
+
+        /*
+         * Settle on plate.
+         */
+        if (
+          piece.age >
+            .7 &&
+          piece
+            .group
+            .position
+            .y <
+            .72
+        ) {
+
+          piece
+            .group
+            .position
+            .y =
+            .72;
+
+
+          piece.velocity
+            .multiplyScalar(
+              .55
+            );
+
+
+          piece.velocity.y =
+            0;
+
+        }
+
+      }
+    );
+
+  }
+
+
+  function clearFallPieces() {
+
+    if (!scene) {
+
+      fallPieces =
+        [];
+
+      return;
+
+    }
+
+
+    fallPieces.forEach(
+      piece => {
+
+        scene.remove(
+          piece.group
+        );
+
+
+        /*
+         * We cloned materials only.
+         * Geometry remains shared/cacheable.
+         */
+        piece.group.traverse(
+          child => {
+
+            if (
+              !child.isMesh
+            ) {
+
+              return;
+
+            }
+
+
+            const materials =
+              Array.isArray(
+                child.material
+              )
+
+                ? child.material
+
+                : [
+                    child.material
+                  ];
+
+
+            materials.forEach(
+              mat =>
+                mat
+                  ?.dispose
+                  ?.()
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+    fallPieces =
+      [];
+
+
+    if (
+      characterPivot
+    ) {
+
+      characterPivot.visible =
+        true;
+
+    }
+
+  }
+
+
+  /*
+   * =======================================================
+   * FINISH
+   * =======================================================
+   */
+
+  function finishGame() {
+
+    stopLoop();
+
+    clearResolveTimer();
+
+
+    if (!sessionId) {
+      return;
     }
 
 
@@ -3438,7 +4812,7 @@
 
         Math.floor(
           score *
-          .2
+          .18
         )
 
       );
@@ -3472,21 +4846,26 @@
         ?.getStats
         ?.(
           GAME_ID
-        ) || {};
+        ) ||
+      {};
 
 
     setPanel({
 
       title:
-        lives > 0
+        lives >
+        0
+
           ? "RUN COMPLETE"
+
           : "CHEF'S PLATE",
 
       copy:
         `Score ${Math.floor(
           score
         )}. Best ${Math.floor(
-          stats.bestScore ||
+          stats
+            .bestScore ||
           score
         )}.`,
 
@@ -3506,56 +4885,232 @@
 
     });
 
+
+    renderFrame();
+
   }
 
 
-  function stopRoundLoop() {
+  function renderFrame() {
 
     if (
-      frameId
+      renderer &&
+      scene &&
+      camera
     ) {
 
-      cancelAnimationFrame(
-        frameId
+      renderer.render(
+        scene,
+        camera
       );
 
+    }
 
-      frameId =
-        0;
+  }
+
+
+  function stopLoop() {
+
+    if (
+      !animationFrame
+    ) {
+
+      return;
 
     }
 
 
+    cancelAnimationFrame(
+      animationFrame
+    );
+
+
+    animationFrame =
+      0;
+
+  }
+
+
+  function clearResolveTimer() {
+
     if (
-      roundTimer
+      !resolveTimer
     ) {
 
-      clearTimeout(
-        roundTimer
-      );
-
-
-      roundTimer =
-        0;
+      return;
 
     }
 
 
-    if (
+    clearTimeout(
       resolveTimer
-    ) {
+    );
 
-      clearTimeout(
-        resolveTimer
+
+    resolveTimer =
+      0;
+
+  }
+
+
+  /*
+   * =======================================================
+   * KEYBOARD
+   * =======================================================
+   */
+
+  function setKeyboardAxis() {
+
+    const left =
+
+      pressedKeys.has(
+        "ArrowLeft"
+      ) ||
+
+      pressedKeys.has(
+        "a"
+      ) ||
+
+      pressedKeys.has(
+        "A"
       );
 
 
-      resolveTimer =
-        0;
+    const right =
 
-    }
+      pressedKeys.has(
+        "ArrowRight"
+      ) ||
+
+      pressedKeys.has(
+        "d"
+      ) ||
+
+      pressedKeys.has(
+        "D"
+      );
+
+
+    inputAxis =
+      left ===
+      right
+
+        ? 0
+
+        : left
+
+          ? -1
+
+          : 1;
 
   }
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        !overlay
+          ?.classList
+          .contains(
+            "active"
+          )
+      ) {
+
+        return;
+
+      }
+
+
+      if (
+        event.key ===
+        "Escape"
+      ) {
+
+        closeGame();
+
+        return;
+
+      }
+
+
+      if (
+        [
+          "ArrowLeft",
+          "ArrowRight",
+          "a",
+          "A",
+          "d",
+          "D"
+        ]
+          .includes(
+            event.key
+          )
+      ) {
+
+        event.preventDefault();
+
+
+        pressedKeys.add(
+          event.key
+        );
+
+
+        setKeyboardAxis();
+
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    "keyup",
+    event => {
+
+      if (
+        !overlay
+          ?.classList
+          .contains(
+            "active"
+          )
+      ) {
+
+        return;
+
+      }
+
+
+      pressedKeys.delete(
+        event.key
+      );
+
+
+      setKeyboardAxis();
+
+    }
+  );
+
+
+  /*
+   * No hidden-tab gameplay.
+   */
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+
+      if (
+        document.hidden &&
+        sessionId
+      ) {
+
+        closeGame();
+
+      }
+
+    }
+  );
 
 
   document.addEventListener(
@@ -3579,70 +5134,15 @@
   );
 
 
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        !overlay
-          ?.classList.contains(
-            "active"
-          )
-      ) {
-
-        return;
-
-      }
-
-
-      if (
-        event.key ===
-        "Escape"
-      ) {
-
-        closeGame();
-
-        return;
-
-      }
-
-
-      if (
-        phase ===
-          "running" &&
-        (
-          event.key ===
-            " " ||
-          event.key ===
-            "Enter"
-        )
-      ) {
-
-        event.preventDefault();
-
-
-        attempt(
-          false
-        );
-
-      }
-
-    }
-  );
-
-
-  document.addEventListener(
-    "visibilitychange",
+  window.addEventListener(
+    "blur",
     () => {
 
-      if (
-        document.hidden &&
-        sessionId
-      ) {
+      pressedKeys.clear();
 
-        closeGame();
 
-      }
+      inputAxis =
+        0;
 
     }
   );
