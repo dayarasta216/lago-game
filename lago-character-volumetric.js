@@ -1,42 +1,58 @@
 import * as THREE from "three";
 
-const VERSION = 1;
+
+const VERSION = 2;
 
 const MARVIN_ID =
   "comic_giraffe_bird";
 
 
-function mat(color) {
+/*
+ * =========================================================
+ * MATERIALS
+ * =========================================================
+ */
 
-  return new THREE.MeshStandardMaterial({
+function mat(
+  color,
+  roughness = 0.84
+) {
 
-    color,
+  return new THREE
+    .MeshStandardMaterial({
 
-    roughness:
-      0.88,
+      color,
 
-    metalness:
-      0,
+      roughness,
 
-    flatShading:
-      true
+      metalness:
+        0,
 
-  });
+      /*
+       * Marvin must look like a smooth
+       * cartoon character, not a low-poly
+       * faceted toy.
+       */
+      flatShading:
+        false
+
+    });
 
 }
 
 
 function outlineMat() {
 
-  return new THREE.MeshBasicMaterial({
+  return new THREE
+    .MeshBasicMaterial({
 
-    color:
-      0x17110f,
+      color:
+        0x17110f,
 
-    side:
-      THREE.BackSide
+      side:
+        THREE.BackSide
 
-  });
+    });
 
 }
 
@@ -44,7 +60,7 @@ function outlineMat() {
 function finish(
   mesh,
   outlines = true,
-  scale = 1.045
+  outlineScale = 1.018
 ) {
 
   mesh.castShadow =
@@ -70,9 +86,10 @@ function finish(
       `${mesh.name || "part"}-outline`;
 
 
-    outline.scale.setScalar(
-      scale
-    );
+    outline.scale
+      .setScalar(
+        outlineScale
+      );
 
 
     outline.castShadow =
@@ -94,38 +111,59 @@ function finish(
 }
 
 
+/*
+ * =========================================================
+ * BASIC VOLUMETRIC SHAPES
+ * =========================================================
+ */
+
 function ellipsoid(
   {
     name,
+
     color,
+
     position,
+
     scale,
-    rotation = [0, 0, 0],
-    outlines = true,
-    segments = 18
+
+    rotation =
+      [0, 0, 0],
+
+    outlines =
+      true,
+
+    segments =
+      24,
+
+    roughness =
+      0.84
   }
 ) {
 
   const mesh =
     new THREE.Mesh(
 
-      new THREE.SphereGeometry(
+      new THREE
+        .SphereGeometry(
 
-        1,
+          1,
 
-        segments,
+          segments,
 
-        Math.max(
-          12,
-          Math.floor(
-            segments * 0.72
+          Math.max(
+            14,
+            Math.floor(
+              segments *
+              0.72
+            )
           )
-        )
 
-      ),
+        ),
 
       mat(
-        color
+        color,
+        roughness
       )
 
     );
@@ -152,8 +190,7 @@ function ellipsoid(
 
   return finish(
     mesh,
-    outlines,
-    1.055
+    outlines
   );
 
 }
@@ -162,13 +199,26 @@ function ellipsoid(
 function rod(
   {
     name,
+
     color,
+
     start,
+
     end,
+
     radiusTop,
-    radiusBottom = radiusTop,
-    outlines = true,
-    radialSegments = 12
+
+    radiusBottom =
+      radiusTop,
+
+    outlines =
+      true,
+
+    radialSegments =
+      14,
+
+    roughness =
+      0.84
   }
 ) {
 
@@ -202,24 +252,26 @@ function rod(
   const mesh =
     new THREE.Mesh(
 
-      new THREE.CylinderGeometry(
+      new THREE
+        .CylinderGeometry(
 
-        radiusTop,
+          radiusTop,
 
-        radiusBottom,
+          radiusBottom,
 
-        length,
+          length,
 
-        radialSegments,
+          radialSegments,
 
-        1,
+          1,
 
-        false
+          false
 
-      ),
+        ),
 
       mat(
-        color
+        color,
+        roughness
       )
 
     );
@@ -259,16 +311,825 @@ function rod(
 
   return finish(
     mesh,
-    outlines,
-    1.06
+    outlines
   );
 
 }
 
 
+/*
+ * =========================================================
+ * BREAST FEATHERS
+ * =========================================================
+ */
+
+function addBreastFeathers(
+  root,
+  outlines,
+  colors
+) {
+
+  const rows = [
+
+    {
+      y:
+        1.46,
+
+      xs:
+        [
+          -0.31,
+          0,
+          0.31
+        ],
+
+      size:
+        0.19
+    },
+
+    {
+      y:
+        1.19,
+
+      xs:
+        [
+          -0.42,
+          -0.14,
+          0.14,
+          0.42
+        ],
+
+      size:
+        0.18
+    },
+
+    {
+      y:
+        0.91,
+
+      xs:
+        [
+          -0.34,
+          0,
+          0.34
+        ],
+
+      size:
+        0.19
+    },
+
+    {
+      y:
+        0.64,
+
+      xs:
+        [
+          -0.22,
+          0.22
+        ],
+
+      size:
+        0.18
+    }
+
+  ];
+
+
+  rows.forEach(
+    (
+      row,
+      rowIndex
+    ) => {
+
+      row.xs.forEach(
+        (
+          x,
+          index
+        ) => {
+
+          root.add(
+            ellipsoid({
+
+              name:
+                `MarvinBreastFeather-${rowIndex}-${index}`,
+
+              color:
+                (
+                  rowIndex +
+                  index
+                ) %
+                  2 ===
+                0
+
+                  ? colors.light
+
+                  : colors.mid,
+
+              position:
+                [
+                  x,
+                  row.y,
+                  0.52
+                ],
+
+              scale:
+                [
+                  row.size,
+
+                  row.size *
+                  1.55,
+
+                  0.07
+                ],
+
+              rotation:
+                [
+                  0.05,
+                  0,
+                  x *
+                  -0.22
+                ],
+
+              outlines:
+                false,
+
+              segments:
+                18
+
+            })
+          );
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * WINGS
+ * =========================================================
+ */
+
+function addWing(
+  root,
+  side,
+  outlines,
+  colors
+) {
+
+  const x =
+    side *
+    0.53;
+
+
+  /*
+   * Main long dark wing.
+   */
+  root.add(
+    ellipsoid({
+
+      name:
+        side <
+        0
+
+          ? "MarvinWingLeft"
+
+          : "MarvinWingRight",
+
+      color:
+        colors.dark,
+
+      position:
+        [
+          x,
+          1.12,
+          -0.05
+        ],
+
+      scale:
+        [
+          0.27,
+          0.83,
+          0.37
+        ],
+
+      rotation:
+        [
+          0.07,
+
+          side *
+          -0.07,
+
+          side *
+          0.10
+        ],
+
+      outlines,
+
+      segments:
+        22
+
+    })
+  );
+
+
+  /*
+   * Large layered feathers.
+   */
+  const feathers = [
+
+    [
+      0.03,
+      1.18,
+      0.30,
+      0.20,
+      0.48,
+      0.11
+    ],
+
+    [
+      0.06,
+      0.96,
+      0.29,
+      0.19,
+      0.50,
+      0.10
+    ],
+
+    [
+      0.04,
+      0.73,
+      0.27,
+      0.17,
+      0.44,
+      0.09
+    ]
+
+  ];
+
+
+  feathers.forEach(
+    (
+      feather,
+      index
+    ) => {
+
+      root.add(
+        ellipsoid({
+
+          name:
+            `MarvinWingFeather-${side}-${index}`,
+
+          color:
+            index ===
+            1
+
+              ? colors.midDark
+
+              : colors.darkLight,
+
+          position:
+            [
+              x +
+              side *
+              feather[0],
+
+              feather[1],
+
+              feather[2]
+            ],
+
+          scale:
+            [
+              feather[3],
+
+              feather[4],
+
+              feather[5]
+            ],
+
+          rotation:
+            [
+              0.08,
+
+              side *
+              0.04,
+
+              side *
+              0.08
+            ],
+
+          outlines:
+            false,
+
+          segments:
+            18
+
+        })
+      );
+
+
+      /*
+       * Light feather streak.
+       */
+      root.add(
+        ellipsoid({
+
+          name:
+            `MarvinWingStripe-${side}-${index}`,
+
+          color:
+            colors.stripe,
+
+          position:
+            [
+              x -
+              side *
+              0.01,
+
+              feather[1] +
+              0.02,
+
+              feather[2] +
+              0.105
+            ],
+
+          scale:
+            [
+              feather[3] *
+              0.50,
+
+              feather[4] *
+              0.72,
+
+              0.025
+            ],
+
+          rotation:
+            [
+              0.08,
+              0,
+
+              side *
+              0.08
+            ],
+
+          outlines:
+            false,
+
+          segments:
+            14
+
+        })
+      );
+
+    }
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * FEET
+ * =========================================================
+ */
+
+function addFoot(
+  root,
+  side,
+  color,
+  outlines
+) {
+
+  const x =
+    side *
+    0.22;
+
+
+  const ankleY =
+    -0.62;
+
+
+  root.add(
+    ellipsoid({
+
+      name:
+        `MarvinAnkle-${side}`,
+
+      color,
+
+      position:
+        [
+          x,
+          ankleY,
+          0.02
+        ],
+
+      scale:
+        [
+          0.085,
+          0.12,
+          0.085
+        ],
+
+      outlines,
+
+      segments:
+        14
+
+    })
+  );
+
+
+  /*
+   * Three long forward toes.
+   */
+  [
+    [
+      -0.15,
+      0.34
+    ],
+
+    [
+      0,
+      0.39
+    ],
+
+    [
+      0.15,
+      0.32
+    ]
+
+  ]
+    .forEach(
+      (
+        toe,
+        index
+      ) => {
+
+        root.add(
+          rod({
+
+            name:
+              `MarvinToe-${side}-${index}`,
+
+            color,
+
+            start:
+              [
+                x,
+                ankleY -
+                0.03,
+                0.06
+              ],
+
+            end:
+              [
+                x +
+                toe[0],
+
+                ankleY -
+                0.08,
+
+                toe[1]
+              ],
+
+            radiusTop:
+              0.022,
+
+            radiusBottom:
+              0.034,
+
+            radialSegments:
+              8,
+
+            outlines
+
+          })
+        );
+
+      }
+    );
+
+
+  /*
+   * Rear toe.
+   */
+  root.add(
+    rod({
+
+      name:
+        `MarvinBackToe-${side}`,
+
+      color,
+
+      start:
+        [
+          x,
+          ankleY -
+          0.02,
+          0.01
+        ],
+
+      end:
+        [
+          x -
+          side *
+          0.06,
+
+          ankleY -
+          0.05,
+
+          -0.20
+        ],
+
+      radiusTop:
+        0.020,
+
+      radiusBottom:
+        0.030,
+
+      radialSegments:
+        8,
+
+      outlines
+
+    })
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * TONGUE
+ * =========================================================
+ */
+
+function addTongue(
+  root,
+  color,
+  outlines
+) {
+
+  const curve =
+    new THREE
+      .CatmullRomCurve3([
+
+        new THREE.Vector3(
+          0,
+          3.22,
+          0.68
+        ),
+
+        new THREE.Vector3(
+          0.02,
+          3.03,
+          0.79
+        ),
+
+        new THREE.Vector3(
+          0.06,
+          2.80,
+          0.80
+        ),
+
+        new THREE.Vector3(
+          0.02,
+          2.57,
+          0.72
+        )
+
+      ]);
+
+
+  const tongue =
+    new THREE.Mesh(
+
+      new THREE
+        .TubeGeometry(
+
+          curve,
+
+          18,
+
+          0.105,
+
+          10,
+
+          false
+
+        ),
+
+      mat(
+        color,
+        0.72
+      )
+
+    );
+
+
+  tongue.name =
+    "MarvinTongue";
+
+
+  finish(
+    tongue,
+    outlines,
+    1.012
+  );
+
+
+  root.add(
+    tongue
+  );
+
+
+  root.add(
+    ellipsoid({
+
+      name:
+        "MarvinTongueTip",
+
+      color,
+
+      position:
+        [
+          0.02,
+          2.52,
+          0.70
+        ],
+
+      scale:
+        [
+          0.12,
+          0.17,
+          0.11
+        ],
+
+      outlines,
+
+      segments:
+        18,
+
+      roughness:
+        0.72
+
+    })
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * GIRAFFE SPOTS
+ * =========================================================
+ */
+
+function addGiraffeSpots(
+  root,
+  color
+) {
+
+  const spots = [
+
+    [
+      -0.16,
+      2.08,
+      0.19,
+      0.10,
+      0.14
+    ],
+
+    [
+      0.15,
+      2.26,
+      0.20,
+      0.08,
+      0.12
+    ],
+
+    [
+      -0.10,
+      2.48,
+      0.22,
+      0.12,
+      0.10
+    ],
+
+    [
+      0.13,
+      2.72,
+      0.22,
+      0.08,
+      0.12
+    ],
+
+    [
+      -0.20,
+      2.91,
+      0.20,
+      0.10,
+      0.09
+    ],
+
+    [
+      0.20,
+      3.53,
+      0.33,
+      0.09,
+      0.07
+    ],
+
+    [
+      -0.24,
+      3.71,
+      0.22,
+      0.11,
+      0.08
+    ],
+
+    [
+      0.06,
+      3.83,
+      0.37,
+      0.08,
+      0.07
+    ]
+
+  ];
+
+
+  spots.forEach(
+    (
+      spot,
+      index
+    ) => {
+
+      root.add(
+        ellipsoid({
+
+          name:
+            `MarvinSpot-${index}`,
+
+          color,
+
+          position:
+            [
+              spot[0],
+              spot[1],
+              spot[2]
+            ],
+
+          scale:
+            [
+              spot[3],
+              spot[4],
+              0.035
+            ],
+
+          rotation:
+            [
+              0,
+              0,
+
+              index %
+              2
+
+                ? 0.25
+
+                : -0.18
+            ],
+
+          outlines:
+            false,
+
+          segments:
+            14
+
+        })
+      );
+
+    }
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * NORMALIZE
+ * =========================================================
+ */
+
 function normalize(
   root,
-  targetHeight = 2.45
+  targetHeight = 2.55
 ) {
 
   root.updateMatrixWorld(
@@ -341,6 +1202,12 @@ function normalize(
 }
 
 
+/*
+ * =========================================================
+ * MARVIN VOLUMETRIC V2
+ * =========================================================
+ */
+
 function buildMarvin(
   {
     outlines = true
@@ -369,37 +1236,59 @@ function buildMarvin(
   };
 
 
-  const BODY =
-    0xcac7c0;
+  const C = {
 
-  const BODY_LIGHT =
-    0xe9e3d7;
+    body:
+      0x8c8d8b,
 
-  const BODY_DARK =
-    0x6b6761;
+    bodyMid:
+      0xb9b8b3,
 
-  const GIRAFFE =
-    0xd9a05f;
+    breast:
+      0xd8d5cd,
 
-  const GIRAFFE_LIGHT =
-    0xf0c789;
+    wing:
+      0x42474d,
 
-  const SPOT =
-    0x7b4528;
+    wingLight:
+      0x626970,
 
-  const LEG =
-    0x8a6b4f;
+    wingMid:
+      0x50565d,
 
-  const BLACK =
-    0x181514;
+    stripe:
+      0xa9adb0,
 
-  const WHITE =
-    0xf7f5ef;
+    giraffe:
+      0xd6a15c,
+
+    giraffeLight:
+      0xe7bd7b,
+
+    spot:
+      0x6e4128,
+
+    leg:
+      0x5d5550,
+
+    black:
+      0x141313,
+
+    white:
+      0xf8f7f2,
+
+    tongue:
+      0x9e4f5b
+
+  };
 
 
   /*
-   * Volumetric bird body.
+   * =====================================================
+   * TALL NARROW BIRD BODY
+   * =====================================================
    */
+
   root.add(
     ellipsoid({
 
@@ -407,97 +1296,136 @@ function buildMarvin(
         "MarvinBody",
 
       color:
-        BODY,
+        C.body,
 
       position:
-        [0, 0.92, 0],
+        [
+          0,
+          0.95,
+          0
+        ],
 
       scale:
-        [0.72, 0.92, 0.58],
+        [
+          0.58,
+          1.05,
+          0.50
+        ],
 
-      outlines
+      outlines,
+
+      segments:
+        26
 
     })
   );
 
 
+  /*
+   * Front breast volume.
+   */
   root.add(
     ellipsoid({
 
       name:
-        "MarvinBelly",
+        "MarvinChest",
 
       color:
-        BODY_LIGHT,
+        C.breast,
 
       position:
-        [0, 0.86, 0.50],
+        [
+          0,
+          1.03,
+          0.38
+        ],
 
       scale:
-        [0.44, 0.62, 0.14],
+        [
+          0.43,
+          0.86,
+          0.17
+        ],
 
       outlines:
-        false
+        false,
+
+      segments:
+        24
 
     })
   );
 
 
-  /*
-   * Real left/right wings.
-   */
-  [-1, 1]
-    .forEach(
-      side => {
+  addBreastFeathers(
+    root,
+    outlines,
+    {
+      light:
+        C.breast,
 
-        root.add(
-          ellipsoid({
-
-            name:
-              side < 0
-                ? "MarvinWingLeft"
-                : "MarvinWingRight",
-
-            color:
-              BODY_DARK,
-
-            position:
-              [
-                side * 0.61,
-                1.00,
-                -0.03
-              ],
-
-            scale:
-              [
-                0.24,
-                0.64,
-                0.46
-              ],
-
-            rotation:
-              [
-                0.08,
-                0,
-                side * 0.18
-              ],
-
-            outlines
-
-          })
-        );
-
-      }
-    );
+      mid:
+        C.bodyMid
+    }
+  );
 
 
   /*
-   * Three tail feathers.
+   * =====================================================
+   * DARK LONG WINGS
+   * =====================================================
    */
+
+  addWing(
+    root,
+    -1,
+    outlines,
+    {
+      dark:
+        C.wing,
+
+      darkLight:
+        C.wingLight,
+
+      midDark:
+        C.wingMid,
+
+      stripe:
+        C.stripe
+    }
+  );
+
+
+  addWing(
+    root,
+    1,
+    outlines,
+    {
+      dark:
+        C.wing,
+
+      darkLight:
+        C.wingLight,
+
+      midDark:
+        C.wingMid,
+
+      stripe:
+        C.stripe
+    }
+  );
+
+
+  /*
+   * =====================================================
+   * NARROW TAIL
+   * =====================================================
+   */
+
   [
-    -0.22,
+    -0.18,
     0,
-    0.22
+    0.18
   ]
     .forEach(
       (
@@ -509,332 +1437,106 @@ function buildMarvin(
           ellipsoid({
 
             name:
-              `MarvinTail${index}`,
+              `MarvinTail-${index}`,
 
             color:
-              index === 1
-                ? BODY_LIGHT
-                : BODY_DARK,
+              index ===
+              1
+
+                ? C.wingMid
+
+                : C.wing,
 
             position:
               [
                 x,
-                0.73,
-                -0.69
+                0.55,
+                -0.47
               ],
 
             scale:
               [
-                0.16,
-                0.46,
-                0.15
+                0.13,
+                0.50,
+                0.13
               ],
 
             rotation:
               [
-                -0.54,
+                -0.38,
                 0,
-                x * 0.7
-              ],
 
-            outlines
-
-          })
-        );
-
-      }
-    );
-
-
-  /*
-   * Two actual volumetric legs.
-   */
-  [-1, 1]
-    .forEach(
-      side => {
-
-        const x =
-          side * 0.23;
-
-
-        root.add(
-          rod({
-
-            name:
-              side < 0
-                ? "MarvinLegLeft"
-                : "MarvinLegRight",
-
-            color:
-              LEG,
-
-            start:
-              [
-                x,
-                0.40,
-                0.04
-              ],
-
-            end:
-              [
-                x + side * 0.035,
-                -0.43,
-                0.08
-              ],
-
-            radiusTop:
-              0.055,
-
-            radiusBottom:
-              0.072,
-
-            outlines
-
-          })
-        );
-
-
-        /*
-         * Three toes on each foot.
-         */
-        [
-          -0.13,
-          0,
-          0.13
-        ]
-          .forEach(
-            toe => {
-
-              root.add(
-                rod({
-
-                  name:
-                    "MarvinToe",
-
-                  color:
-                    LEG,
-
-                  start:
-                    [
-                      x,
-                      -0.43,
-                      0.10
-                    ],
-
-                  end:
-                    [
-                      x + toe,
-                      -0.50,
-                      0.33
-                    ],
-
-                  radiusTop:
-                    0.025,
-
-                  radiusBottom:
-                    0.032,
-
-                  radialSegments:
-                    8,
-
-                  outlines
-
-                })
-              );
-
-            }
-          );
-
-      }
-    );
-
-
-  /*
-   * Long volumetric giraffe neck.
-   */
-  root.add(
-    rod({
-
-      name:
-        "MarvinNeck",
-
-      color:
-        GIRAFFE,
-
-      start:
-        [
-          0.03,
-          1.45,
-          0.02
-        ],
-
-      end:
-        [
-          0.03,
-          2.78,
-          0.06
-        ],
-
-      radiusTop:
-        0.23,
-
-      radiusBottom:
-        0.33,
-
-      radialSegments:
-        14,
-
-      outlines
-
-    })
-  );
-
-
-  /*
-   * Head.
-   */
-  root.add(
-    ellipsoid({
-
-      name:
-        "MarvinHead",
-
-      color:
-        GIRAFFE,
-
-      position:
-        [
-          0.03,
-          3.05,
-          0.04
-        ],
-
-      scale:
-        [
-          0.48,
-          0.58,
-          0.42
-        ],
-
-      outlines
-
-    })
-  );
-
-
-  /*
-   * Forward-projecting muzzle.
-   */
-  root.add(
-    ellipsoid({
-
-      name:
-        "MarvinMuzzle",
-
-      color:
-        GIRAFFE_LIGHT,
-
-      position:
-        [
-          0.03,
-          2.88,
-          0.39
-        ],
-
-      scale:
-        [
-          0.34,
-          0.25,
-          0.31
-        ],
-
-      outlines
-
-    })
-  );
-
-
-  [-1, 1]
-    .forEach(
-      side => {
-
-        /*
-         * Ear.
-         */
-        root.add(
-          ellipsoid({
-
-            name:
-              "MarvinEar",
-
-            color:
-              GIRAFFE_LIGHT,
-
-            position:
-              [
-                side * 0.43,
-                3.25,
-                0.02
-              ],
-
-            scale:
-              [
-                0.25,
-                0.12,
-                0.11
-              ],
-
-            rotation:
-              [
-                0.08,
-                side * 0.16,
-                side * 0.30
+                x *
+                0.75
               ],
 
             outlines,
 
             segments:
-              16
+              18
 
           })
         );
 
+      }
+    );
 
-        const hornX =
-          side * 0.18;
+
+  /*
+   * =====================================================
+   * VERY LONG THIN BIRD LEGS
+   * =====================================================
+   */
+
+  [
+    -1,
+    1
+  ]
+    .forEach(
+      side => {
+
+        const x =
+          side *
+          0.22;
 
 
-        /*
-         * Giraffe ossicone.
-         */
         root.add(
           rod({
 
             name:
-              "MarvinOssicone",
+              side <
+              0
+
+                ? "MarvinLegLeft"
+
+                : "MarvinLegRight",
 
             color:
-              SPOT,
+              C.leg,
 
             start:
               [
-                hornX,
-                3.43,
-                0.01
+                x,
+                0.35,
+                0
               ],
 
             end:
               [
-                hornX,
-                3.78,
-                0.01
+                x +
+                side *
+                0.01,
+
+                -0.57,
+
+                0.03
               ],
 
             radiusTop:
-              0.052,
+              0.042,
 
             radiusBottom:
-              0.060,
+              0.050,
 
             radialSegments:
               10,
@@ -849,23 +1551,23 @@ function buildMarvin(
           ellipsoid({
 
             name:
-              "MarvinOssiconeTip",
+              `MarvinKnee-${side}`,
 
             color:
-              SPOT,
+              C.leg,
 
             position:
               [
-                hornX,
-                3.82,
-                0.01
+                x,
+                -0.18,
+                0.02
               ],
 
             scale:
               [
+                0.065,
                 0.09,
-                0.09,
-                0.09
+                0.065
               ],
 
             outlines,
@@ -877,111 +1579,11 @@ function buildMarvin(
         );
 
 
-        const eyeX =
-          side * 0.19;
-
-
-        /*
-         * Eye.
-         */
-        root.add(
-          ellipsoid({
-
-            name:
-              "MarvinEye",
-
-            color:
-              WHITE,
-
-            position:
-              [
-                eyeX,
-                3.12,
-                0.39
-              ],
-
-            scale:
-              [
-                0.135,
-                0.17,
-                0.105
-              ],
-
-            outlines,
-
-            segments:
-              16
-
-          })
-        );
-
-
-        root.add(
-          ellipsoid({
-
-            name:
-              "MarvinPupil",
-
-            color:
-              BLACK,
-
-            position:
-              [
-                eyeX + side * 0.010,
-                3.12,
-                0.485
-              ],
-
-            scale:
-              [
-                0.052,
-                0.074,
-                0.043
-              ],
-
-            outlines:
-              false,
-
-            segments:
-              12
-
-          })
-        );
-
-
-        /*
-         * Nostril.
-         */
-        root.add(
-          ellipsoid({
-
-            name:
-              "MarvinNostril",
-
-            color:
-              BLACK,
-
-            position:
-              [
-                side * 0.105,
-                2.90,
-                0.665
-              ],
-
-            scale:
-              [
-                0.040,
-                0.034,
-                0.025
-              ],
-
-            outlines:
-              false,
-
-            segments:
-              10
-
-          })
+        addFoot(
+          root,
+          side,
+          C.leg,
+          outlines
         );
 
       }
@@ -989,40 +1591,378 @@ function buildMarvin(
 
 
   /*
-   * Giraffe spots.
+   * =====================================================
+   * THIN LONG GIRAFFE NECK
+   * =====================================================
    */
+
+  const neckSegments = [
+
+    [
+      [
+        0,
+        1.74,
+        0
+      ],
+
+      [
+        0.01,
+        2.23,
+        0.02
+      ],
+
+      0.155,
+      0.19
+    ],
+
+    [
+      [
+        0.01,
+        2.20,
+        0.02
+      ],
+
+      [
+        0,
+        2.70,
+        0.05
+      ],
+
+      0.145,
+      0.17
+    ],
+
+    [
+      [
+        0,
+        2.66,
+        0.05
+      ],
+
+      [
+        0.02,
+        3.18,
+        0.10
+      ],
+
+      0.135,
+      0.16
+    ]
+
+  ];
+
+
+  neckSegments.forEach(
+    (
+      segment,
+      index
+    ) => {
+
+      root.add(
+        rod({
+
+          name:
+            `MarvinNeck-${index}`,
+
+          color:
+            C.giraffe,
+
+          start:
+            segment[0],
+
+          end:
+            segment[1],
+
+          radiusTop:
+            segment[2],
+
+          radiusBottom:
+            segment[3],
+
+          radialSegments:
+            16,
+
+          outlines
+
+        })
+      );
+
+    }
+  );
+
+
+  /*
+   * Feather collar where neck enters body.
+   */
+  root.add(
+    ellipsoid({
+
+      name:
+        "MarvinNeckBase",
+
+      color:
+        C.bodyMid,
+
+      position:
+        [
+          0,
+          1.72,
+          0.01
+        ],
+
+      scale:
+        [
+          0.31,
+          0.20,
+          0.29
+        ],
+
+      outlines,
+
+      segments:
+        18
+
+    })
+  );
+
+
+  /*
+   * =====================================================
+   * LARGE GIRAFFE HEAD
+   * =====================================================
+   */
+
+  root.add(
+    ellipsoid({
+
+      name:
+        "MarvinHead",
+
+      color:
+        C.giraffe,
+
+      position:
+        [
+          0.01,
+          3.48,
+          0.09
+        ],
+
+      scale:
+        [
+          0.46,
+          0.52,
+          0.40
+        ],
+
+      rotation:
+        [
+          0.04,
+          0,
+          0
+        ],
+
+      outlines,
+
+      segments:
+        26
+
+    })
+  );
+
+
+  /*
+   * Big forward muzzle.
+   */
+  root.add(
+    ellipsoid({
+
+      name:
+        "MarvinMuzzle",
+
+      color:
+        C.giraffeLight,
+
+      position:
+        [
+          0.01,
+          3.29,
+          0.48
+        ],
+
+      scale:
+        [
+          0.39,
+          0.25,
+          0.34
+        ],
+
+      rotation:
+        [
+          0.05,
+          0,
+          0
+        ],
+
+      outlines,
+
+      segments:
+        24
+
+    })
+  );
+
+
+  /*
+   * Mouth shadow behind tongue.
+   */
+  root.add(
+    ellipsoid({
+
+      name:
+        "MarvinMouth",
+
+      color:
+        C.black,
+
+      position:
+        [
+          0.01,
+          3.20,
+          0.655
+        ],
+
+      scale:
+        [
+          0.22,
+          0.075,
+          0.025
+        ],
+
+      outlines:
+        false,
+
+      segments:
+        16
+
+    })
+  );
+
+
+  /*
+   * =====================================================
+   * HUGE BULGING EYES
+   * =====================================================
+   */
+
   [
-    [-0.18, 1.82, 0.27, 0.12, 0.18, 0.045],
-    [ 0.15, 2.08, 0.28, 0.10, 0.16, 0.045],
-    [-0.13, 2.34, 0.26, 0.13, 0.14, 0.043],
-    [ 0.16, 2.56, 0.23, 0.10, 0.12, 0.040],
-    [-0.23, 3.16, 0.34, 0.12, 0.10, 0.038],
-    [ 0.25, 3.30, 0.24, 0.10, 0.08, 0.035]
+
+    {
+      side:
+        -1,
+
+      x:
+        -0.25,
+
+      y:
+        3.58,
+
+      z:
+        0.38,
+
+      sx:
+        0.21,
+
+      sy:
+        0.23
+    },
+
+    {
+      side:
+        1,
+
+      x:
+        0.24,
+
+      y:
+        3.60,
+
+      z:
+        0.39,
+
+      sx:
+        0.22,
+
+      sy:
+        0.24
+    }
+
   ]
     .forEach(
-      spot => {
+      (
+        eye,
+        index
+      ) => {
 
         root.add(
           ellipsoid({
 
             name:
-              "MarvinSpot",
+              `MarvinEye-${index}`,
 
             color:
-              SPOT,
+              C.white,
 
             position:
               [
-                spot[0],
-                spot[1],
-                spot[2]
+                eye.x,
+                eye.y,
+                eye.z
               ],
 
             scale:
               [
-                spot[3],
-                spot[4],
-                spot[5]
+                eye.sx,
+                eye.sy,
+                0.17
+              ],
+
+            outlines,
+
+            segments:
+              22
+
+          })
+        );
+
+
+        root.add(
+          ellipsoid({
+
+            name:
+              `MarvinPupil-${index}`,
+
+            color:
+              C.black,
+
+            position:
+              [
+                eye.x +
+                eye.side *
+                0.012,
+
+                eye.y -
+                0.005,
+
+                eye.z +
+                0.155
+              ],
+
+            scale:
+              [
+                0.055,
+                0.070,
+                0.038
               ],
 
             outlines:
@@ -1039,56 +1979,305 @@ function buildMarvin(
 
 
   /*
-   * Smooth transition between
-   * bird body and giraffe neck.
+   * =====================================================
+   * LARGE SIDE EARS
+   * =====================================================
    */
-  root.add(
-    ellipsoid({
 
-      name:
-        "MarvinCollar",
+  [
+    -1,
+    1
+  ]
+    .forEach(
+      side => {
 
-      color:
-        BODY_LIGHT,
+        root.add(
+          ellipsoid({
 
-      position:
-        [
-          0.02,
-          1.48,
-          0.02
-        ],
+            name:
+              `MarvinEar-${side}`,
 
-      scale:
-        [
-          0.39,
-          0.20,
-          0.35
-        ],
+            color:
+              C.giraffeLight,
 
-      outlines,
+            position:
+              [
+                side *
+                0.46,
 
-      segments:
-        16
+                3.78,
 
-    })
+                0.07
+              ],
+
+            scale:
+              [
+                0.31,
+                0.13,
+                0.12
+              ],
+
+            rotation:
+              [
+                0.02,
+
+                side *
+                0.07,
+
+                side *
+                0.30
+              ],
+
+            outlines,
+
+            segments:
+              20
+
+          })
+        );
+
+
+        root.add(
+          ellipsoid({
+
+            name:
+              `MarvinEarInner-${side}`,
+
+            color:
+              C.spot,
+
+            position:
+              [
+                side *
+                0.47,
+
+                3.78,
+
+                0.16
+              ],
+
+            scale:
+              [
+                0.20,
+                0.065,
+                0.025
+              ],
+
+            rotation:
+              [
+                0,
+                0,
+
+                side *
+                0.30
+              ],
+
+            outlines:
+              false,
+
+            segments:
+              16
+
+          })
+        );
+
+      }
+    );
+
+
+  /*
+   * =====================================================
+   * GIRAFFE OSSICONES
+   * =====================================================
+   */
+
+  [
+    -1,
+    1
+  ]
+    .forEach(
+      side => {
+
+        const x =
+          side *
+          0.17;
+
+
+        root.add(
+          rod({
+
+            name:
+              `MarvinOssicone-${side}`,
+
+            color:
+              C.giraffe,
+
+            start:
+              [
+                x,
+                3.88,
+                0.02
+              ],
+
+            end:
+              [
+                x +
+                side *
+                0.015,
+
+                4.22,
+
+                0
+              ],
+
+            radiusTop:
+              0.055,
+
+            radiusBottom:
+              0.065,
+
+            radialSegments:
+              12,
+
+            outlines
+
+          })
+        );
+
+
+        root.add(
+          ellipsoid({
+
+            name:
+              `MarvinOssiconeTip-${side}`,
+
+            color:
+              C.spot,
+
+            position:
+              [
+                x +
+                side *
+                0.015,
+
+                4.26,
+
+                0
+              ],
+
+            scale:
+              [
+                0.095,
+                0.09,
+                0.085
+              ],
+
+            outlines,
+
+            segments:
+              14
+
+          })
+        );
+
+      }
+    );
+
+
+  /*
+   * =====================================================
+   * LARGE NOSTRILS
+   * =====================================================
+   */
+
+  [
+    -1,
+    1
+  ]
+    .forEach(
+      side => {
+
+        root.add(
+          ellipsoid({
+
+            name:
+              `MarvinNostril-${side}`,
+
+            color:
+              C.black,
+
+            position:
+              [
+                side *
+                0.115,
+
+                3.33,
+
+                0.77
+              ],
+
+            scale:
+              [
+                0.052,
+                0.041,
+                0.024
+              ],
+
+            outlines:
+              false,
+
+            segments:
+              12
+
+          })
+        );
+
+      }
+    );
+
+
+  /*
+   * Brown spots on neck/head.
+   */
+  addGiraffeSpots(
+    root,
+    C.spot
+  );
+
+
+  /*
+   * Canonical long hanging tongue.
+   */
+  addTongue(
+    root,
+    C.tongue,
+    outlines
   );
 
 
   return normalize(
     root,
-    2.45
+    2.55
   );
 
 }
 
+
+/*
+ * =========================================================
+ * PUBLIC API
+ * =========================================================
+ */
 
 export function supportsVolumetricCharacter(
   characterId
 ) {
 
   return String(
-    characterId || ""
-  ) === MARVIN_ID;
+    characterId ||
+    ""
+  ) ===
+  MARVIN_ID;
 
 }
 
@@ -1136,12 +2325,18 @@ export function disposeVolumetricCharacter(
   root.traverse(
     child => {
 
-      if (!child.isMesh) {
+      if (
+        !child.isMesh
+      ) {
+
         return;
+
       }
 
 
-      if (child.geometry) {
+      if (
+        child.geometry
+      ) {
 
         geometries.add(
           child.geometry
@@ -1195,22 +2390,25 @@ export function disposeVolumetricCharacter(
 
 
 /*
- * Creates an actual binary GLB.
- *
- * Export is lazy, so GLTFExporter
- * is NOT loaded during normal play.
+ * =========================================================
+ * GLB EXPORT
+ * =========================================================
  */
+
 export async function exportVolumetricGLB(
   characterId
 ) {
 
   const character =
     createVolumetricCharacter(
+
       characterId,
+
       {
         outlines:
           false
       }
+
     );
 
 
@@ -1252,7 +2450,8 @@ export async function exportVolumetricGLB(
 
 
           if (
-            result instanceof ArrayBuffer
+            result instanceof
+            ArrayBuffer
           ) {
 
             resolve(
@@ -1304,10 +2503,6 @@ export async function exportVolumetricGLB(
 }
 
 
-/*
- * Later we can wire this to a
- * dev-only button instead of Console.
- */
 export async function downloadVolumetricGLB(
   characterId,
   filename =
@@ -1322,11 +2517,16 @@ export async function downloadVolumetricGLB(
 
   const blob =
     new Blob(
-      [buffer],
+
+      [
+        buffer
+      ],
+
       {
         type:
           "model/gltf-binary"
       }
+
     );
 
 
@@ -1345,6 +2545,7 @@ export async function downloadVolumetricGLB(
   anchor.href =
     url;
 
+
   anchor.download =
     filename;
 
@@ -1356,14 +2557,18 @@ export async function downloadVolumetricGLB(
 
   anchor.click();
 
+
   anchor.remove();
 
 
   window.setTimeout(
-    () =>
+    () => {
+
       URL.revokeObjectURL(
         url
-      ),
+      );
+
+    },
     1500
   );
 
