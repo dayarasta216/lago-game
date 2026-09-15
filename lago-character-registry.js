@@ -240,7 +240,7 @@
           "./assets/characters/comic-marvin(5).svg?v=8",
 
         model3d:
-          "./assets/model/comic-giraffe-bird.glb?v=1",
+  "./assets/model/comic-giraffe-bird.glb?v=2",
 
         shop:
           Object.freeze({
