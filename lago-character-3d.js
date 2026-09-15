@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  13;
+  14;
 
 
   const BASE_LAGO_MODEL =
@@ -35,6 +35,175 @@ import {
     -Math.PI /
     2;
 
+    /*
+   * =========================================================
+   * MODEL-SPECIFIC 3D PROFILES
+   * =========================================================
+   *
+   * Legacy Lago GLBs:
+   * X = width
+   * Y = depth
+   * Z = height
+   *
+   * New Marvin Meshy GLB:
+   * X = width
+   * Y = height
+   * Z = depth
+   */
+  const MODEL_PROFILES =
+    Object.freeze([
+
+      Object.freeze({
+
+        match:
+          "marvin-volumetric.glb",
+
+        /*
+         * Meshy model is already Y-up.
+         * Never apply legacy -90deg X rotation.
+         */
+        rotationX:
+          0,
+
+        rotationY:
+          0,
+
+        rotationZ:
+          0,
+
+        targetSize:
+          2.55,
+
+        /*
+         * Uploaded PBR material reports
+         * metallic = 1.
+         *
+         * Marvin must look like cloth /
+         * feathers / skin, not chrome.
+         */
+        metalness:
+          0,
+
+        roughness:
+          .72
+
+      })
+
+    ]);
+
+
+  function modelProfile(
+    modelUrl
+  ) {
+
+    const url =
+      String(
+        modelUrl ||
+        ""
+      ).toLowerCase();
+
+
+    return (
+      MODEL_PROFILES
+        .find(
+          profile =>
+            url.includes(
+              profile.match
+            )
+        ) ||
+      null
+    );
+
+  }
+
+
+  function tuneProfileMaterial(
+    object,
+    profile
+  ) {
+
+    if (
+      !object ||
+      !profile
+    ) {
+
+      return;
+
+    }
+
+
+    object.traverse(
+      child => {
+
+        if (
+          !child.isMesh
+        ) {
+
+          return;
+
+        }
+
+
+        const materials =
+          Array.isArray(
+            child.material
+          )
+
+            ? child.material
+
+            : [
+                child.material
+              ];
+
+
+        materials.forEach(
+          material => {
+
+            if (!material) {
+              return;
+            }
+
+
+            if (
+              "metalness" in
+              material
+            ) {
+
+              material.metalness =
+                profile.metalness;
+
+            }
+
+
+            if (
+              "roughness" in
+              material
+            ) {
+
+              material.roughness =
+                profile.roughness;
+
+            }
+
+
+            /*
+             * Meshy GLB contains open /
+             * complex surfaces.
+             */
+            material.side =
+              THREE.DoubleSide;
+
+
+            material.needsUpdate =
+              true;
+
+          }
+        );
+
+      }
+    );
+
+  }
 
   const loader =
     new GLTFLoader();
@@ -521,10 +690,26 @@ const previewSnapshotCache =
   modelUrl
 ) {
 
+        const profile =
+      modelProfile(
+        modelUrl
+      );
+
+
     object.rotation.set(
+
+      profile
+        ?.rotationX ??
       CHARACTER_ROTATION_X,
+
+      profile
+        ?.rotationY ??
       0,
+
+      profile
+        ?.rotationZ ??
       0
+
     );
 
 
@@ -569,7 +754,9 @@ const previewSnapshotCache =
       );
 
 
-    const targetSize =
+       const targetSize =
+      profile
+        ?.targetSize ??
       2.35;
 
 
@@ -625,6 +812,22 @@ const previewSnapshotCache =
 
     }
 
+        /*
+     * New native volumetric models
+     * need material correction only.
+     *
+     * No fake depth scaling.
+     */
+    if (
+      profile
+    ) {
+
+      tuneProfileMaterial(
+        object,
+        profile
+      );
+
+    }
 
     object.updateMatrixWorld(
       true
