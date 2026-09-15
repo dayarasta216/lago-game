@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  12;
+  13;
 
 
   const BASE_LAGO_MODEL =
@@ -299,10 +299,227 @@ const previewSnapshotCache =
    * =========================================================
    */
 
+  /*
+   * =========================================================
+   * SOURCE GLB VOLUME PROFILES
+   * =========================================================
+   *
+   * Important:
+   * these do NOT replace or rebuild characters.
+   *
+   * We use the real source GLB geometry and only
+   * restore a believable amount of depth.
+   *
+   * Source model axes:
+   *
+   * X = width
+   * Y = depth
+   * Z = height
+   */
+  const SOURCE_VOLUME_PROFILES =
+    Object.freeze([
 
-  function normalizeModel(
-    object
+      Object.freeze({
+
+        match:
+          "comic-giraffe-bird.glb",
+
+        /*
+         * Original Marvin:
+         * depth ≈ 0.39
+         * height ≈ 10.97
+         *
+         * The source already contains a relief surface,
+         * Side mesh and Back mesh.
+         *
+         * We enlarge that EXISTING relief instead of
+         * inventing another Marvin.
+         */
+        depthScale:
+          5.5,
+
+        roughness:
+          0.78
+
+      })
+
+    ]);
+
+
+  function sourceVolumeProfile(
+    modelUrl
   ) {
+
+    const url =
+      String(
+        modelUrl ||
+        ""
+      ).toLowerCase();
+
+
+    return (
+      SOURCE_VOLUME_PROFILES
+        .find(
+          profile =>
+            url.includes(
+              profile.match
+            )
+        ) ||
+      null
+    );
+
+  }
+
+
+  function prepareSourceVolumeGeometry(
+    object,
+    profile
+  ) {
+
+    if (
+      !object ||
+      !profile
+    ) {
+
+      return;
+
+    }
+
+
+    object.traverse(
+      child => {
+
+        if (
+          !child.isMesh
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * The supplied Marvin GLB does not contain
+         * explicit NORMAL attributes.
+         *
+         * Calculate normals from the REAL supplied
+         * geometry so Three.js lighting reveals
+         * its existing relief.
+         */
+        const geometry =
+          child.geometry;
+
+
+        if (
+          geometry &&
+          geometry.attributes?.position
+        ) {
+
+          geometry.computeVertexNormals();
+
+
+          if (
+            geometry.attributes.normal
+          ) {
+
+            geometry
+              .attributes
+              .normal
+              .needsUpdate =
+                true;
+
+          }
+
+
+          geometry.computeBoundingBox();
+
+          geometry.computeBoundingSphere();
+
+        }
+
+
+        const materials =
+          Array.isArray(
+            child.material
+          )
+
+            ? child.material
+
+            : [
+                child.material
+              ];
+
+
+        materials.forEach(
+          material => {
+
+            if (!material) {
+              return;
+            }
+
+
+            /*
+             * Keep source texture/colors.
+             * Only make lighting suitable
+             * for a cartoon figurine.
+             */
+            if (
+              "roughness" in
+              material
+            ) {
+
+              material.roughness =
+                profile.roughness;
+
+            }
+
+
+            if (
+              "metalness" in
+              material
+            ) {
+
+              material.metalness =
+                0;
+
+            }
+
+
+            material.flatShading =
+              false;
+
+
+            /*
+             * Front / Side / Back must remain
+             * visible while Marvin tilts on knife.
+             */
+            material.side =
+              THREE.DoubleSide;
+
+
+            material.needsUpdate =
+              true;
+
+          }
+        );
+
+
+        child.castShadow =
+          true;
+
+
+        child.receiveShadow =
+          true;
+
+      }
+    );
+
+  }
+  
+  function normalizeModel(
+  object,
+  modelUrl
+) {
 
     object.rotation.set(
       CHARACTER_ROTATION_X,
@@ -356,14 +573,57 @@ const previewSnapshotCache =
       2.35;
 
 
-    const scale =
+        const scale =
       targetSize /
       largest;
 
 
-    object.scale.setScalar(
-      scale
-    );
+    const volumeProfile =
+      sourceVolumeProfile(
+        modelUrl
+      );
+
+
+    if (
+      volumeProfile
+    ) {
+
+      /*
+       * CRITICAL:
+       *
+       * We are not stretching the rendered image.
+       *
+       * Local Y is the DEPTH AXIS of the actual
+       * source GLB before CHARACTER_ROTATION_X.
+       *
+       * This moves its existing Front / Side / Back
+       * geometry farther apart and magnifies the
+       * relief already stored in Front.
+       */
+      object.scale.set(
+
+        scale,
+
+        scale *
+        volumeProfile.depthScale,
+
+        scale
+
+      );
+
+
+      prepareSourceVolumeGeometry(
+        object,
+        volumeProfile
+      );
+
+    } else {
+
+      object.scale.setScalar(
+        scale
+      );
+
+    }
 
 
     object.updateMatrixWorld(
@@ -501,8 +761,9 @@ const previewSnapshotCache =
 
 
                 normalizeModel(
-                  template
-                );
+  template,
+  key
+);
 
 
                 modelCache.set(
