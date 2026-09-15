@@ -3,7 +3,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 17;
+  const VERSION = 18;
 
   const GAME_ID =
     "knife-challenge";
@@ -303,16 +303,18 @@ function currentLevelProfile() {
     0;
 
 
-  /*
+   /*
    * Continuous balance physics.
    *
    * -1 = falling left
    *  0 = perfect balance
    * +1 = falling right
    */
-  resetControlInput();
+  let inputAxis =
+    0;
 
-    /*
+
+  /*
    * =======================================================
    * CONTROL INPUT
    * =======================================================
@@ -2191,66 +2193,39 @@ let dangerTime =
       canvas
     );
 
-    
-    return overlay;
-
-  }
-
-      /*
+        /*
        * ===================================================
        * ANALOG TOUCH CONTROL
        * ===================================================
        */
 
       .lago-touch-guide {
-        position:
-          absolute;
+        position: absolute;
+        left: 50%;
+        bottom: 17px;
+        z-index: 28;
 
-        left:
-          50%;
-
-        bottom:
-          17px;
-
-        z-index:
-          28;
-
-        width:
-          min(
-            360px,
-            82vw
-          );
+        width: min(360px, 82vw);
 
         transform:
-          translateX(
-            -50%
-          );
+          translateX(-50%);
 
-        display:
-          none;
+        display: none;
 
-        gap:
-          7px;
+        pointer-events: none;
 
-        pointer-events:
-          none;
-
-        opacity:
-          .72;
-
-        transition:
-          opacity
-          .14s ease;
+        opacity: .72;
       }
 
 
       .lago-touch-guide.active {
-        opacity:
-          1;
+        opacity: 1;
       }
 
 
       .lago-touch-guide-label {
+        margin-bottom: 7px;
+
         color:
           rgba(
             255,
@@ -2259,29 +2234,19 @@ let dangerTime =
             .72
           );
 
-        font-size:
-          8px;
+        font-size: 8px;
+        font-weight: 1000;
+        letter-spacing: .12em;
 
-        font-weight:
-          1000;
-
-        letter-spacing:
-          .12em;
-
-        text-align:
-          center;
+        text-align: center;
       }
 
 
       .lago-touch-rail {
-        position:
-          relative;
+        position: relative;
 
-        width:
-          100%;
-
-        height:
-          30px;
+        width: 100%;
+        height: 30px;
 
         border:
           1px solid
@@ -2292,8 +2257,7 @@ let dangerTime =
             .13
           );
 
-        border-radius:
-          999px;
+        border-radius: 999px;
 
         background:
           linear-gradient(
@@ -2303,41 +2267,21 @@ let dangerTime =
             rgba(255,75,75,.24)
           );
 
-        box-shadow:
-          inset
-          0 0 18px
-          rgba(
-            0,
-            0,
-            0,
-            .46
-          );
-
         backdrop-filter:
-          blur(
-            10px
-          );
+          blur(10px);
       }
 
 
       .lago-touch-rail::after {
-        content:
-          "";
+        content: "";
 
-        position:
-          absolute;
+        position: absolute;
 
-        left:
-          50%;
+        left: 50%;
+        top: 5px;
+        bottom: 5px;
 
-        top:
-          5px;
-
-        bottom:
-          5px;
-
-        width:
-          1px;
+        width: 1px;
 
         background:
           rgba(
@@ -2350,8 +2294,7 @@ let dangerTime =
 
 
       .lago-touch-thumb {
-        position:
-          absolute;
+        position: absolute;
 
         left:
           calc(
@@ -2359,35 +2302,24 @@ let dangerTime =
             12px
           );
 
-        top:
-          3px;
+        top: 3px;
 
-        width:
-          24px;
+        width: 24px;
+        height: 24px;
 
-        height:
-          24px;
-
-        border-radius:
-          50%;
+        border-radius: 50%;
 
         background:
           #ccff00;
 
         box-shadow:
-          0
-          0
-          22px
+          0 0 22px
           rgba(
             204,
             255,
             0,
             .56
           );
-
-        transition:
-          transform
-          .04s linear;
       }
 
 
@@ -2397,450 +2329,15 @@ let dangerTime =
       ) {
 
         .lago-touch-guide {
-          display:
-            grid;
+          display: block;
         }
 
 
         .lago-balance-ui {
-          bottom:
-            76px;
+          bottom: 76px;
         }
 
       }
-
-  /*
-   * =======================================================
-   * THREE.JS
-   * =======================================================
-   */
-
-  function createRenderer() {
-
-    if (renderer) {
-      return;
-    }
-
-
-    renderer =
-      new THREE.WebGLRenderer({
-
-        canvas,
-
-        antialias:
-          true,
-
-        alpha:
-          false,
-
-        powerPreference:
-          "high-performance"
-
-      });
-
-
-    renderer.outputColorSpace =
-      THREE.SRGBColorSpace;
-
-
-    renderer.toneMapping =
-      THREE.ACESFilmicToneMapping;
-
-
-    renderer.toneMappingExposure =
-  1.20;
-
-    renderer.shadowMap.enabled =
-      true;
-
-
-    renderer.shadowMap.type =
-      THREE.PCFSoftShadowMap;
-
-
-    /*
-     * Required for cartoon 3D
-     * split into two halves.
-     */
-    renderer.localClippingEnabled =
-      true;
-
-
-    scene =
-      new THREE.Scene();
-
-
-    scene.background =
-  new THREE.Color(
-    0x251813
-  );
-
-
-    scene.fog =
-      new THREE.Fog(
-        0x21160f,
-        12,
-        24
-      );
-
-camera =
-  new THREE.PerspectiveCamera(
-    36,
-    1,
-    0.1,
-    60
-  );
-
-
-/*
- * Lower, closer camera:
- * blade thickness + character volume
- * become much more obvious.
- */
-camera.position.set(
-  7.25,
-  4.35,
-  9.25
-);
-
-
-camera.lookAt(
-  0,
-  1.35,
-  .25
-);
-
-
-    scene.add(
-      new THREE.HemisphereLight(
-        0xfff1d5,
-        0x2a1710,
-        2.1
-      )
-    );
-
-
-    const keyLight =
-      new THREE.DirectionalLight(
-        0xffffff,
-        3.6
-      );
-
-
-    keyLight.position.set(
-      3.8,
-      8.5,
-      5.8
-    );
-
-
-    keyLight.castShadow =
-      true;
-
-
-    keyLight.shadow
-  .mapSize
-  .set(
-    512,
-    512
-  );
-
-
-    keyLight.shadow.camera.near =
-      .1;
-
-    keyLight.shadow.camera.far =
-      24;
-
-    keyLight.shadow.camera.left =
-      -8;
-
-    keyLight.shadow.camera.right =
-      8;
-
-    keyLight.shadow.camera.top =
-      8;
-
-    keyLight.shadow.camera.bottom =
-      -8;
-
-
-    scene.add(
-      keyLight
-    );
-
-
-    const warmLight =
-      new THREE.PointLight(
-        0xffb16b,
-        12,
-        12,
-        2
-      );
-
-
-    warmLight.position.set(
-      -4.5,
-      3.2,
-      2.4
-    );
-
-
-    scene.add(
-      warmLight
-    );
-
-
-    world =
-      new THREE.Group();
-
-
-    scene.add(
-      world
-    );
-
-
-       buildKitchen();
-
-    buildKnife();
-
-    buildPlate();
-
-    buildVegetables();
-
-    buildKitchenDecorV2();
-
-    /*
-     * Character is its own pivot.
-     *
-     * We tilt/move this group while
-     * leaving original GLB untouched.
-     */
-    characterPivot =
-      new THREE.Group();
-
-
-    scene.add(
-      characterPivot
-    );
-
-
-    resizeObserver =
-      new ResizeObserver(
-        resizeRenderer
-      );
-
-
-    resizeObserver.observe(
-      el(
-        "lagoKnifeStage"
-      )
-    );
-
-      function buildKitchenDecorV2() {
-
-    /*
-     * =====================================================
-     * SINK
-     * =====================================================
-     */
-
-    world.add(
-      box(
-
-        new THREE.Vector3(
-          2.15,
-          .13,
-          1.52
-        ),
-
-        0xb8c1c5,
-
-        new THREE.Vector3(
-          -4.10,
-          .38,
-          .28
-        ),
-
-        .22,
-        .72
-
-      )
-    );
-
-
-    world.add(
-      box(
-
-        new THREE.Vector3(
-          1.72,
-          .09,
-          1.12
-        ),
-
-        0x3d4548,
-
-        new THREE.Vector3(
-          -4.10,
-          .45,
-          .28
-        ),
-
-        .24,
-        .65
-
-      )
-    );
-
-
-    const faucetBase =
-      new THREE.Mesh(
-
-        new THREE
-          .CylinderGeometry(
-            .10,
-            .13,
-            .46,
-            18
-          ),
-
-        material(
-          0xbec8cb,
-          .18,
-          .84
-        )
-
-      );
-
-
-    faucetBase.position.set(
-      -4.10,
-      .74,
-      -.32
-    );
-
-
-    faucetBase.castShadow =
-      true;
-
-
-    world.add(
-      faucetBase
-    );
-
-
-    const faucetArc =
-      new THREE.Mesh(
-
-        new THREE
-          .TorusGeometry(
-            .36,
-            .055,
-            10,
-            26,
-            Math.PI
-          ),
-
-        material(
-          0xbec8cb,
-          .18,
-          .84
-        )
-
-      );
-
-
-    faucetArc.rotation.y =
-      Math.PI /
-      2;
-
-
-    faucetArc.position.set(
-      -4.10,
-      1.05,
-      -.03
-    );
-
-
-    world.add(
-      faucetArc
-    );
-
-
-    /*
-     * =====================================================
-     * WALL CLOCK
-     * =====================================================
-     */
-
-    const clock =
-      new THREE.Mesh(
-
-        new THREE
-          .CylinderGeometry(
-            .48,
-            .48,
-            .09,
-            32
-          ),
-
-        material(
-          0xefe4c9,
-          .72
-        )
-
-      );
-
-
-    clock.rotation.x =
-      Math.PI /
-      2;
-
-
-    clock.position.set(
-      4.62,
-      3.55,
-      -3.18
-    );
-
-
-    clock.castShadow =
-      true;
-
-
-    world.add(
-      clock
-    );
-
-
-    const clockHub =
-      new THREE.Mesh(
-
-        new THREE
-          .SphereGeometry(
-            .055,
-            12,
-            8
-          ),
-
-        material(
-          0x252323,
-          .55
-        )
-
-      );
-
-
-    clockHub.position.set(
-      4.62,
-      3.55,
-      -3.08
-    );
-
-
-    world.add(
-      clockHub
-    );
 
 
     /*
@@ -7110,8 +6607,11 @@ const gained =
           : 1;
 
 
-    syncControlAxis();
-    
+       syncControlAxis();
+
+  }
+
+
   document.addEventListener(
     "keydown",
     event => {
