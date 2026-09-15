@@ -1,16 +1,9 @@
 import * as THREE from "three";
-
-import {
-  supportsVolumetricCharacter,
-  createVolumetricCharacter,
-  disposeVolumetricCharacter
-} from "./lago-character-volumetric.js?v=2";
-
 (() => {
   "use strict";
 
 
-  const VERSION = 15;
+  const VERSION = 16;
 
   const GAME_ID =
     "knife-challenge";
@@ -3673,113 +3666,21 @@ camera.lookAt(
 
   }
 
-  async function mountSelectedCharacter() {
+    async function mountSelectedCharacter() {
 
     if (!context) {
       return;
     }
 
 
-    const characterId =
-      String(
-        context.characterId ||
-        ""
-      );
-
-
     /*
-     * =====================================================
-     * VOLUMETRIC CHARACTER PATH
-     * =====================================================
+     * Every character now comes from its
+     * canonical source GLB.
      *
-     * Marvin uses real generated
-     * volumetric Three.js geometry.
-     */
-    if (
-      supportsVolumetricCharacter(
-        characterId
-      )
-    ) {
-
-     const key =
-  `volumetric:${characterId}:v2`;;
-
-
-      /*
-       * Already mounted.
-       */
-      if (
-        characterModel &&
-        activeModelUrl === key
-      ) {
-
-        characterModel.visible =
-          true;
-
-        return;
-
-      }
-
-
-      clearCharacter();
-
-
-      characterModel =
-        createVolumetricCharacter(
-          characterId,
-          {
-            outlines:
-              true
-          }
-        );
-
-
-      if (!characterModel) {
-
-        throw new Error(
-          `Volumetric character failed: ${characterId}`
-        );
-
-      }
-
-
-      /*
-       * Important:
-       * do NOT call prepareCharacterForKnife().
-       *
-       * Volumetric model is already
-       * built in normal upright XYZ.
-       */
-      activeModelUrl =
-        key;
-
-
-      characterPivot.add(
-        characterModel
-      );
-
-
-      resetCharacterPose();
-
-
-      console.info(
-        "[LAGO KNIFE] volumetric character mounted:",
-        characterId
-      );
-
-
-      return;
-
-    }
-
-
-    /*
-     * =====================================================
-     * LEGACY GLB FALLBACK
-     * =====================================================
+     * Marvin is NOT rebuilt here.
      *
-     * All characters except Marvin
-     * still use canonical GLB cache.
+     * His original GLB is volumized by
+     * LAGO_CHARACTER_3D before cloning.
      */
     const url =
       String(
@@ -3835,10 +3736,16 @@ camera.lookAt(
 
     resetCharacterPose();
 
+
+    console.info(
+      "[LAGO KNIFE] canonical GLB mounted:",
+      url
+    );
+
   }
 
 
-  function clearCharacter() {
+   function clearCharacter() {
 
     clearFallPieces();
 
@@ -3852,28 +3759,15 @@ camera.lookAt(
         characterModel
       );
 
-
-      /*
-       * Generated geometry owns its
-       * materials/geometries and must
-       * release them explicitly.
-       */
-      if (
-        characterModel
-          .userData
-          ?.lagoVolumetric ===
-        true
-      ) {
-
-        disposeVolumetricCharacter(
-          characterModel
-        );
-
-      }
-
     }
 
 
+    /*
+     * Do NOT dispose geometry/materials here.
+     *
+     * Canonical GLB clones share the parsed
+     * LAGO_CHARACTER_3D cache.
+     */
     characterModel =
       null;
 
@@ -3882,8 +3776,6 @@ camera.lookAt(
       "";
 
   }
-
-
 
   function resetCharacterPose() {
 
