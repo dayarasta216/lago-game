@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    6;
+    7;
 
 
   /*
@@ -240,7 +240,7 @@
           "./assets/characters/comic-marvin(5).svg?v=8",
 
         model3d:
-  "./assets/model/comic-giraffe-bird.glb?v=2",
+  "./assets/model/marvin-volumetric.glb?v=1",
 
         shop:
           Object.freeze({
