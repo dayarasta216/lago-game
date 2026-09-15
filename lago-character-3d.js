@@ -491,7 +491,7 @@ const previewSnapshotCache =
       Object.freeze({
 
         match:
-          "comic-giraffe-bird.glb",
+       marvin-volumetric.glb
 
         /*
          * Original Marvin:
