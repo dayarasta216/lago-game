@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 15;
+  const VERSION = 16;
 
 let overlay = null;
 
@@ -36,8 +36,8 @@ const GAME_MODULES =
 
         load() {
 
-         return import(
-  "./lago-game-knife.js?v=17"
+       return import(
+  "./lago-game-knife.js?v=18"
 );
         }
 
