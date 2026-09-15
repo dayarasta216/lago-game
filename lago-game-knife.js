@@ -10,7 +10,7 @@ import {
   "use strict";
 
 
-  const VERSION = 13;
+  const VERSION = 14;
 
   const GAME_ID =
     "knife-challenge";
@@ -3673,127 +3673,216 @@ camera.lookAt(
 
   }
 
-
   async function mountSelectedCharacter() {
 
-  if (!context) {
-    return;
-  }
+    if (!context) {
+      return;
+    }
 
 
-  const characterId =
-    String(
-      context.characterId || ""
-    );
+    const characterId =
+      String(
+        context.characterId ||
+        ""
+      );
 
 
-  /*
-   * =====================================================
-   * VOLUMETRIC CHARACTER PATH
-   * =====================================================
-   *
-   * Marvin is the pilot.
-   * Other characters still use GLB.
-   */
- function clearCharacter() {
-
-  clearFallPieces();
-
-
-  if (
-    characterModel &&
-    characterPivot
-  ) {
-
-    characterPivot.remove(
-      characterModel
-    );
-
-
+    /*
+     * =====================================================
+     * VOLUMETRIC CHARACTER PATH
+     * =====================================================
+     *
+     * Marvin uses real generated
+     * volumetric Three.js geometry.
+     */
     if (
-      characterModel
-        .userData
-        ?.lagoVolumetric ===
-      true
+      supportsVolumetricCharacter(
+        characterId
+      )
     ) {
 
-      disposeVolumetricCharacter(
+      const key =
+        `volumetric:${characterId}:v1`;
+
+
+      /*
+       * Already mounted.
+       */
+      if (
+        characterModel &&
+        activeModelUrl === key
+      ) {
+
+        characterModel.visible =
+          true;
+
+        return;
+
+      }
+
+
+      clearCharacter();
+
+
+      characterModel =
+        createVolumetricCharacter(
+          characterId,
+          {
+            outlines:
+              true
+          }
+        );
+
+
+      if (!characterModel) {
+
+        throw new Error(
+          `Volumetric character failed: ${characterId}`
+        );
+
+      }
+
+
+      /*
+       * Important:
+       * do NOT call prepareCharacterForKnife().
+       *
+       * Volumetric model is already
+       * built in normal upright XYZ.
+       */
+      activeModelUrl =
+        key;
+
+
+      characterPivot.add(
         characterModel
+      );
+
+
+      resetCharacterPose();
+
+
+      console.info(
+        "[LAGO KNIFE] volumetric character mounted:",
+        characterId
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * =====================================================
+     * LEGACY GLB FALLBACK
+     * =====================================================
+     *
+     * All characters except Marvin
+     * still use canonical GLB cache.
+     */
+    const url =
+      String(
+        context.characterModel3d ||
+        ""
+      ).trim();
+
+
+    if (!url) {
+
+      throw new Error(
+        "Selected character has no GLB"
       );
 
     }
 
-  }
+
+    if (
+      characterModel &&
+      activeModelUrl === url
+    ) {
+
+      characterModel.visible =
+        true;
+
+      return;
+
+    }
 
 
-  characterModel =
-    null;
+    clearCharacter();
 
 
-  activeModelUrl =
-    "";
-
-}
-
-  /*
-   * =====================================================
-   * LEGACY GLB FALLBACK
-   * =====================================================
-   */
-  const url =
-    String(
-      context.characterModel3d || ""
-    ).trim();
+    characterModel =
+      await loadCharacter(
+        url
+      );
 
 
-  if (!url) {
-
-    throw new Error(
-      "Selected character has no GLB"
-    );
-
-  }
-
-
-  if (
-    characterModel &&
-    activeModelUrl === url
-  ) {
-
-    characterModel.visible =
-      true;
-
-    return;
-
-  }
-
-
-  clearCharacter();
-
-
-  characterModel =
-    await loadCharacter(
-      url
+    prepareCharacterForKnife(
+      characterModel
     );
 
 
-  prepareCharacterForKnife(
-    characterModel
-  );
+    activeModelUrl =
+      url;
 
 
-  activeModelUrl =
-    url;
+    characterPivot.add(
+      characterModel
+    );
 
 
-  characterPivot.add(
-    characterModel
-  );
+    resetCharacterPose();
+
+  }
 
 
-  resetCharacterPose();
+  function clearCharacter() {
 
-}
+    clearFallPieces();
+
+
+    if (
+      characterModel &&
+      characterPivot
+    ) {
+
+      characterPivot.remove(
+        characterModel
+      );
+
+
+      /*
+       * Generated geometry owns its
+       * materials/geometries and must
+       * release them explicitly.
+       */
+      if (
+        characterModel
+          .userData
+          ?.lagoVolumetric ===
+        true
+      ) {
+
+        disposeVolumetricCharacter(
+          characterModel
+        );
+
+      }
+
+    }
+
+
+    characterModel =
+      null;
+
+
+    activeModelUrl =
+      "";
+
+  }
+
 
 
   function resetCharacterPose() {
