@@ -4,13 +4,13 @@ import {
   supportsVolumetricCharacter,
   createVolumetricCharacter,
   disposeVolumetricCharacter
-} from "./lago-character-volumetric.js?v=1";
+} from "./lago-character-volumetric.js?v=2";
 
 (() => {
   "use strict";
 
 
-  const VERSION = 14;
+  const VERSION = 15;
 
   const GAME_ID =
     "knife-challenge";
@@ -3701,8 +3701,8 @@ camera.lookAt(
       )
     ) {
 
-      const key =
-        `volumetric:${characterId}:v1`;
+     const key =
+  `volumetric:${characterId}:v2`;;
 
 
       /*
