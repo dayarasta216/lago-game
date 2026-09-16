@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    8;
+    9;
 
 
   /*
@@ -452,11 +452,9 @@ model3d:
         dailyReward:
           false
 
-      })
+           }),
 
-    ]);
-
-        Object.freeze({
+      Object.freeze({
 
         id:
           "comic_bozz",
@@ -559,9 +557,10 @@ model3d:
         dailyReward:
           false
 
-      })
+           })
 
-  
+    ]);
+
 
   /*
    * =========================================================
