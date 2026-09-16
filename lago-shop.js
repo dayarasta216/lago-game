@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 3;
+  const VERSION = 4;
 
   let lastRenderKey = "";
 
@@ -123,66 +123,90 @@
    * back to GLB.
    */
   function createCharacterVisual(
-    character
-  ) {
+  character
+) {
 
-    const asset =
-      typeof character?.asset ===
+  /*
+   * GLB is the canonical character.
+   *
+   * Legacy artwork remains only as
+   * fallback when model3d is absent.
+   */
+  const model3d =
+    typeof character
+      ?.model3d ===
       "string"
-        ? character.asset.trim()
-        : "";
+
+      ? character
+          .model3d
+          .trim()
+
+      : "";
 
 
-    if (asset) {
-      return `
-        <img
-          class="lago-shop-character-image"
-          src="${escapeHTML(asset)}"
-          alt="${escapeHTML(character.name)}"
-          draggable="false"
-          loading="lazy"
-          decoding="async"
-        >
-      `;
-    }
-
-
-    const model3d =
-      typeof character?.model3d ===
-      "string"
-        ? character.model3d.trim()
-        : "";
-
-
-    if (model3d) {
-      return `
-        <div
-          class="
-            lago-shop-character-image
-            lago-shop-glb-preview
-          "
-          data-lago-glb-preview="${escapeHTML(
-            model3d
-          )}"
-          role="img"
-          aria-label="${escapeHTML(
-            character.name
-          )}"
-        ></div>
-      `;
-    }
-
+  if (model3d) {
 
     return `
       <div
         class="
           lago-shop-character-image
-          lago-shop-character-empty
+          lago-shop-glb-preview
         "
+        data-lago-glb-preview="${escapeHTML(
+          model3d
+        )}"
+        role="img"
+        aria-label="${escapeHTML(
+          character.name
+        )}"
       ></div>
     `;
+
   }
 
+
+  const asset =
+    typeof character
+      ?.asset ===
+      "string"
+
+      ? character
+          .asset
+          .trim()
+
+      : "";
+
+
+  if (asset) {
+
+    return `
+      <img
+        class="lago-shop-character-image"
+        src="${escapeHTML(
+          asset
+        )}"
+        alt="${escapeHTML(
+          character.name
+        )}"
+        draggable="false"
+        loading="lazy"
+        decoding="async"
+      >
+    `;
+
+  }
+
+
+  return `
+    <div
+      class="
+        lago-shop-character-image
+        lago-shop-character-empty
+      "
+    ></div>
+  `;
+
+}
 
   function mountPreviewHosts(root) {
 
