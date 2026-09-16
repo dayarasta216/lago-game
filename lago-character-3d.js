@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  22;
+  23;
 
 
   const BASE_LAGO_MODEL =
@@ -123,146 +123,127 @@ import {
 
 
   function tuneProfileMaterial(
-    object,
-    profile
+  object,
+  profile
+) {
+
+  if (
+    !object ||
+    !profile
   ) {
-
-    if (
-      !object ||
-      !profile
-    ) {
-
-      return;
-
-    }
+    return;
+  }
 
 
-   object.traverse(
-  child => {
+  object.traverse(
+    child => {
 
-    if (
-      !child.isMesh
-    ) {
-
-      return;
-
-    }
+      if (
+        !child.isMesh
+      ) {
+        return;
+      }
 
 
-    /*
-     * Optimized production GLBs use
-     * quantized POSITION/UV data.
-     *
-     * Vertex NORMAL was intentionally
-     * removed during size optimization.
-     *
-     * PBR materials require normals for
-     * correct lighting, so rebuild them
-     * once when the GLB enters the
-     * canonical model cache.
-     */
-    const geometry =
-      child.geometry;
-
-
-    if (
-      geometry
-        ?.attributes
-        ?.position &&
-      !geometry
-        .attributes
-        .normal
-    ) {
-
-      geometry
-        .computeVertexNormals();
+      const geometry =
+        child.geometry;
 
 
       if (
         geometry
+          ?.attributes
+          ?.position &&
+        !geometry
           .attributes
           .normal
       ) {
 
         geometry
-          .attributes
-          .normal
-          .needsUpdate =
-            true;
-
-      }
+          .computeVertexNormals();
 
 
-      geometry
-        .computeBoundingBox();
+        if (
+          geometry
+            .attributes
+            .normal
+        ) {
 
-
-      geometry
-        .computeBoundingSphere();
-
-    }
-            child.material
-          )
-
-            ? child.material
-
-            : [
-                child.material
-              ];
-
-
-        materials.forEach(
-          material => {
-
-            if (!material) {
-              return;
-            }
-
-
-            if (
-              "metalness" in
-              material
-            ) {
-
-              material.metalness =
-                profile.metalness;
-
-            }
-
-
-            if (
-              "roughness" in
-              material
-            ) {
-
-              material.roughness =
-                profile.roughness;
-
-            }
-
-material.flatShading =
-  false;
-            /*
-             * Meshy GLB contains open /
-             * complex surfaces.
-             */
-            material.side =
-              THREE.DoubleSide;
-
-
-            material.needsUpdate =
+          geometry
+            .attributes
+            .normal
+            .needsUpdate =
               true;
 
-          }
-        );
+        }
+
+
+        geometry
+          .computeBoundingBox();
+
+        geometry
+          .computeBoundingSphere();
 
       }
-    );
 
-  }
 
-  const loader =
-    new GLTFLoader();
+      const materials =
+        Array.isArray(
+          child.material
+        )
+
+          ? child.material
+
+          : [
+              child.material
+            ];
+
+
+      materials.forEach(
+        material => {
+
+          if (!material) {
+            return;
+          }
+
+
+          if (
+            "metalness" in
+            material
+          ) {
+
+            material.metalness =
+              profile.metalness;
+
+          }
+
+
+          if (
+            "roughness" in
+            material
+          ) {
+
+            material.roughness =
+              profile.roughness;
+
+          }
+
+
+          material.flatShading =
+            false;
+
+          material.side =
+            THREE.DoubleSide;
+
+          material.needsUpdate =
+            true;
+
+        }
+      );
+
+    }
+  );
+
+}
 
 
   /*
