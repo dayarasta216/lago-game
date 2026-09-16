@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  14;
+  15;
 
 
   const BASE_LAGO_MODEL =
@@ -275,8 +275,62 @@ import {
     0;
 
 
-  let tapKick =
+    /*
+   * =========================================================
+   * MAIN 3D INTERACTION
+   * =========================================================
+   */
+
+  let tapBulge =
     0;
+
+
+  let tapBulgeVelocity =
+    0;
+
+
+  let rotatePointerId =
+    null;
+
+
+  let rotateStartX =
+    0;
+
+
+  let rotateStartY =
+    0;
+
+
+  let rotateStartYaw =
+    0;
+
+
+  let rotateStartPitch =
+    0;
+
+
+  let userYaw =
+    0;
+
+
+  let userPitch =
+    0;
+
+
+  const ROTATE_THRESHOLD_PX =
+    8;
+
+
+  const ROTATE_YAW_SPEED =
+    0.012;
+
+
+  const ROTATE_PITCH_SPEED =
+    0.0065;
+
+
+  const ROTATE_PITCH_LIMIT =
+    0.30;
 
 
   /*
@@ -491,7 +545,7 @@ const previewSnapshotCache =
       Object.freeze({
 
         match:
-       marvin-volumetric.glb
+  "comic-giraffe-bird.glb",
 
         /*
          * Original Marvin:
@@ -1119,7 +1173,232 @@ const previewSnapshotCache =
    * =========================================================
    */
 
+  function bindRotateControls(
+    host
+  ) {
 
+    if (
+      !host ||
+      host.dataset
+        .lago3dRotateBound ===
+        "1"
+    ) {
+
+      return;
+
+    }
+
+
+    host.dataset
+      .lago3dRotateBound =
+        "1";
+
+
+    host.addEventListener(
+      "pointerdown",
+      event => {
+
+        if (
+          !activeModel ||
+          !canvas ||
+          canvas.hidden ||
+          mainOverlayOpen()
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          event.pointerType ===
+            "mouse" &&
+          event.button !==
+            0
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          rotatePointerId !==
+          null
+        ) {
+
+          return;
+
+        }
+
+
+        rotatePointerId =
+          event.pointerId;
+
+
+        rotateStartX =
+          event.clientX;
+
+
+        rotateStartY =
+          event.clientY;
+
+
+        rotateStartYaw =
+          userYaw;
+
+
+        rotateStartPitch =
+          userPitch;
+
+
+        if (canvas) {
+
+          canvas.style.cursor =
+            "grabbing";
+
+        }
+
+      },
+      {
+        passive:
+          true
+      }
+    );
+
+
+    host.addEventListener(
+      "pointermove",
+      event => {
+
+        if (
+          rotatePointerId !==
+            event.pointerId ||
+          !activeModel
+        ) {
+
+          return;
+
+        }
+
+
+        const dx =
+          event.clientX -
+          rotateStartX;
+
+
+        const dy =
+          event.clientY -
+          rotateStartY;
+
+
+        const distance =
+          Math.hypot(
+            dx,
+            dy
+          );
+
+
+        /*
+         * Tiny finger/mouse jitter remains
+         * a normal Tap Tap click.
+         */
+        if (
+          distance <
+          ROTATE_THRESHOLD_PX
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * Unlimited horizontal rotation.
+         *
+         * Character can be inspected
+         * from every side.
+         */
+        userYaw =
+          rotateStartYaw +
+          dx *
+          ROTATE_YAW_SPEED;
+
+
+        /*
+         * Small vertical tilt only.
+         * Prevent character from being
+         * flipped upside down.
+         */
+        userPitch =
+          THREE.MathUtils.clamp(
+
+            rotateStartPitch +
+            dy *
+            ROTATE_PITCH_SPEED,
+
+            -ROTATE_PITCH_LIMIT,
+
+            ROTATE_PITCH_LIMIT
+
+          );
+
+      },
+      {
+        passive:
+          true
+      }
+    );
+
+
+    const finishRotation =
+      event => {
+
+        if (
+          event.pointerId !==
+          rotatePointerId
+        ) {
+
+          return;
+
+        }
+
+
+        rotatePointerId =
+          null;
+
+
+        if (canvas) {
+
+          canvas.style.cursor =
+            "grab";
+
+        }
+
+      };
+
+
+    host.addEventListener(
+      "pointerup",
+      finishRotation,
+      {
+        passive:
+          true
+      }
+    );
+
+
+    host.addEventListener(
+      "pointercancel",
+      finishRotation,
+      {
+        passive:
+          true
+      }
+    );
+
+  }
+  
   function bindHost() {
 
     const host =
@@ -1167,6 +1446,9 @@ const previewSnapshotCache =
 
     }
 
+        bindRotateControls(
+      host
+    );
 
     return true;
 
@@ -1393,9 +1675,12 @@ const previewSnapshotCache =
       "none";
 
 
-    canvas.style.touchAction =
-      "manipulation";
+   canvas.style.touchAction =
+  "none";
 
+
+canvas.style.cursor =
+  "grab";
 
     host.appendChild(
       canvas
@@ -1642,9 +1927,24 @@ let lastRenderedAt =
      * During a physical tap we temporarily
      * return to 60 FPS for responsiveness.
      */
+        const tapActive =
+
+      Math.abs(
+        tapBulge
+      ) >
+        0.0015 ||
+
+      Math.abs(
+        tapBulgeVelocity
+      ) >
+        0.03;
+
+
     const targetFps =
-      tapKick >
-        0.025
+
+      tapActive ||
+      rotatePointerId !==
+        null
 
         ? TAP_FPS
         : IDLE_FPS;
@@ -1665,6 +1965,17 @@ let lastRenderedAt =
     }
 
 
+    const dt =
+      Math.min(
+
+        elapsed /
+        1000,
+
+        0.05
+
+      );
+
+
     lastRenderedAt =
       now -
       (
@@ -1672,57 +1983,159 @@ let lastRenderedAt =
         frameInterval
       );
 
+
     const time =
       now *
       0.001;
 
 
-    tapKick *=
-      0.76;
+    /*
+     * =====================================================
+     * GUM SPRING
+     * =====================================================
+     *
+     * One tap:
+     *
+     * normal
+     * -> quickly inflates
+     * -> slightly deflates
+     * -> normal.
+     *
+     * No continuous breathing.
+     * No permanent deformation.
+     */
+    tapBulgeVelocity +=
+
+      (
+        -tapBulge *
+          240 -
+
+        tapBulgeVelocity *
+          11
+      ) *
+
+      dt;
+
+
+    tapBulge +=
+      tapBulgeVelocity *
+      dt;
+
+
+    if (
+      Math.abs(
+        tapBulge
+      ) <
+        0.0008 &&
+
+      Math.abs(
+        tapBulgeVelocity
+      ) <
+        0.015
+    ) {
+
+      tapBulge =
+        0;
+
+
+      tapBulgeVelocity =
+        0;
+
+    }
 
 
     /*
-     * Tiny idle motion.
+     * Tiny idle vertical motion only.
      *
-     * Keep movement visually alive,
-     * but do not continuously swing
-     * the whole model aggressively.
+     * User rotation remains where
+     * the player left it.
      */
     holder.position.y =
+
       Math.sin(
         time *
         1.45
       ) *
-      0.026;
+
+      0.022;
 
 
-    holder.rotation.y =
-      Math.sin(
-        time *
-        0.52
-      ) *
-      0.018;
+    const idleYaw =
+
+      rotatePointerId ===
+      null
+
+        ? Math.sin(
+            time *
+            0.52
+          ) *
+          0.012
+
+        : 0;
 
 
-    /*
-     * Tap response.
-     */
-    holder.scale.set(
+    holder.rotation.set(
 
-      1 +
-        tapKick *
-        0.04,
+      userPitch,
 
-      1 -
-        tapKick *
-        0.03,
+      userYaw +
+      idleYaw,
 
-      1 +
-        tapKick *
-        0.016
+      0
 
     );
 
+
+    /*
+     * Clamp protects GLBs from extreme
+     * deformation during very fast tapping.
+     */
+    const bulge =
+      THREE.MathUtils.clamp(
+
+        tapBulge,
+
+        -0.10,
+
+        0.24
+
+      );
+
+
+    holder.scale.set(
+
+      1 +
+      bulge *
+      0.55,
+
+      1 +
+      bulge *
+      0.72,
+
+      1 +
+      bulge *
+      0.48
+
+    );
+
+        userYaw =
+      0;
+
+
+    userPitch =
+      0;
+
+
+    rotatePointerId =
+      null;
+
+
+    tapBulge =
+      0;
+
+
+    tapBulgeVelocity =
+      0;
 
     renderer.render(
       scene,
@@ -3138,13 +3551,26 @@ let lastRenderedAt =
    */
 
 
-  function pulseTap() {
+    function pulseTap() {
 
-    tapKick =
-      1;
+    /*
+     * Add an impulse instead of directly
+     * changing the scale.
+     *
+     * Repeated taps remain elastic but
+     * cannot explode the model.
+     */
+    tapBulgeVelocity =
+      Math.min(
+
+        tapBulgeVelocity +
+        6.2,
+
+        10
+
+      );
 
   }
-
 
   /*
    * =========================================================
