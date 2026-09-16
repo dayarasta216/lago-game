@@ -384,6 +384,21 @@
         event.pointerType ||
         "unknown",
 
+            startX:
+        Number(
+          event.clientX
+        ) || 0,
+
+
+      startY:
+        Number(
+          event.clientY
+        ) || 0,
+
+
+      maxTravel:
+        0,
+
       minPressure:
         initialPressure > 0
           ? initialPressure
@@ -429,6 +444,39 @@
       return;
 
     }
+
+        const dx =
+      (
+        Number(
+          event.clientX
+        ) || 0
+      ) -
+      activeTapPointer
+        .startX;
+
+
+    const dy =
+      (
+        Number(
+          event.clientY
+        ) || 0
+      ) -
+      activeTapPointer
+        .startY;
+
+
+    activeTapPointer.maxTravel =
+      Math.max(
+
+        activeTapPointer
+          .maxTravel,
+
+        Math.hypot(
+          dx,
+          dy
+        )
+
+      );
 
 
     const pressure =
@@ -513,7 +561,7 @@
 
 
     const sample = {
-
+      
       pointerType:
         activeTapPointer
           .pointerType,
@@ -539,9 +587,26 @@
         activeTapPointer
           .maxArea
 
+      maxTravel:
+        activeTapPointer
+          .maxTravel,
+      
     };
 
+         const dragThreshold =
 
+      sample.pointerType ===
+      "touch"
+
+        ? 14
+        : 7;
+
+
+    const wasRotation =
+
+      sample.maxTravel >=
+      dragThreshold;
+    
     activeTapPointer =
       null;
 
@@ -578,9 +643,20 @@
       activeTapPointer =
         null;
 
-    }
+          /*
+     * Rotating the GLB is NOT a Tap Tap.
+     *
+     * No SP.
+     * No DUM tap counter.
+     * No gum pulse.
+     */
+    if (
+      wasRotation
+    ) {
 
-  }
+      return;
+
+    }
 
 
   /*
