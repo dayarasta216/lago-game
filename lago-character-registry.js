@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    7;
+    8;
 
 
   /*
@@ -59,8 +59,8 @@
         asset:
           "./assets/characters/comic-narek(5).svg?v=8",
 
-        model3d:
-          "./assets/model/comic-dog-snail.glb?v=1",
+       model3d:
+  "./assets/model/roster/narek.glb?v=1",
 
         shop:
           Object.freeze({
@@ -119,8 +119,8 @@
         asset:
           "./assets/characters/comic-sola(4).svg?v=8",
 
-        model3d:
-          "./assets/model/comic-pink-snail.glb?v=1",
+       model3d:
+  "./assets/model/roster/sola.glb?v=1",
 
         shop:
           Object.freeze({
@@ -179,8 +179,8 @@
         asset:
           "./assets/characters/comic-bambini-doc(5).svg?v=8",
 
-        model3d:
-          "./assets/model/comic-cockroach.glb?v=1",
+       model3d:
+  "./assets/model/roster/doc.glb?v=1",
 
         shop:
           Object.freeze({
@@ -239,8 +239,8 @@
         asset:
           "./assets/characters/comic-marvin(5).svg?v=8",
 
-        model3d:
-  "./assets/model/marvin-volumetric.glb?v=1",
+model3d:
+  "./assets/model/roster/marvin.glb?v=1",
 
         shop:
           Object.freeze({
@@ -300,7 +300,7 @@
           "./assets/characters/comic-farid(5).svg?v=8",
 
         model3d:
-          "./assets/model/comic-fennec.glb?v=3",
+  "./assets/model/roster/farid.glb?v=1",
 
         shop:
           Object.freeze({
@@ -357,7 +357,7 @@
           "EPIC",
 
         model3d:
-          "./assets/model/comic-goose.glb?v=3",
+  "./assets/model/roster/miki.glb?v=1",
 
         shop:
           Object.freeze({
@@ -418,7 +418,7 @@
           "LEGENDARY",
 
         model3d:
-          "./assets/model/comic-pig.glb?v=3",
+  "./assets/model/roster/oleg.glb?v=1",
 
         shop:
           Object.freeze({
@@ -456,6 +456,112 @@
 
     ]);
 
+        Object.freeze({
+
+        id:
+          "comic_bozz",
+
+        name:
+          "Bozz",
+
+        type:
+          "comic",
+
+        series:
+          "comic-02",
+
+        /*
+         * Economy/rarity will be tuned
+         * separately.
+         */
+        rarity:
+          "EPIC",
+
+        model3d:
+          "./assets/model/roster/bozz.glb?v=1",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            currency:
+              "SP",
+
+            price:
+              0
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+                Object.freeze({
+
+        id:
+          "comic_taya",
+
+        name:
+          "Taya",
+
+        type:
+          "comic",
+
+        series:
+          "comic-02",
+
+        rarity:
+          "EPIC",
+
+        model3d:
+          "./assets/model/roster/taya.glb?v=1",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            currency:
+              "SP",
+
+            price:
+              0
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      })
+
+  
 
   /*
    * =========================================================
