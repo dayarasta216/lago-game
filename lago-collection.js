@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 11;
+  const VERSION = 12;
 
 
   const LAGO_CHARACTER =
@@ -15,8 +15,8 @@
       asset:
         "./lago-snail.png",
 
-      model3d:
-        "./assets/model/lago.glb?v=4",
+     model3d:
+  "./assets/model/roster/lago.glb?v=1",
 
       rarity:
         "ORIGINAL"
