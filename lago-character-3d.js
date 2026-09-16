@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  19;
+  20;
 
 
   const BASE_LAGO_MODEL =
@@ -522,6 +522,10 @@ return {
     BASE_LAGO_MODEL
 
 };
+
+  }
+
+
   /*
    * =========================================================
    * MODEL LOADING
