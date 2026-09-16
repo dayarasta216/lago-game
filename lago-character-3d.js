@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  17;
+  18;
 
 
   const BASE_LAGO_MODEL =
@@ -2067,24 +2067,13 @@ let lastRenderedAt =
 
         holder.rotation.set(
 
-      userPitch,
+  userPitch,
 
-      userYaw,
+  userYaw,
 
-      0
+  0
 
-    );
-
-    holder.rotation.set(
-
-      userPitch,
-
-      userYaw +
-      idleYaw,
-
-      0
-
-    );
+);
 
 
     /*
