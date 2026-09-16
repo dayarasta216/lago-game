@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 13;
+  const VERSION = 14;
 
 
   const LAGO_CHARACTER =
@@ -13,7 +13,7 @@
         "Lago",
 
      model3d:
-  "./assets/model/roster/lago.glb?v=1",
+  "./assets/model/roster/lago.glb?v=2",
 
       rarity:
         "ORIGINAL"
@@ -387,76 +387,92 @@
     );
 
   }
-  function createThumbVisual(
-    character,
-    className
-  ) {
+ function createThumbVisual(
+  character,
+  className
+) {
 
-    const asset =
-      typeof character
-        ?.asset ===
-        "string"
-        ? character.asset.trim()
-        : "";
+  /*
+   * Canonical visual = GLB.
+   *
+   * Static SVG/PNG is now only
+   * emergency legacy fallback.
+   */
+  const model3d =
+    typeof character
+      ?.model3d ===
+      "string"
 
+      ? character
+          .model3d
+          .trim()
 
-    if (asset) {
-
-      return `
-        <img
-          class="${className}"
-          src="${escapeAttribute(
-            asset
-          )}"
-          alt="${escapeAttribute(
-            character.name
-          )}"
-          draggable="false"
-          loading="lazy"
-          decoding="async"
-        >
-      `;
-    }
+      : "";
 
 
-    const model3d =
-      typeof character
-        ?.model3d ===
-        "string"
-        ? character.model3d.trim()
-        : "";
-
-
-    if (model3d) {
-
-      return `
-        <div
-          class="
-            ${className}
-            lago-glb-preview-host
-          "
-          data-lago-glb-preview="${escapeAttribute(
-            model3d
-          )}"
-          role="img"
-          aria-label="${escapeAttribute(
-            character.name
-          )}"
-        ></div>
-      `;
-    }
-
+  if (model3d) {
 
     return `
       <div
         class="
           ${className}
-          lago-character-visual-empty
+          lago-glb-preview-host
         "
+        data-lago-glb-preview="${escapeAttribute(
+          model3d
+        )}"
+        role="img"
+        aria-label="${escapeAttribute(
+          character.name
+        )}"
       ></div>
     `;
+
   }
 
+
+  const asset =
+    typeof character
+      ?.asset ===
+      "string"
+
+      ? character
+          .asset
+          .trim()
+
+      : "";
+
+
+  if (asset) {
+
+    return `
+      <img
+        class="${className}"
+        src="${escapeAttribute(
+          asset
+        )}"
+        alt="${escapeAttribute(
+          character.name
+        )}"
+        draggable="false"
+        loading="lazy"
+        decoding="async"
+      >
+    `;
+
+  }
+
+
+  return `
+    <div
+      class="
+        ${className}
+        lago-character-visual-empty
+      "
+    ></div>
+  `;
+
+}
 
   function mountPreviewHosts(root) {
 
@@ -564,7 +580,7 @@
           class="lago-collection-counter"
           id="lagoCollectionCounter"
         >
-          1/8
+          1/10
         </div>
       </header>
 
