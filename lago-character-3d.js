@@ -10,11 +10,11 @@ import {
 
 
   const VERSION =
-  16;
+  17;
 
 
   const BASE_LAGO_MODEL =
-    "./assets/model/lago.glb?v=4";
+  "./assets/model/roster/lago.glb?v=1";
 
 
   const BASE_IDS =
@@ -50,18 +50,21 @@ import {
    * Y = height
    * Z = depth
    */
-  const MODEL_PROFILES =
+   const MODEL_PROFILES =
     Object.freeze([
 
       Object.freeze({
 
-        match:
-          "marvin-volumetric.glb",
-
         /*
-         * Meshy model is already Y-up.
-         * Never apply legacy -90deg X rotation.
+         * All new production figurines
+         * live in one canonical roster.
+         *
+         * They are already genuine
+         * volumetric models.
          */
+        match:
+          "/assets/model/roster/",
+
         rotationX:
           0,
 
@@ -72,14 +75,16 @@ import {
           0,
 
         targetSize:
-          2.55,
+          2.35,
 
         /*
-         * Uploaded PBR material reports
-         * metallic = 1.
+         * Meshy-style exports currently
+         * contain metallicFactor = 1.
          *
-         * Marvin must look like cloth /
-         * feathers / skin, not chrome.
+         * Preserve all texture maps but
+         * render characters as cloth /
+         * fur / feathers / skin instead
+         * of chrome.
          */
         metalness:
           0,
@@ -2060,19 +2065,15 @@ let lastRenderedAt =
       0.022;
 
 
-    const idleYaw =
+        holder.rotation.set(
 
-      rotatePointerId ===
-      null
+      userPitch,
 
-        ? Math.sin(
-            time *
-            0.52
-          ) *
-          0.012
+      userYaw,
 
-        : 0;
+      0
 
+    );
 
     holder.rotation.set(
 
