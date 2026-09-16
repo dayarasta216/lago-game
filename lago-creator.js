@@ -449,11 +449,11 @@
             id="lagoCreatorStage"
           >
 
-            <img
-              id="lagoCreatorBase"
-              class="lago-creator-base"
-              alt="LAGO"
-            >
+           <div
+  id="lagoCreatorBase"
+  class="lago-creator-base"
+  aria-label="LAGO 3D preview"
+></div>
 
           </div>
 
@@ -847,21 +847,18 @@
       return;
 
 
-    const original =
-      document.querySelector(
-        "#snail"
+        /*
+     * Creator preview is generated
+     * directly from the canonical GLB.
+     *
+     * No external PNG base character.
+     */
+    window.LAGO_CHARACTER_3D
+      ?.mountPreview
+      ?.(
+        base,
+        "./assets/model/roster/lago.glb?v=1"
       );
-
-
-    if (
-      original &&
-      original.src
-    ) {
-
-      base.src =
-        original.src;
-
-    }
 
 
     const stage =
