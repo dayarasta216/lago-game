@@ -201,12 +201,6 @@ import {
         .computeBoundingSphere();
 
     }
-
-
-    const materials =
-
-        const materials =
-          Array.isArray(
             child.material
           )
 
@@ -728,16 +722,16 @@ return {
         }
 
 
-        const materials =
-          Array.isArray(
+            const materials =
+      Array.isArray(
+        child.material
+      )
+
+        ? child.material
+
+        : [
             child.material
-          )
-
-            ? child.material
-
-            : [
-                child.material
-              ];
+          ];
 
 
         materials.forEach(
