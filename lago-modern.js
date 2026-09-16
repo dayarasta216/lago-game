@@ -1375,29 +1375,14 @@
       ?.(root);
 
 
-    /*
-     * Move the original fallback
-     * image into the canonical
-     * character stage.
-     */
-    const snail =
-      $("snail");
-
-
-    const snailArea =
-      $("modernSnailArea");
-
-
-    if (
-      snail &&
-      snailArea
-    ) {
-
-      snailArea.appendChild(
-        snail
-      );
-
-    }
+   /*
+ * Canonical GLB character stage.
+ *
+ * The Three.js renderer mounts its
+ * canvas directly into this element.
+ */
+const snailArea =
+  $("modernSnailArea");
 
 
     /*
