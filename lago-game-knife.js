@@ -3,7 +3,7 @@ import * as THREE from "three";
   "use strict";
 
 
-  const VERSION = 18;
+  const VERSION = 19;
 
   const GAME_ID =
     "knife-challenge";
@@ -303,7 +303,7 @@ function currentLevelProfile() {
     0;
 
 
-   /*
+  /*
    * Continuous balance physics.
    *
    * -1 = falling left
@@ -311,33 +311,6 @@ function currentLevelProfile() {
    * +1 = falling right
    */
   let inputAxis =
-    0;
-
-
-  /*
-   * =======================================================
-   * CONTROL INPUT
-   * =======================================================
-   *
-   * Desktop:
-   * keyboardAxis from A/D or arrows.
-   *
-   * Phone/tablet:
-   * touchAxis from horizontal finger drag.
-   */
-  let keyboardAxis =
-    0;
-
-
-  let touchAxis =
-    0;
-
-
-  let touchPointerId =
-    null;
-
-
-  let touchStartX =
     0;
 
   let balance =
@@ -403,261 +376,6 @@ let dangerTime =
    * =======================================================
    */
 
-  function syncControlAxis() {
-
-    inputAxis =
-      touchPointerId !==
-      null
-
-        ? touchAxis
-
-        : keyboardAxis;
-
-  }
-
-
-  function updateTouchGuide() {
-
-    const thumb =
-      el(
-        "lagoTouchThumb"
-      );
-
-
-    if (thumb) {
-
-      thumb.style.transform =
-        `translate3d(${touchAxis * 92}px, 0, 0)`;
-
-    }
-
-
-    el(
-      "lagoTouchGuide"
-    )
-      ?.classList
-      .toggle(
-        "active",
-        touchPointerId !==
-          null
-      );
-
-  }
-
-
-  function resetControlInput() {
-
-    keyboardAxis =
-      0;
-
-
-    touchAxis =
-      0;
-
-
-    touchPointerId =
-      null;
-
-
-    touchStartX =
-      0;
-
-
-    inputAxis =
-      0;
-
-
-    updateTouchGuide();
-
-  }
-
-
-  function bindTouchBalance(
-    target
-  ) {
-
-    if (!target) {
-      return;
-    }
-
-
-    target.addEventListener(
-      "pointerdown",
-      event => {
-
-        if (
-          phase !==
-          "running"
-        ) {
-
-          return;
-
-        }
-
-
-        /*
-         * Mouse remains keyboard-first.
-         * Touch and pen get analog control.
-         */
-        if (
-          event.pointerType ===
-          "mouse"
-        ) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-
-        touchPointerId =
-          event.pointerId;
-
-
-        touchStartX =
-          event.clientX;
-
-
-        touchAxis =
-          0;
-
-
-        syncControlAxis();
-
-        updateTouchGuide();
-
-
-        try {
-
-          target.setPointerCapture(
-            event.pointerId
-          );
-
-        } catch (_) {}
-
-      },
-      {
-        passive:
-          false
-      }
-    );
-
-
-    target.addEventListener(
-      "pointermove",
-      event => {
-
-        if (
-          event.pointerId !==
-            touchPointerId ||
-          phase !==
-            "running"
-        ) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-
-        const rect =
-          target
-            .getBoundingClientRect();
-
-
-        /*
-         * Finger travel needed to reach
-         * full correction.
-         *
-         * It remains relative to the place
-         * where the player first touched.
-         */
-        const travel =
-          THREE.MathUtils.clamp(
-
-            rect.width *
-              .22,
-
-            74,
-
-            132
-
-          );
-
-
-        touchAxis =
-          THREE.MathUtils.clamp(
-
-            (
-              event.clientX -
-              touchStartX
-            ) /
-            travel,
-
-            -1,
-
-            1
-
-          );
-
-
-        syncControlAxis();
-
-        updateTouchGuide();
-
-      },
-      {
-        passive:
-          false
-      }
-    );
-
-
-    const releaseTouch =
-      event => {
-
-        if (
-          event.pointerId !==
-          touchPointerId
-        ) {
-
-          return;
-
-        }
-
-
-        touchPointerId =
-          null;
-
-
-        touchAxis =
-          0;
-
-
-        syncControlAxis();
-
-        updateTouchGuide();
-
-      };
-
-
-    target.addEventListener(
-      "pointerup",
-      releaseTouch
-    );
-
-
-    target.addEventListener(
-      "pointercancel",
-      releaseTouch
-    );
-
-  }
-  
   function createOverlay() {
 
     if (overlay) {
@@ -1505,273 +1223,11 @@ let dangerTime =
           #fff;
       }
 
-      /*
-       * ===================================================
-       * KNIFE UI V2
-       * ===================================================
-       */
 
-      #lagoKnifeGame {
-        background:
-          radial-gradient(
-            circle
-            at 50% 18%,
-            #24151e 0%,
-            #090509 58%,
-            #050305 100%
-          );
-      }
-
-
-      .lago-knife-header {
-        padding:
-          2px 4px;
-      }
-
-
-      .lago-knife-title {
-        text-shadow:
-          0 5px 24px
-          rgba(
-            0,
-            0,
-            0,
-            .44
-          );
-      }
-
-
-      .lago-knife-hud-item {
-        background:
-          linear-gradient(
-            180deg,
-            rgba(255,255,255,.065),
-            rgba(255,255,255,.025)
-          );
-
-        backdrop-filter:
-          blur(
-            12px
-          );
-
-        box-shadow:
-          inset
-          0 1px 0
-          rgba(
-            255,
-            255,
-            255,
-            .04
-          );
-      }
-
-
-      .lago-knife-stage {
-        border-color:
-          rgba(
-            255,
-            255,
-            255,
-            .12
-          );
-
-        box-shadow:
-          0 30px 90px
-          rgba(
-            0,
-            0,
-            0,
-            .46
-          );
-      }
-
-
-      .lago-balance-ui {
-        bottom:
-          25px;
-
-        width:
-          min(
-            330px,
-            68vw
-          );
-      }
-
-
-      .lago-knife-feedback {
-        border:
-          1px solid
-          rgba(
-            255,
-            255,
-            255,
-            .09
-          );
-
-        box-shadow:
-          0 12px 38px
-          rgba(
-            0,
-            0,
-            0,
-            .25
-          );
-      }
-
-            @media (
+      @media (
         max-width:
         560px
       ) {
-
-        #lagoKnifeGame {
-          overflow:
-            hidden;
-
-          padding:
-            calc(
-              7px +
-              env(safe-area-inset-top)
-            )
-            7px
-            calc(
-              7px +
-              env(safe-area-inset-bottom)
-            );
-        }
-
-
-        .lago-knife-shell {
-          min-height:
-            calc(
-              100dvh -
-              14px
-            );
-        }
-
-
-        .lago-knife-title {
-          font-size:
-            28px;
-        }
-
-
-        .lago-knife-subtitle {
-          font-size:
-            7px;
-
-          letter-spacing:
-            .04em;
-        }
-
-
-        .lago-knife-close {
-          width:
-            38px;
-
-          height:
-            38px;
-
-          flex-basis:
-            38px;
-        }
-
-
-        .lago-knife-hud {
-          margin-top:
-            7px;
-
-          grid-template-columns:
-            repeat(
-              4,
-              minmax(
-                0,
-                1fr
-              )
-            );
-
-          gap:
-            5px;
-        }
-
-
-        .lago-knife-hud-item {
-          min-width:
-            0;
-
-          padding:
-            7px 6px;
-
-          border-radius:
-            10px;
-        }
-
-
-        .lago-knife-hud-label {
-          font-size:
-            6px;
-        }
-
-
-        .lago-knife-hud-value {
-          overflow:
-            hidden;
-
-          font-size:
-            11px;
-
-          white-space:
-            nowrap;
-
-          text-overflow:
-            ellipsis;
-        }
-
-
-        .lago-knife-stage {
-          height:
-            calc(
-              100dvh -
-              151px
-            );
-
-          min-height:
-            0;
-
-          margin-top:
-            7px;
-
-          border-radius:
-            18px;
-        }
-
-
-        .lago-knife-feedback {
-          top:
-            10px;
-
-          min-width:
-            150px;
-
-          padding:
-            6px 9px;
-
-          font-size:
-            9px;
-        }
-
-
-        .lago-balance-ui {
-          bottom:
-            75px;
-
-          width:
-            min(
-              300px,
-              78vw
-            );
-        }
-
-      }
 
         .lago-knife-hud {
           grid-template-columns:
@@ -2059,23 +1515,27 @@ let dangerTime =
           </div>
 
 
-       <div
-  class="lago-touch-guide"
-  id="lagoTouchGuide"
->
-  <div class="lago-touch-guide-label">
-    TOUCH · DRAG TO BALANCE
-  </div>
+          <div class="lago-balance-controls">
 
-  <div class="lago-touch-rail">
+            <button
+              type="button"
+              class="lago-balance-button"
+              id="lagoBalanceLeft"
+            >
+              ◀ LEFT
+            </button>
 
-    <span
-      class="lago-touch-thumb"
-      id="lagoTouchThumb"
-    ></span>
 
-  </div>
-</div>
+            <button
+              type="button"
+              class="lago-balance-button"
+              id="lagoBalanceRight"
+            >
+              RIGHT ▶
+            </button>
+
+          </div>
+
 
           <section
             class="lago-knife-panel"
@@ -2189,414 +1649,365 @@ let dangerTime =
       );
 
 
-       bindTouchBalance(
-      canvas
+    bindBalanceButton(
+      el(
+        "lagoBalanceLeft"
+      ),
+      -1
     );
 
-        /*
-       * ===================================================
-       * ANALOG TOUCH CONTROL
-       * ===================================================
-       */
 
-      .lago-touch-guide {
-        position: absolute;
-        left: 50%;
-        bottom: 17px;
-        z-index: 28;
+    bindBalanceButton(
+      el(
+        "lagoBalanceRight"
+      ),
+      1
+    );
 
-        width: min(360px, 82vw);
 
-        transform:
-          translateX(-50%);
+    return overlay;
 
-        display: none;
+  }
 
-        pointer-events: none;
 
-        opacity: .72;
-      }
+  function bindBalanceButton(
+    button,
+    direction
+  ) {
 
-
-      .lago-touch-guide.active {
-        opacity: 1;
-      }
-
-
-      .lago-touch-guide-label {
-        margin-bottom: 7px;
-
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            .72
-          );
-
-        font-size: 8px;
-        font-weight: 1000;
-        letter-spacing: .12em;
-
-        text-align: center;
-      }
-
-
-      .lago-touch-rail {
-        position: relative;
-
-        width: 100%;
-        height: 30px;
-
-        border:
-          1px solid
-          rgba(
-            255,
-            255,
-            255,
-            .13
-          );
-
-        border-radius: 999px;
-
-        background:
-          linear-gradient(
-            90deg,
-            rgba(255,75,75,.24),
-            rgba(204,255,0,.16),
-            rgba(255,75,75,.24)
-          );
-
-        backdrop-filter:
-          blur(10px);
-      }
-
-
-      .lago-touch-rail::after {
-        content: "";
-
-        position: absolute;
-
-        left: 50%;
-        top: 5px;
-        bottom: 5px;
-
-        width: 1px;
-
-        background:
-          rgba(
-            255,
-            255,
-            255,
-            .35
-          );
-      }
-
-
-      .lago-touch-thumb {
-        position: absolute;
-
-        left:
-          calc(
-            50% -
-            12px
-          );
-
-        top: 3px;
-
-        width: 24px;
-        height: 24px;
-
-        border-radius: 50%;
-
-        background:
-          #ccff00;
-
-        box-shadow:
-          0 0 22px
-          rgba(
-            204,
-            255,
-            0,
-            .56
-          );
-      }
-
-
-      @media (
-        pointer:
-        coarse
-      ) {
-
-        .lago-touch-guide {
-          display: block;
-        }
-
-
-        .lago-balance-ui {
-          bottom: 76px;
-        }
-
-      }
-
-
-    /*
-     * =====================================================
-     * PENDANT LIGHTS
-     * =====================================================
-     */
-
-    [
-      -2.45,
-      2.45
-    ]
-      .forEach(
-        x => {
-
-          const cable =
-            new THREE.Mesh(
-
-              new THREE
-                .CylinderGeometry(
-                  .015,
-                  .015,
-                  1.20,
-                  8
-                ),
-
-              material(
-                0x1d1b1b,
-                .65
-              )
-
-            );
-
-
-          cable.position.set(
-            x,
-            5.68,
-            .72
-          );
-
-
-          world.add(
-            cable
-          );
-
-
-          const shade =
-            new THREE.Mesh(
-
-              new THREE
-                .ConeGeometry(
-                  .36,
-                  .38,
-                  22,
-                  1,
-                  true
-                ),
-
-              material(
-                0xc86f3e,
-                .58
-              )
-
-            );
-
-
-          shade.position.set(
-            x,
-            5.10,
-            .72
-          );
-
-
-          world.add(
-            shade
-          );
-
-
-          const light =
-            new THREE.PointLight(
-              0xffc47d,
-              3.2,
-              6,
-              2
-            );
-
-
-          light.position.set(
-            x,
-            4.82,
-            .72
-          );
-
-
-          scene.add(
-            light
-          );
-
-        }
-      );
-
-
-    /*
-     * =====================================================
-     * DISH STACK
-     * =====================================================
-     */
-
-    for (
-      let i = 0;
-      i < 3;
-      i += 1
-    ) {
-
-      const dish =
-        new THREE.Mesh(
-
-          new THREE
-            .CylinderGeometry(
-              .48 -
-              i * .035,
-              .50 -
-              i * .035,
-              .055,
-              30
-            ),
-
-          material(
-            i === 1
-              ? 0xc7d7d9
-              : 0xeee8d9,
-            .68
-          )
-
-        );
-
-
-      dish.position.set(
-        3.72,
-        .47 +
-        i * .058,
-        -.95
-      );
-
-
-      dish.castShadow =
-        true;
-
-
-      world.add(
-        dish
-      );
-
+    if (!button) {
+      return;
     }
 
 
-    /*
-     * =====================================================
-     * HERB POT
-     * =====================================================
-     */
+    const press =
+      event => {
 
-    const herbPot =
-      new THREE.Mesh(
-
-        new THREE
-          .CylinderGeometry(
-            .23,
-            .18,
-            .34,
-            18
-          ),
-
-        material(
-          0xb95735,
-          .74
-        )
-
-      );
+        event.preventDefault();
 
 
-    herbPot.position.set(
-      4.72,
-      .57,
-      -.72
-    );
+        if (
+          phase !==
+          "running"
+        ) {
 
-
-    world.add(
-      herbPot
-    );
-
-
-    [
-      -.14,
-      -.04,
-      .08,
-      .16
-    ]
-      .forEach(
-        (
-          offset,
-          index
-        ) => {
-
-          const leaf =
-            new THREE.Mesh(
-
-              new THREE
-                .SphereGeometry(
-                  .14,
-                  14,
-                  9
-                ),
-
-              material(
-                index %
-                2
-
-                  ? 0x4f873f
-
-                  : 0x65a54c,
-                .84
-              )
-
-            );
-
-
-          leaf.scale.set(
-            .72,
-            1.38,
-            .42
-          );
-
-
-          leaf.position.set(
-            4.72 +
-            offset,
-            .84 +
-            Math.abs(
-              offset
-            ),
-            -.72
-          );
-
-
-          leaf.rotation.z =
-            offset *
-            2.4;
-
-
-          world.add(
-            leaf
-          );
+          return;
 
         }
-      );
+
+
+        inputAxis =
+          direction;
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        button
+          .setPointerCapture
+          ?.(
+            event.pointerId
+          );
+
+      };
+
+
+    const release =
+      event => {
+
+        if (
+          inputAxis ===
+          direction
+        ) {
+
+          inputAxis =
+            0;
+
+        }
+
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        try {
+
+          button
+            .releasePointerCapture
+            ?.(
+              event
+                ?.pointerId
+            );
+
+        } catch (_) {
+
+          /*
+           * Pointer may already
+           * be released.
+           */
+
+        }
+
+      };
+
+
+    button.addEventListener(
+      "pointerdown",
+      press
+    );
+
+
+    button.addEventListener(
+      "pointerup",
+      release
+    );
+
+
+    button.addEventListener(
+      "pointercancel",
+      release
+    );
+
+
+    button.addEventListener(
+      "pointerleave",
+      release
+    );
 
   }
+
+
+  /*
+   * =======================================================
+   * THREE.JS
+   * =======================================================
+   */
+
+  function createRenderer() {
+
+    if (renderer) {
+      return;
+    }
+
+
+    renderer =
+      new THREE.WebGLRenderer({
+
+        canvas,
+
+        antialias:
+          true,
+
+        alpha:
+          false,
+
+        powerPreference:
+          "high-performance"
+
+      });
+
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+
+    renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+
+
+    renderer.toneMappingExposure =
+      1.12;
+
+
+    renderer.shadowMap.enabled =
+      true;
+
+
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+
+
+    /*
+     * Required for cartoon 3D
+     * split into two halves.
+     */
+    renderer.localClippingEnabled =
+      true;
+
+
+    scene =
+      new THREE.Scene();
+
+
+    scene.background =
+      new THREE.Color(
+        0x21160f
+      );
+
+
+    scene.fog =
+      new THREE.Fog(
+        0x21160f,
+        12,
+        24
+      );
+
+camera =
+  new THREE.PerspectiveCamera(
+    36,
+    1,
+    0.1,
+    60
+  );
+
+
+/*
+ * Lower, closer camera:
+ * blade thickness + character volume
+ * become much more obvious.
+ */
+camera.position.set(
+  7.25,
+  4.35,
+  9.25
+);
+
+
+camera.lookAt(
+  0,
+  1.35,
+  .25
+);
+
+
+    scene.add(
+      new THREE.HemisphereLight(
+        0xfff1d5,
+        0x2a1710,
+        2.1
+      )
+    );
+
+
+    const keyLight =
+      new THREE.DirectionalLight(
+        0xffffff,
+        3.6
+      );
+
+
+    keyLight.position.set(
+      3.8,
+      8.5,
+      5.8
+    );
+
+
+    keyLight.castShadow =
+      true;
+
+
+    keyLight.shadow
+  .mapSize
+  .set(
+    512,
+    512
+  );
+
+
+    keyLight.shadow.camera.near =
+      .1;
+
+    keyLight.shadow.camera.far =
+      24;
+
+    keyLight.shadow.camera.left =
+      -8;
+
+    keyLight.shadow.camera.right =
+      8;
+
+    keyLight.shadow.camera.top =
+      8;
+
+    keyLight.shadow.camera.bottom =
+      -8;
+
+
+    scene.add(
+      keyLight
+    );
+
+
+    const warmLight =
+      new THREE.PointLight(
+        0xffb16b,
+        12,
+        12,
+        2
+      );
+
+
+    warmLight.position.set(
+      -4.5,
+      3.2,
+      2.4
+    );
+
+
+    scene.add(
+      warmLight
+    );
+
+
+    world =
+      new THREE.Group();
+
+
+    scene.add(
+      world
+    );
+
+
+    buildKitchen();
+
+    buildKnife();
+
+    buildPlate();
+
+    buildVegetables();
+
+
+    /*
+     * Character is its own pivot.
+     *
+     * We tilt/move this group while
+     * leaving original GLB untouched.
+     */
+    characterPivot =
+      new THREE.Group();
+
+
+    scene.add(
+      characterPivot
+    );
+
+
+    resizeObserver =
+      new ResizeObserver(
+        resizeRenderer
+      );
+
+
+    resizeObserver.observe(
+      el(
+        "lagoKnifeStage"
+      )
+    );
+
 
     resizeRenderer();
 
@@ -2649,33 +2060,12 @@ let dangerTime =
   }
 
     
-   function material(
+  function material(
     color,
     roughness = .7,
     metalness = 0
   ) {
 
-    /*
-     * Non-metal kitchen objects use
-     * toon lighting.
-     */
-    if (
-      metalness <
-      .45
-    ) {
-
-      return new THREE
-        .MeshToonMaterial({
-          color
-        });
-
-    }
-
-
-    /*
-     * Knife / steel / metal objects
-     * retain real PBR highlights.
-     */
     return new THREE
       .MeshStandardMaterial({
 
@@ -2688,6 +2078,7 @@ let dangerTime =
       });
 
   }
+
 
   function box(
     size,
@@ -2727,46 +2118,6 @@ let dangerTime =
     mesh.receiveShadow =
       true;
 
-        /*
-     * Thick readable cartoon edges.
-     */
-    const outline =
-      new THREE.LineSegments(
-
-        new THREE.EdgesGeometry(
-          mesh.geometry,
-          24
-        ),
-
-        new THREE
-          .LineBasicMaterial({
-
-            color:
-              0x1a1010,
-
-            transparent:
-              true,
-
-            opacity:
-              metalness >
-              .7
-
-                ? .20
-
-                : .42
-
-          })
-
-      );
-
-
-    outline.raycast =
-      () => {};
-
-
-    mesh.add(
-      outline
-    );
 
     return mesh;
 
@@ -2791,7 +2142,7 @@ let dangerTime =
           .55,
           7.2
         ),
-        0x6b4431,
+        0x5a3827,
         new THREE.Vector3(
           0,
           -.28,
@@ -2812,7 +2163,7 @@ let dangerTime =
           7,
           .34
         ),
-        0x493a34,
+        0x3a302c,
         new THREE.Vector3(
           0,
           3.15,
@@ -2833,7 +2184,7 @@ let dangerTime =
           .22,
           4.4
         ),
-        0xd69b58,
+        0xb97842,
         new THREE.Vector3(
           .2,
           .16,
@@ -2897,7 +2248,7 @@ let dangerTime =
                 1.6,
                 .72
               ),
-              0x965a38,
+              0x70472f,
               new THREE.Vector3(
                 x,
                 4.62,
@@ -4236,7 +3587,7 @@ let dangerTime =
      * like tiny figurines.
      */
     const KNIFE_CHARACTER_SCALE =
-  1.00;
+      0.90;
 
 
     root.scale.multiplyScalar(
@@ -4829,32 +4180,19 @@ let dangerTime =
         ) ||
       {};
 
-        const touchDevice =
-      window.matchMedia
-        ?.(
-          "(pointer: coarse)"
-        )
-        ?.matches ===
-      true;
 
     setPanel({
 
       title:
         "KNIFE CHALLENGE 3D",
 
-     copy:
-  `${
-    touchDevice
+      copy:
+        `Hold LEFT / RIGHT to keep balance while the character crawls along the real 3D blade. ${
+          currentGame
+            ?.dumCost ||
+          0
+        } DUM per run.`,
 
-      ? "Touch the kitchen and drag your finger left or right to counter the character's weight."
-
-      : "Use A / D or ← / → to counter the character's weight."
-  } Survive all ${TOTAL_ROUNDS} progressively harder levels. ${
-    currentGame
-      ?.dumCost ||
-    0
-  } DUM per run.`,
-      
       result:
         stats.plays >
         0
@@ -5082,7 +4420,8 @@ let dangerTime =
     0;
 
 
-  resetControlInput();
+  inputAxis =
+    0;
 
 
   dangerTime =
@@ -6594,7 +5933,8 @@ const gained =
         "D"
       );
 
-    keyboardAxis =
+
+    inputAxis =
       left ===
       right
 
@@ -6605,9 +5945,6 @@ const gained =
           ? -1
 
           : 1;
-
-
-       syncControlAxis();
 
   }
 
@@ -6744,10 +6081,12 @@ const gained =
     "blur",
     () => {
 
-     pressedKeys.clear();
+      pressedKeys.clear();
 
 
-resetControlInput();
+      inputAxis =
+        0;
+
     }
   );
 
