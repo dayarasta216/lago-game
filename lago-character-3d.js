@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  21;
+  22;
 
 
   const BASE_LAGO_MODEL =
@@ -137,17 +137,73 @@ import {
     }
 
 
-    object.traverse(
-      child => {
+   object.traverse(
+  child => {
 
-        if (
-          !child.isMesh
-        ) {
+    if (
+      !child.isMesh
+    ) {
 
-          return;
+      return;
 
-        }
+    }
 
+
+    /*
+     * Optimized production GLBs use
+     * quantized POSITION/UV data.
+     *
+     * Vertex NORMAL was intentionally
+     * removed during size optimization.
+     *
+     * PBR materials require normals for
+     * correct lighting, so rebuild them
+     * once when the GLB enters the
+     * canonical model cache.
+     */
+    const geometry =
+      child.geometry;
+
+
+    if (
+      geometry
+        ?.attributes
+        ?.position &&
+      !geometry
+        .attributes
+        .normal
+    ) {
+
+      geometry
+        .computeVertexNormals();
+
+
+      if (
+        geometry
+          .attributes
+          .normal
+      ) {
+
+        geometry
+          .attributes
+          .normal
+          .needsUpdate =
+            true;
+
+      }
+
+
+      geometry
+        .computeBoundingBox();
+
+
+      geometry
+        .computeBoundingSphere();
+
+    }
+
+
+    const materials =
 
         const materials =
           Array.isArray(
@@ -190,7 +246,8 @@ import {
 
             }
 
-
+material.flatShading =
+  false;
             /*
              * Meshy GLB contains open /
              * complex surfaces.
