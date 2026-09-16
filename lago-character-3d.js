@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  15;
+  16;
 
 
   const BASE_LAGO_MODEL =
@@ -318,7 +318,7 @@ import {
 
 
   const ROTATE_THRESHOLD_PX =
-    8;
+  10;
 
 
   const ROTATE_YAW_SPEED =
@@ -2118,24 +2118,7 @@ let lastRenderedAt =
 
     );
 
-        userYaw =
-      0;
-
-
-    userPitch =
-      0;
-
-
-    rotatePointerId =
-      null;
-
-
-    tapBulge =
-      0;
-
-
-    tapBulgeVelocity =
-      0;
+       
 
     renderer.render(
       scene,
@@ -2237,6 +2220,41 @@ let lastRenderedAt =
       1
     );
 
+        /*
+     * Fresh character always starts
+     * facing forward and undeformed.
+     *
+     * IMPORTANT:
+     * reset happens ONCE when another
+     * character is installed,
+     * not on every render frame.
+     */
+    userYaw =
+      0;
+
+
+    userPitch =
+      0;
+
+
+    rotatePointerId =
+      null;
+
+
+    tapBulge =
+      0;
+
+
+    tapBulgeVelocity =
+      0;
+
+
+    if (canvas) {
+
+      canvas.style.cursor =
+        "grab";
+
+    }
 
     show2D(
       false
