@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    9;
+    10;
 
 
   /*
@@ -56,11 +56,9 @@
         rarity:
           "LEGENDARY",
 
-        asset:
-          "./assets/characters/comic-narek(5).svg?v=8",
-
+    
        model3d:
-  "./assets/model/roster/narek.glb?v=1",
+  "./assets/model/roster/narek.glb?v=2",
 
         shop:
           Object.freeze({
@@ -116,11 +114,9 @@
         rarity:
           "EPIC",
 
-        asset:
-          "./assets/characters/comic-sola(4).svg?v=8",
-
+        
        model3d:
-  "./assets/model/roster/sola.glb?v=1",
+  "./assets/model/roster/sola.glb?v=2",
 
         shop:
           Object.freeze({
@@ -176,11 +172,8 @@
         rarity:
           "EPIC",
 
-        asset:
-          "./assets/characters/comic-bambini-doc(5).svg?v=8",
-
        model3d:
-  "./assets/model/roster/doc.glb?v=1",
+  "./assets/model/roster/doc.glb?v=2",
 
         shop:
           Object.freeze({
@@ -236,11 +229,9 @@
         rarity:
           "LEGENDARY",
 
-        asset:
-          "./assets/characters/comic-marvin(5).svg?v=8",
 
 model3d:
-  "./assets/model/roster/marvin.glb?v=1",
+  "./assets/model/roster/marvin.glb?v=2",
 
         shop:
           Object.freeze({
@@ -296,11 +287,8 @@ model3d:
         rarity:
           "LEGENDARY",
 
-        asset:
-          "./assets/characters/comic-farid(5).svg?v=8",
-
         model3d:
-  "./assets/model/roster/farid.glb?v=1",
+  "./assets/model/roster/farid.glb?v=2",
 
         shop:
           Object.freeze({
@@ -357,7 +345,7 @@ model3d:
           "EPIC",
 
         model3d:
-  "./assets/model/roster/miki.glb?v=1",
+  "./assets/model/roster/miki.glb?v=2",
 
         shop:
           Object.freeze({
@@ -418,7 +406,7 @@ model3d:
           "LEGENDARY",
 
         model3d:
-  "./assets/model/roster/oleg.glb?v=1",
+  "./assets/model/roster/oleg.glb?v=2",
 
         shop:
           Object.freeze({
@@ -476,7 +464,7 @@ model3d:
           "EPIC",
 
         model3d:
-          "./assets/model/roster/bozz.glb?v=1",
+          "./assets/model/roster/bozz.glb?v=2",
 
         shop:
           Object.freeze({
@@ -527,7 +515,7 @@ model3d:
           "EPIC",
 
         model3d:
-          "./assets/model/roster/taya.glb?v=1",
+          "./assets/model/roster/taya.glb?v=2",
 
         shop:
           Object.freeze({
