@@ -540,7 +540,7 @@
   }
 
 
-  function finishCharacterTap(
+    function finishCharacterTap(
     event
   ) {
 
@@ -560,66 +560,99 @@
     );
 
 
+    const pointer =
+      activeTapPointer;
+
+
     const sample = {
-      
+
       pointerType:
-        activeTapPointer
-          .pointerType,
+        pointer.pointerType,
 
       duration:
         Math.max(
+
           1,
 
           performance.now() -
-            activeTapPointer
-              .startedAt
+          pointer.startedAt
+
         ),
 
       minPressure:
-        activeTapPointer
-          .minPressure,
+        pointer.minPressure,
 
       maxPressure:
-        activeTapPointer
-          .maxPressure,
+        pointer.maxPressure,
 
       maxArea:
-        activeTapPointer
-          .maxArea
+        pointer.maxArea,
 
       maxTravel:
-        activeTapPointer
-          .maxTravel,
-      
+        pointer.maxTravel
+
     };
 
-         const dragThreshold =
+
+    /*
+     * A physical drag rotates the GLB.
+     *
+     * It must NEVER:
+     * - award SP
+     * - consume a Tap
+     * - trigger gum animation
+     */
+    const dragThreshold =
 
       sample.pointerType ===
       "touch"
 
-        ? 14
-        : 7;
+        ? 12
+
+        : 8;
 
 
     const wasRotation =
 
       sample.maxTravel >=
       dragThreshold;
-    
+
+
     activeTapPointer =
       null;
 
 
+    try {
+
+      event.currentTarget
+        ?.releasePointerCapture
+        ?.(event.pointerId);
+
+    } catch (_) {
+
+      /*
+       * Pointer capture may already
+       * have been released.
+       */
+
+    }
+
+
+    if (
+      wasRotation
+    ) {
+
+      return;
+
+    }
+
+
     /*
-     * Do NOT call pulseTap() here.
+     * This is a real Tap Tap.
      *
-     * Successful Tap Lago already
-     * calls LAGO_UI.animateTap(),
-     * which owns GLB tap animation.
-     *
-     * Otherwise one physical tap
-     * animates the GLB twice.
+     * Successful Tap Lago later calls
+     * LAGO_UI.animateTap(), which calls
+     * LAGO_CHARACTER_3D.pulseTap().
      */
     window.LAGO_TAP_GAME
       ?.tap
@@ -636,28 +669,29 @@
   ) {
 
     if (
-      activeTapPointer?.id ===
+      !activeTapPointer ||
+      activeTapPointer.id !==
         event.pointerId
-    ) {
-
-      activeTapPointer =
-        null;
-
-          /*
-     * Rotating the GLB is NOT a Tap Tap.
-     *
-     * No SP.
-     * No DUM tap counter.
-     * No gum pulse.
-     */
-    if (
-      wasRotation
     ) {
 
       return;
 
     }
 
+
+    activeTapPointer =
+      null;
+
+
+    try {
+
+      event.currentTarget
+        ?.releasePointerCapture
+        ?.(event.pointerId);
+
+    } catch (_) {}
+
+  }
 
   /*
    * =========================================================
