@@ -10,11 +10,11 @@ import {
 
 
   const VERSION =
-  20;
+  21;
 
 
   const BASE_LAGO_MODEL =
-  "./assets/model/roster/lago.glb?v=1";
+  "./assets/model/roster/lago.glb?v=2";
 
 
   const BASE_IDS =
