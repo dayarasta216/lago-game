@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  18;
+  19;
 
 
   const BASE_LAGO_MODEL =
@@ -432,28 +432,16 @@ const previewSnapshotCache =
   }
 
 
-  function image() {
+ 
 
-    return document
-      .getElementById(
-        "snail"
-      );
+function area() {
 
-  }
-
-
-  function area() {
-
-    return (
-      document.getElementById(
-        "modernSnailArea"
-      ) ||
-      image()
-        ?.parentElement ||
-      null
+  return document
+    .getElementById(
+      "modernSnailArea"
     );
 
-  }
+}
 
 
   function resolveTarget() {
@@ -513,14 +501,27 @@ const previewSnapshotCache =
     }
 
 
-    /*
-     * Lago skin without its own GLB.
-     */
-    return null;
+   /*
+ * Legacy Lago cosmetic skins do not yet
+ * own separate 3D geometry.
+ *
+ * Until Creator/skins receive modular
+ * 3D parts, every Lago skin uses the
+ * canonical Lago GLB instead of falling
+ * back to a PNG.
+ */
+return {
 
-  }
+  id:
+    "lago",
 
+  name:
+    "LAGO",
 
+  url:
+    BASE_LAGO_MODEL
+
+};
   /*
    * =========================================================
    * MODEL LOADING
@@ -1122,29 +1123,7 @@ const previewSnapshotCache =
    */
 
 
-  function show2D(
-    show
-  ) {
 
-    const element =
-      image();
-
-
-    if (
-      !element
-    ) {
-
-      return;
-
-    }
-
-
-    element.style.display =
-      show
-        ? ""
-        : "none";
-
-  }
 
 
   function show3D(
@@ -1831,11 +1810,6 @@ canvas.style.cursor =
           false
         );
 
-
-        show2D(
-          true
-        );
-
       }
     );
 
@@ -2246,11 +2220,6 @@ let lastRenderedAt =
 
     }
 
-    show2D(
-      false
-    );
-
-
     show3D(
       true
     );
@@ -2296,11 +2265,6 @@ let lastRenderedAt =
     modelUrl
 ) {
 
-  show2D(
-    false
-  );
-
-
   show3D(
     true
   );
@@ -2320,19 +2284,13 @@ let lastRenderedAt =
     const nonce =
       ++requestNonce;
 
-
-    /*
-     * Keep 2D fallback visible only
-     * while asynchronous GLB loads.
-     */
-    show3D(
-      false
-    );
-
-
-    show2D(
-      true
-    );
+/*
+ * Hide stale GLB while the selected
+ * canonical model is loading.
+ */
+show3D(
+  false
+);
 
 
     try {
@@ -2390,12 +2348,6 @@ let lastRenderedAt =
         show3D(
           false
         );
-
-
-        show2D(
-          true
-        );
-
       }
 
 
@@ -3475,12 +3427,6 @@ let lastRenderedAt =
         false
       );
 
-
-      show2D(
-        true
-      );
-
-
       return false;
 
     }
@@ -3637,9 +3583,9 @@ let lastRenderedAt =
      * then start the heavy GLB.
      */
     window.setTimeout(
-      startInitial3D,
-      650
-    );
+  startInitial3D,
+  120
+);
 
   }
 
