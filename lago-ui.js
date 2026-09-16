@@ -2,7 +2,7 @@
   "use strict";
 
  const VERSION =
-  4;
+  5;
 
 const SPRITE =
   "./lago-icons.svg";
@@ -347,60 +347,15 @@ function getSpeech() {
 
 function animateTap() {
 
-  const snail =
-    document.getElementById(
-      "snail"
-    );
-
-
   const host =
     document.getElementById(
       "modernSnailArea"
-    ) ||
-    snail
-      ?.closest(
-        ".lago-modern-snail"
-      ) ||
-    null;
+    );
 
 
   /*
-   * Animate 2D only when it is
-   * actually being used as fallback.
-   */
-  if (snail) {
-
-    const visible =
-      !snail.hidden &&
-      window
-        .getComputedStyle(
-          snail
-        )
-        .display !==
-      "none";
-
-
-    if (visible) {
-
-      snail.classList.remove(
-        "bonk"
-      );
-
-
-      void snail.offsetWidth;
-
-
-      snail.classList.add(
-        "bonk"
-      );
-
-    }
-
-  }
-
-
-  /*
-   * Glow belongs to the stable stage.
+   * Stage feedback belongs to the
+   * canonical 3D character area.
    */
   if (host) {
 
@@ -432,14 +387,18 @@ function animateTap() {
 
 
   /*
-   * Future/public GLB animation hook.
+   * Canonical Tap Tap reaction.
+   *
+   * No PNG.
+   * No #snail.
+   * Only the active GLB receives
+   * the gum/spring impulse.
    */
   window.LAGO_CHARACTER_3D
     ?.pulseTap
     ?.();
 
 }
-
 
 function spawnFloat(
   text,
