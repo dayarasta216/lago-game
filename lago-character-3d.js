@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  23;
+  24;
 
 
   const BASE_LAGO_MODEL =
@@ -237,13 +237,14 @@ import {
           material.needsUpdate =
             true;
 
-        }
-      );
-
     }
   );
 
 }
+
+    const loader =
+    new GLTFLoader();
+
 
 
   /*
