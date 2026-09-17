@@ -710,16 +710,10 @@ document.addEventListener(
 
 
 document.dispatchEvent(
-  new CustomEvent(
-    "lago:ui-ready",
-    {
-      detail: {
-        version:
-          VERSION
-      }
-    }
-  )
-);
+    new CustomEvent(
+      "lago:ui-ready"
+    )
+  );
 
-})();    } = {
+})();
  
