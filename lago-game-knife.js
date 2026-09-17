@@ -4,7 +4,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
   "use strict";
 
 
-  const VERSION = 20;
+  const VERSION = 21;
 
   const GAME_ID =
     "knife-challenge";
@@ -1820,7 +1820,7 @@ let dangerTime =
 
 
     renderer.toneMappingExposure =
-      1.12;
+  .88;
 
 
     renderer.shadowMap.enabled =
@@ -1871,18 +1871,17 @@ camera =
  * become much more obvious.
  */
 camera.position.set(
-  7.25,
-  4.35,
-  9.25
+  6.6,
+  5.6,
+  10.8
 );
 
 
 camera.lookAt(
   0,
-  1.35,
-  .25
+  1.15,
+  0
 );
-
 
     scene.add(
       new THREE.HemisphereLight(
@@ -1896,7 +1895,7 @@ camera.lookAt(
     const keyLight =
       new THREE.DirectionalLight(
         0xffffff,
-        3.6
+2.45
       );
 
 
@@ -1946,7 +1945,7 @@ camera.lookAt(
     const warmLight =
       new THREE.PointLight(
         0xffb16b,
-        12,
+4.8,
         12,
         2
       );
@@ -2019,7 +2018,7 @@ camera.lookAt(
     const rimLight =
       new THREE.DirectionalLight(
         0x9fdcff,
-        1.65
+1.15
       );
 
 
@@ -2041,7 +2040,7 @@ camera.lookAt(
     const characterLight =
       new THREE.PointLight(
         0xffe0ad,
-        7,
+3.6,
         9,
         2
       );
@@ -3220,10 +3219,10 @@ camera.lookAt(
 
 
     plateGroup.position.set(
-      1.2,
-      .36,
-      2.35
-    );
+  3.55,
+  .34,
+  2.15
+);
 
 
     world.add(
@@ -3235,12 +3234,12 @@ camera.lookAt(
       new THREE.Mesh(
 
         new THREE
-          .CylinderGeometry(
-            1.82,
-            2.02,
-            .13,
-            64
-          ),
+  .CylinderGeometry(
+    1.12,
+    1.24,
+    .13,
+    64
+  ),
 
         material(
           0xeee9dc,
@@ -3267,12 +3266,12 @@ camera.lookAt(
       new THREE.Mesh(
 
         new THREE
-          .TorusGeometry(
-            1.52,
-            .08,
-            12,
-            64
-          ),
+  .TorusGeometry(
+    .93,
+    .06,
+    12,
+    64
+  ),
 
         material(
           0xc8c3b9,
@@ -3522,12 +3521,63 @@ camera.lookAt(
 
 
     camera.aspect =
-      width /
-      height;
+  width /
+  height;
 
 
-    camera
-      .updateProjectionMatrix();
+const compact =
+  width <
+  680;
+
+
+const tablet =
+  !compact &&
+  width <
+  1050;
+
+
+camera.fov =
+  compact
+    ? 44
+    : tablet
+      ? 39
+      : 36;
+
+
+camera.position.set(
+
+  compact
+    ? 5.2
+    : tablet
+      ? 6.0
+      : 6.6,
+
+  compact
+    ? 6.25
+    : tablet
+      ? 5.9
+      : 5.6,
+
+  compact
+    ? 12.8
+    : tablet
+      ? 11.7
+      : 10.8
+
+);
+
+
+camera.lookAt(
+  0,
+  compact
+    ? 1.0
+    : 1.15,
+  0
+);
+
+
+camera
+  .updateProjectionMatrix();
 
   }
 
