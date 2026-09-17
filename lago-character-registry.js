@@ -466,19 +466,19 @@ model3d:
         model3d:
           "./assets/model/roster/bozz.glb?v=2",
 
-        shop:
-          Object.freeze({
+       shop:
+  Object.freeze({
 
-            enabled:
-              false,
+    enabled:
+      true,
 
-            currency:
-              "SP",
+    currency:
+      "SP",
 
-            price:
-              0
+    price:
+      540000
 
-          }),
+  }),
 
         playtimeUnlock:
           Object.freeze({
@@ -518,18 +518,18 @@ model3d:
           "./assets/model/roster/taya.glb?v=2",
 
         shop:
-          Object.freeze({
+  Object.freeze({
 
-            enabled:
-              false,
+    enabled:
+      true,
 
-            currency:
-              "SP",
+    currency:
+      "SP",
 
-            price:
-              0
+    price:
+      580000
 
-          }),
+  }),
 
         playtimeUnlock:
           Object.freeze({
