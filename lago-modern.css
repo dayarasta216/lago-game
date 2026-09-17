@@ -8220,6 +8220,4194 @@ and
    ========================================================= */
 
 /* =========================================================
+   UPGRADE вЂ” CANONICAL LAGO TYPOGRAPHY
+   ========================================================= */
+
+
+.lago-upgrade-screen,
+.lago-upgrade-screen button {
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+}
+
+
+.lago-upgrade-kicker,
+.lago-upgrade-status,
+.lago-upgrade-balance span,
+.lago-upgrade-card-desc,
+.lago-upgrade-auto-next span,
+.lago-upgrade-cost-grid span {
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .08em;
+
+  text-transform:
+    uppercase;
+
+}
+
+
+.lago-upgrade-title {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  line-height:
+    .95;
+
+  letter-spacing:
+    -.035em;
+
+}
+
+
+.lago-upgrade-card-name {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -.02em;
+
+}
+
+
+.lago-upgrade-card-effect,
+.lago-upgrade-balance strong {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    Inter,
+    sans-serif;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    0;
+
+}
+
+
+.lago-upgrade-buy,
+.lago-upgrade-owned {
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .045em;
+
+  text-transform:
+    uppercase;
+
+}
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+
+  *,
+  *::before,
+  *::after {
+
+    scroll-behavior:
+      auto !important;
+
+    animation-duration:
+      .01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      .01ms !important;
+
+  }
+
+}
+
+/* =========================================================
+   MOBILE COLLECTION / SHOP FIT
+   ========================================================= */
+
+@media (
+  max-width:
+  560px
+) {
+
+  /*
+   * Collection on smartphones is an
+   * actual inventory, not a catalogue.
+   *
+   * Locked Lago skins must not occupy
+   * cards with question marks.
+   */
+  #lagoSkinGrid
+  .lago-skin.locked {
+
+    display:
+      none !important;
+
+  }
+
+
+  /*
+   * Marvin is extremely tall.
+   * Give the complete character more
+   * breathing room inside narrow
+   * two-column Shop cards.
+   */
+  .lago-shop-character-image[
+    src*="comic-marvin"
+  ] {
+
+    width:
+      56% !important;
+
+    height:
+      76% !important;
+
+    object-fit:
+      contain !important;
+
+    object-position:
+      center !important;
+
+  }
+
+}
+  --lago-radius:
+    18px;
+
+}
+
+
+/* =========================================================
+   LEGACY
+   ========================================================= */
+
+.app {
+
+  display:
+    none !important;
+
+}
+
+
+/* =========================================================
+   ROOT APP
+   ========================================================= */
+
+#lagoModern {
+
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  width:
+    100%;
+
+  height:
+    100vh;
+
+  height:
+    100dvh;
+
+  z-index:
+    4000;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  overflow:
+    hidden;
+
+  isolation:
+    isolate;
+
+  contain:
+    layout
+    paint
+    style;
+
+  color:
+    var(
+      --lago-text
+    );
+
+  /*
+   * =====================================================
+   * CONTINUOUS BACKGROUND
+   * =====================================================
+   *
+   * No short gradient cutoff.
+   * No visible vertical seam.
+   * Every color dissolves over
+   * a very large distance.
+   */
+
+  background:
+
+    radial-gradient(
+      ellipse
+      95% 85%
+      at
+      37% 44%,
+
+      rgba(
+        132,
+        0,
+        184,
+        .28
+      )
+      0%,
+
+      rgba(
+        121,
+        0,
+        166,
+        .20
+      )
+      22%,
+
+      rgba(
+        92,
+        0,
+        132,
+        .11
+      )
+      45%,
+
+      rgba(
+        50,
+        0,
+        73,
+        .04
+      )
+      67%,
+
+      rgba(
+        20,
+        6,
+        23,
+        0
+      )
+      100%
+    ),
+
+    radial-gradient(
+      ellipse
+      100% 100%
+      at
+      8% 92%,
+
+      rgba(
+        220,
+        32,
+        133,
+        .14
+      )
+      0%,
+
+      rgba(
+        160,
+        20,
+        112,
+        .08
+      )
+      36%,
+
+      rgba(
+        90,
+        12,
+        75,
+        .03
+      )
+      68%,
+
+      rgba(
+        20,
+        7,
+        20,
+        0
+      )
+      100%
+    ),
+
+    radial-gradient(
+      ellipse
+      110% 95%
+      at
+      94% 88%,
+
+      rgba(
+        116,
+        94,
+        21,
+        .09
+      )
+      0%,
+
+      rgba(
+        78,
+        61,
+        20,
+        .05
+      )
+      38%,
+
+      rgba(
+        34,
+        24,
+        18,
+        .02
+      )
+      67%,
+
+      rgba(
+        18,
+        8,
+        18,
+        0
+      )
+      100%
+    ),
+
+    linear-gradient(
+      118deg,
+
+      #160817
+      0%,
+
+      #160918
+      22%,
+
+      #150a19
+      45%,
+
+      #130b17
+      68%,
+
+      #120c14
+      84%,
+
+      #120b12
+      100%
+    );
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+}
+
+
+/*
+ * Grid is intentionally extremely subtle.
+ * No blur/filter required.
+ */
+
+#lagoModern::before {
+
+  content:
+    "";
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  z-index:
+    -1;
+
+  pointer-events:
+    none;
+
+  opacity:
+    .032;
+
+  background-image:
+
+    linear-gradient(
+      rgba(
+        255,
+        255,
+        255,
+        .26
+      )
+      1px,
+
+      transparent
+      1px
+    ),
+
+    linear-gradient(
+      90deg,
+
+      rgba(
+        255,
+        255,
+        255,
+        .26
+      )
+      1px,
+
+      transparent
+      1px
+    );
+
+  background-size:
+    32px
+    32px;
+
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.lago-modern-header {
+
+  position:
+    relative;
+
+  z-index:
+    5;
+
+  width:
+    min(
+      1180px,
+      calc(
+        100% -
+        28px
+      )
+    );
+
+  margin:
+    0
+    auto;
+
+  padding:
+    calc(
+      12px +
+      env(
+        safe-area-inset-top
+      )
+    )
+    0
+    10px;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    auto
+    1fr
+    auto;
+
+  align-items:
+    center;
+
+  gap:
+    20px;
+
+}
+
+
+.lago-brand {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    10px;
+
+  user-select:
+    none;
+
+}
+
+
+.lago-brand-name {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    sans-serif;
+
+  font-size:
+    28px;
+
+  letter-spacing:
+    -.04em;
+
+  color:
+    var(
+      --lago-pink
+    );
+
+  text-shadow:
+    3px
+    3px
+    0
+    var(
+      --lago-purple
+    );
+
+}
+
+
+.lago-brand-tag {
+
+  padding:
+    5px
+    8px;
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .08
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      204,
+      255,
+      0,
+      .3
+    );
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-size:
+    8px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .08em;
+
+}
+
+
+/* =========================================================
+   DESKTOP NAV
+   ========================================================= */
+
+.lago-main-nav {
+
+  display:
+    flex;
+
+  justify-content:
+    center;
+
+  gap:
+    4px;
+
+}
+
+
+.lago-nav-btn {
+
+  min-height:
+    36px;
+
+  padding:
+    0
+    13px;
+
+  border:
+    0;
+
+  border-radius:
+    10px;
+
+  background:
+    transparent;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .48
+    );
+
+  font-size:
+    10px;
+
+  font-weight:
+    900;
+
+  cursor:
+    pointer;
+
+  transition:
+    color
+    .14s
+    ease,
+    background
+    .14s
+    ease;
+
+}
+
+
+.lago-nav-btn:hover {
+
+  color:
+    white;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .055
+    );
+
+}
+
+
+.lago-nav-btn.active {
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .08
+    );
+
+}
+
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+.lago-profile {
+
+  appearance:
+    none;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    7px
+    9px;
+
+  border-radius:
+    12px;
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+  color:
+    inherit;
+
+  background:
+    rgba(
+      31,
+      15,
+      34,
+      .92
+    );
+
+  cursor:
+    pointer;
+
+  text-align:
+    left;
+
+  transition:
+    background
+    .14s
+    ease,
+    border-color
+    .14s
+    ease,
+    transform
+    .14s
+    ease;
+
+}
+
+
+.lago-profile:hover {
+
+  transform:
+    translateY(
+      -1px
+    );
+
+  background:
+    rgba(
+      42,
+      20,
+      46,
+      .96
+    );
+
+  border-color:
+    rgba(
+      204,
+      255,
+      0,
+      .24
+    );
+
+}
+
+
+.lago-profile-icon {
+
+  width:
+    28px;
+
+  height:
+    28px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  border-radius:
+    9px;
+
+  background:
+    linear-gradient(
+      135deg,
+
+      var(
+        --lago-pink
+      ),
+
+      var(
+        --lago-purple
+      )
+    );
+
+  font-size:
+    15px;
+
+}
+
+
+.lago-profile-icon img {
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  display:
+    block;
+
+  object-fit:
+    cover;
+
+  border-radius:
+    inherit;
+
+}
+
+
+.lago-profile-text {
+
+  line-height:
+    1.05;
+
+}
+
+
+.lago-profile-level {
+
+  font-size:
+    8px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .38
+    );
+
+  font-weight:
+    800;
+
+}
+
+
+.lago-profile-value {
+
+  font-size:
+    11px;
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-weight:
+    1000;
+
+}
+
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+.lago-statbar {
+
+  position:
+    relative;
+
+  z-index:
+    4;
+
+  flex:
+    0
+    0
+    auto;
+
+  width:
+    min(
+      1180px,
+      calc(
+        100% -
+        28px
+      )
+    );
+
+  margin:
+    0
+    auto;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    8px;
+
+}
+
+
+.lago-stat-card {
+
+  min-width:
+    0;
+
+  min-height:
+    0;
+
+  padding:
+    7px
+    11px;
+
+  border-radius:
+    13px;
+
+  /*
+   * Solid translucent fill instead
+   * of backdrop-filter.
+   *
+   * Much cheaper in Safari.
+   */
+  background:
+    rgba(
+      34,
+      17,
+      38,
+      .88
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+  contain:
+    layout
+    paint;
+
+}
+
+
+.lago-stat-label {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    5px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .35
+    );
+
+  font-size:
+    7px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .08em;
+
+}
+
+
+.lago-stat-value {
+
+  margin-top:
+    2px;
+
+  color:
+    white;
+
+  font-family:
+    Impact,
+    "Arial Black",
+    sans-serif;
+
+  font-size:
+    18px;
+
+  line-height:
+    1;
+
+}
+
+
+/* =========================================================
+   MAIN GAME
+   ========================================================= */
+
+.lago-game-area {
+
+  position:
+    relative;
+
+  z-index:
+    3;
+
+  flex:
+    1;
+
+  width:
+    min(
+      1180px,
+      calc(
+        100% -
+        28px
+      )
+    );
+
+  margin:
+    0
+    auto;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    210px
+    minmax(
+      350px,
+      1fr
+    )
+    210px;
+
+  align-items:
+    center;
+
+  gap:
+    20px;
+
+  min-height:
+    0;
+
+}
+
+
+/* =========================================================
+   SIDE
+   ========================================================= */
+
+.lago-side {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    10px;
+
+}
+
+
+.lago-side-card {
+
+  padding:
+    14px;
+
+  border-radius:
+    16px;
+
+  background:
+    rgba(
+      33,
+      16,
+      37,
+      .88
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .075
+    );
+
+  contain:
+    layout
+    paint;
+
+}
+
+
+.lago-side-title {
+
+  margin-bottom:
+    9px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .38
+    );
+
+  font-size:
+    8px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .12em;
+
+}
+
+
+.lago-side-big {
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-size:
+    24px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    -.05em;
+
+}
+
+
+.lago-side-desc {
+
+  margin-top:
+    5px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .38
+    );
+
+  font-size:
+    9px;
+
+  line-height:
+    1.35;
+
+}
+
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+.lago-progress-meta {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    8px;
+
+}
+
+
+.lago-progress-meta
+.lago-side-title {
+
+  margin-bottom:
+    0;
+
+}
+
+
+.lago-level-chip {
+
+  flex:
+    0
+    0
+    auto;
+
+  padding:
+    4px
+    7px;
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .08
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      204,
+      255,
+      0,
+      .22
+    );
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-size:
+    7px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .06em;
+
+}
+
+
+.lago-progress-caption {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    8px;
+
+  margin-top:
+    8px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .38
+    );
+
+  font-size:
+    7px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .06em;
+
+}
+
+
+.lago-progress-caption
+span:last-child {
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .62
+    );
+
+  white-space:
+    nowrap;
+
+}
+
+
+.lago-progress {
+
+  height:
+    6px;
+
+  margin-top:
+    9px;
+
+  overflow:
+    hidden;
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+}
+
+
+.lago-progress i {
+
+  display:
+    block;
+
+  height:
+    100%;
+
+  width:
+    15%;
+
+  border-radius:
+    inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+
+      var(
+        --lago-pink
+      ),
+
+      var(
+        --lago-purple
+      ),
+
+      var(
+        --lago-lime
+      )
+    );
+
+  transition:
+    width
+    .18s
+    ease-out;
+
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
+
+.lago-action {
+
+  width:
+    100%;
+
+  min-height:
+    48px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    9px;
+
+  padding:
+    9px
+    11px;
+
+  border:
+    0;
+
+  border-radius:
+    13px;
+
+  background:
+    rgba(
+      35,
+      17,
+      39,
+      .9
+    );
+
+  color:
+    white;
+
+  text-align:
+    left;
+
+  cursor:
+    pointer;
+
+  contain:
+    layout
+    paint;
+
+  transition:
+    transform
+    .12s
+    ease-out,
+    background
+    .12s
+    ease-out;
+
+}
+
+
+.lago-action:hover {
+
+  transform:
+    translateY(
+      -1px
+    );
+
+  background:
+    rgba(
+      45,
+      21,
+      50,
+      .96
+    );
+
+}
+
+
+.lago-action:active {
+
+  transform:
+    scale(
+      .985
+    );
+
+}
+
+
+.lago-action-icon {
+
+  width:
+    30px;
+
+  height:
+    30px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  flex:
+    0
+    0
+    auto;
+
+  border-radius:
+    9px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  font-size:
+    15px;
+
+}
+
+
+.lago-action-text {
+
+  font-size:
+    9px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-action-sub {
+
+  margin-top:
+    2px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .35
+    );
+
+  font-size:
+    7px;
+
+  font-weight:
+    700;
+
+}
+
+
+/* =========================================================
+   CENTER
+   ========================================================= */
+
+.lago-center {
+
+  position:
+    relative;
+
+  min-width:
+    0;
+
+  height:
+    100%;
+
+  min-height:
+    430px;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  text-align:
+    center;
+
+  contain:
+    layout
+    style;
+
+}
+
+
+.lago-center-title {
+
+  font-family:
+    Impact,
+    "Arial Black",
+    sans-serif;
+
+  font-size:
+    clamp(
+      38px,
+      5vw,
+      64px
+    );
+
+  line-height:
+    .9;
+
+  letter-spacing:
+    -.045em;
+
+  color:
+    var(
+      --lago-pink
+    );
+
+  text-shadow:
+    4px
+    4px
+    0
+    var(
+      --lago-purple
+    );
+
+  transform:
+    rotate(
+      -2deg
+    );
+
+}
+
+
+.lago-center-sub {
+
+  margin-top:
+    8px;
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-family:
+    monospace;
+
+  font-size:
+    9px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .08em;
+
+}
+
+
+/* =========================================================
+   CHARACTER STAGE
+   ========================================================= */
+
+.lago-modern-snail {
+
+  position:
+    relative;
+
+  width:
+    min(
+      42vw,
+      430px
+    );
+
+  height:
+    min(
+      40vh,
+      390px
+    );
+
+  margin:
+    3px
+    0
+    4px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  overflow:
+    hidden;
+
+  isolation:
+    isolate;
+
+  contain:
+    layout
+    paint
+    style;
+
+  z-index:
+    0;
+
+  touch-action:
+    manipulation;
+
+  user-select:
+    none;
+
+  -webkit-user-select:
+    none;
+
+  -webkit-touch-callout:
+    none;
+
+}
+
+
+/*
+ * Soft single-source glow.
+ *
+ * Smaller blur than previous pass,
+ * which reduces GPU composite cost.
+ */
+
+.lago-modern-snail::before {
+
+  content:
+    "";
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  z-index:
+    0;
+
+  pointer-events:
+    none;
+
+  /*
+   * IMPORTANT:
+   *
+   * No blur.
+   * No solid rectangle.
+   * No filter.
+   *
+   * The glow becomes fully transparent
+   * LONG before it reaches the edges
+   * of the character stage.
+   *
+   * Safari therefore has nothing
+   * visible to clip into a rectangle.
+   */
+
+  background:
+    radial-gradient(
+      ellipse
+      54% 48%
+      at
+      50% 52%,
+
+      rgba(
+        157,
+        31,
+        255,
+        .30
+      )
+      0%,
+
+      rgba(
+        150,
+        26,
+        245,
+        .22
+      )
+      24%,
+
+      rgba(
+        135,
+        20,
+        222,
+        .12
+      )
+      40%,
+
+      rgba(
+        105,
+        14,
+        180,
+        .045
+      )
+      54%,
+
+      rgba(
+        90,
+        10,
+        160,
+        0
+      )
+      70%
+    );
+
+  opacity:
+    .82;
+
+  transform:
+    scale(
+      1
+    );
+
+  transform-origin:
+    center;
+
+  will-change:
+    opacity,
+    transform;
+
+}
+
+
+.lago-modern-snail
+#snail {
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  object-fit:
+    contain;
+
+  object-position:
+    center;
+
+  user-select:
+    none;
+
+  -webkit-user-drag:
+    none;
+
+  transform-origin:
+    50%
+    55%;
+
+  position:
+    relative;
+
+  z-index:
+    2;
+
+  cursor:
+    pointer;
+
+  touch-action:
+    manipulation;
+
+}
+
+
+.lago-modern-snail
+#snail:not(
+  [data-lago-character]
+) {
+
+  width:
+    94%;
+
+  height:
+    94%;
+
+}
+
+
+/* =========================================================
+   3D CANVAS
+   ========================================================= */
+
+.lago-character-3d-canvas {
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  max-width:
+    100%;
+
+  max-height:
+    100%;
+
+  display:
+    block;
+
+  cursor:
+    pointer;
+
+  touch-action:
+    manipulation;
+
+  user-select:
+    none;
+
+  /*
+   * IMPORTANT:
+   *
+   * Do not use filter: drop-shadow()
+   * on a canvas rendered every frame.
+   * Safari recomposites it constantly.
+   */
+
+  contain:
+    strict;
+
+}
+
+
+.lago-character-3d-canvas[
+  hidden
+] {
+
+  display:
+    none !important;
+
+}
+
+
+/* =========================================================
+   TAP CHARACTER ANIMATION
+   ========================================================= */
+
+.lago-modern-snail
+#snail.bonk {
+
+  animation:
+    lagoBonkSafe
+    .16s
+    cubic-bezier(
+      .2,
+      .8,
+      .2,
+      1
+    );
+
+}
+
+
+@keyframes lagoBonkSafe {
+
+  0% {
+
+    transform:
+      scale(
+        1
+      );
+
+  }
+
+
+  42% {
+
+    transform:
+      scale(
+        1.025
+      )
+      rotate(
+        -1.5deg
+      );
+
+  }
+
+
+  75% {
+
+    transform:
+      scale(
+        .99
+      )
+      rotate(
+        1deg
+      );
+
+  }
+
+
+  100% {
+
+    transform:
+      scale(
+        1
+      );
+
+  }
+
+}
+
+
+.lago-modern-snail.tap-glow::before {
+
+  animation:
+    lagoTapGlowPulse
+    .20s
+    ease-out;
+
+}
+
+
+@keyframes lagoTapGlowPulse {
+
+  0% {
+
+    opacity:
+      .82;
+
+    transform:
+      scale(
+        1
+      );
+
+  }
+
+
+  38% {
+
+    opacity:
+      1;
+
+    transform:
+      scale(
+        1.08
+      );
+
+  }
+
+
+  100% {
+
+    opacity:
+      .82;
+
+    transform:
+      scale(
+        1
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   SPEECH
+   ========================================================= */
+
+.lago-speech {
+
+  min-height:
+    35px;
+
+  max-width:
+    310px;
+
+  padding:
+    8px
+    14px;
+
+  border-radius:
+    12px;
+
+  background:
+    rgba(
+      9,
+      5,
+      10,
+      .68
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      204,
+      255,
+      0,
+      .35
+    );
+
+  color:
+    white;
+
+  font-family:
+    monospace;
+
+  font-size:
+    11px;
+
+  font-weight:
+    900;
+
+}
+
+
+.lago-tap-hint {
+
+  min-height:
+    28px;
+
+  margin-top:
+    10px;
+
+  padding:
+    4px
+    8px;
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-family:
+    monospace;
+
+  font-size:
+    13px;
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    .09em;
+
+  text-align:
+    center;
+
+  text-transform:
+    uppercase;
+
+  user-select:
+    none;
+
+  pointer-events:
+    none;
+
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+.lago-dashboard-card {
+
+  min-height:
+    86px;
+
+}
+
+
+.lago-dashboard-row {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    9px;
+
+}
+
+
+.lago-dashboard-icon {
+
+  width:
+    32px;
+
+  height:
+    32px;
+
+  flex:
+    0
+    0
+    auto;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  border-radius:
+    10px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  color:
+    var(
+      --lago-lime
+    );
+
+}
+
+
+.lago-dashboard-status {
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-size:
+    11px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-dashboard-value {
+
+  color:
+    var(
+      --lago-lime
+    );
+
+  font-size:
+    24px;
+
+  font-weight:
+    1000;
+
+  line-height:
+    1;
+
+}
+
+
+/* =========================================================
+   BOTTOM NAV
+   ========================================================= */
+
+.lago-bottom {
+
+  position:
+    relative;
+
+  z-index:
+    5;
+
+  width:
+    min(
+      720px,
+      calc(
+        100% -
+        28px
+      )
+    );
+
+  margin:
+    0
+    auto
+    calc(
+      10px +
+      env(
+        safe-area-inset-bottom
+      )
+    );
+
+  padding:
+    5px;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      1fr
+    );
+
+  gap:
+    4px;
+
+  border-radius:
+    16px;
+
+  background:
+    rgba(
+      17,
+      9,
+      19,
+      .96
+    );
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .08
+    );
+
+}
+
+
+.lago-bottom-btn {
+
+  min-height:
+    43px;
+
+  border:
+    0;
+
+  border-radius:
+    11px;
+
+  background:
+    transparent;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .42
+    );
+
+  font-size:
+    8px;
+
+  font-weight:
+    1000;
+
+  cursor:
+    pointer;
+
+  transition:
+    background
+    .12s
+    ease-out,
+    color
+    .12s
+    ease-out;
+
+}
+
+
+.lago-bottom-btn:hover {
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .05
+    );
+
+  color:
+    white;
+
+}
+
+
+.lago-bottom-btn.active {
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .08
+    );
+
+  color:
+    var(
+      --lago-lime
+    );
+
+}
+
+
+@media (
+  min-width:
+  900px
+) {
+
+  .lago-bottom {
+
+    display:
+      none !important;
+
+  }
+
+}
+
+
+/* =========================================================
+   FLOATING TAP REWARD
+   ========================================================= */
+
+.lago-tap-float {
+
+  position:
+    fixed;
+
+  z-index:
+    20000;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  gap:
+    5px;
+
+  transform:
+    translate(
+      -50%,
+      -50%
+    );
+
+  pointer-events:
+    none;
+
+  user-select:
+    none;
+
+  white-space:
+    nowrap;
+
+  animation:
+    lagoTapFloat
+    .72s
+    cubic-bezier(
+      .16,
+      .84,
+      .32,
+      1
+    )
+    forwards;
+
+}
+
+
+.lago-tap-float-main {
+
+  color:
+    #ccff00;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    monospace;
+
+  font-size:
+    clamp(
+      18px,
+      2vw,
+      26px
+    );
+
+  font-weight:
+    1000;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -.04em;
+
+  text-shadow:
+    0
+    2px
+    7px
+    rgba(
+      0,
+      0,
+      0,
+      .78
+    );
+
+}
+
+
+.lago-tap-float-meta {
+
+  padding:
+    4px
+    7px;
+
+  border-radius:
+    999px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .88
+    );
+
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      .66
+    );
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    monospace;
+
+  font-size:
+    clamp(
+      9px,
+      1vw,
+      12px
+    );
+
+  font-weight:
+    900;
+
+  line-height:
+    1;
+
+}
+
+
+.lago-tap-float[
+  data-strength="5"
+]
+.lago-tap-float-main {
+
+  font-size:
+    clamp(
+      21px,
+      2.3vw,
+      30px
+    );
+
+}
+
+
+@keyframes lagoTapFloat {
+
+  0% {
+
+    opacity:
+      0;
+
+    transform:
+      translate(
+        -50%,
+        -35%
+      )
+      scale(
+        .84
+      );
+
+  }
+
+
+  15% {
+
+    opacity:
+      1;
+
+    transform:
+      translate(
+        -50%,
+        -56%
+      )
+      scale(
+        1.05
+      );
+
+  }
+
+
+  65% {
+
+    opacity:
+      1;
+
+  }
+
+
+  100% {
+
+    opacity:
+      0;
+
+    transform:
+      translate(
+        -50%,
+        -150%
+      )
+      scale(
+        .96
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   UPGRADE SCREEN
+   ========================================================= */
+
+.lago-upgrade-screen {
+
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  z-index:
+    16000;
+
+  display:
+    none;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    max(
+      18px,
+      env(
+        safe-area-inset-top
+      )
+    )
+    18px
+    max(
+      18px,
+      env(
+        safe-area-inset-bottom
+      )
+    );
+
+  background:
+    rgba(
+      8,
+      3,
+      10,
+      .94
+    );
+
+}
+
+
+.lago-upgrade-screen.show {
+
+  display:
+    flex;
+
+}
+
+
+.lago-upgrade-shell {
+
+  width:
+    min(
+      980px,
+      100%
+    );
+
+  max-height:
+    min(
+      860px,
+      calc(
+        100dvh -
+        36px
+      )
+    );
+
+  overflow:
+    auto;
+
+  padding:
+    24px;
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .12
+    );
+
+  border-radius:
+    24px;
+
+  background:
+    #180b1b;
+
+  box-shadow:
+    0
+    24px
+    60px
+    rgba(
+      0,
+      0,
+      0,
+      .42
+    );
+
+
+  /*
+   * Same typography as the canonical
+   * Lago interface.
+   *
+   * Upgrade screen lives outside
+   * #lagoModern, therefore it cannot
+   * inherit the main UI font.
+   */
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-synthesis:
+    none;
+
+  -webkit-font-smoothing:
+    antialiased;
+
+  text-rendering:
+    optimizeLegibility;
+
+}
+
+
+.lago-upgrade-header {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    18px;
+
+  margin-bottom:
+    18px;
+
+}
+
+
+.lago-upgrade-kicker {
+
+  margin-bottom:
+    5px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .46
+    );
+
+  font-size:
+    11px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    .14em;
+
+}
+
+
+.lago-upgrade-title {
+
+  color:
+    #fff;
+
+  font-size:
+    clamp(
+      24px,
+      4vw,
+      40px
+    );
+
+  font-weight:
+    1000;
+
+  letter-spacing:
+    -.05em;
+
+}
+
+
+.lago-upgrade-close {
+
+  width:
+    44px;
+
+  height:
+    44px;
+
+  flex:
+    0
+    0
+    44px;
+
+     margin-left:
+    auto;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  padding:
+    0;
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .16
+    );
+
+  border-radius:
+    50%;
+
+  color:
+    #fff;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  font-size:
+    28px;
+
+  cursor:
+    pointer;
+
+}
+
+
+.lago-upgrade-balance {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    14px;
+
+  margin-bottom:
+    18px;
+
+  padding:
+    12px
+    14px;
+
+  border:
+    1px
+    solid
+    rgba(
+      204,
+      255,
+      0,
+      .18
+    );
+
+  border-radius:
+    13px;
+
+  background:
+    rgba(
+      204,
+      255,
+      0,
+      .045
+    );
+
+}
+
+
+.lago-upgrade-balance span {
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .55
+    );
+
+  font-size:
+    11px;
+
+  font-weight:
+    900;
+
+}
+
+
+.lago-upgrade-balance strong {
+
+  color:
+    #ccff00;
+
+  font-size:
+    18px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-upgrade-grid {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    16px;
+
+}
+
+
+.lago-upgrade-card {
+
+  min-width:
+    0;
+
+  padding:
+    20px;
+
+  border:
+    1px
+    solid
+    rgba(
+      255,
+      255,
+      255,
+      .10
+    );
+
+  border-radius:
+    19px;
+
+  background:
+    #201024;
+
+  contain:
+    layout
+    paint;
+
+}
+
+
+.lago-upgrade-card.active {
+
+  border-color:
+    rgba(
+      204,
+      255,
+      0,
+      .42
+    );
+
+  background:
+    #202214;
+
+}
+
+
+.lago-upgrade-card-top {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  margin-bottom:
+    18px;
+
+}
+
+
+.lago-upgrade-icon {
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  width:
+    50px;
+
+  height:
+    50px;
+
+  border-radius:
+    14px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  font-size:
+    26px;
+
+}
+
+
+.lago-upgrade-status {
+
+  padding:
+    6px
+    9px;
+
+  border-radius:
+    999px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .72
+    );
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    );
+
+  font-size:
+    10px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-upgrade-card-name {
+
+  color:
+    #fff;
+
+  font-size:
+    22px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-upgrade-card-effect {
+
+  margin-top:
+    5px;
+
+  color:
+    #ccff00;
+
+  font-size:
+    16px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-upgrade-card-desc {
+
+  min-height:
+    54px;
+
+  margin-top:
+    13px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .50
+    );
+
+  font-size:
+    12px;
+
+  font-weight:
+    700;
+
+  line-height:
+    1.5;
+
+}
+
+
+.lago-upgrade-owned {
+
+  margin-top:
+    18px;
+
+  padding:
+    13px;
+
+  border:
+    1px
+    solid
+    rgba(
+      204,
+      255,
+      0,
+      .30
+    );
+
+  border-radius:
+    11px;
+
+  color:
+    #ccff00;
+
+  text-align:
+    center;
+
+  font-size:
+    12px;
+
+  font-weight:
+    1000;
+
+}
+
+
+.lago-upgrade-buy {
+
+  width:
+    100%;
+
+  min-height:
+    45px;
+
+  margin-top:
+    15px;
+
+  padding:
+    10px
+    14px;
+
+  border:
+    0;
+
+  border-radius:
+    11px;
+
+  color:
+    #160916;
+
+  background:
+    #ccff00;
+
+  font-weight:
+    1000;
+
+  cursor:
+    pointer;
+
+}
+
+
+.lago-upgrade-buy-premium {
+
+  margin-top:
+    8px;
+
+  color:
+    #fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #7b35ff,
+      #d333ff
+    );
+
+}
+
+
+.lago-upgrade-auto-next {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  margin-top:
+    16px;
+
+  padding:
+    10px
+    12px;
+
+  border-radius:
+    10px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .045
+    );
+
+}
+
+
+.lago-upgrade-cost-grid {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    8px;
+
+  margin-top:
+    10px;
+
+}
+
+
+.lago-upgrade-cost-grid > div {
+
+  padding:
+    9px
+    10px;
+
+  border-radius:
+    9px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .035
+    );
+
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (
+  max-width:
+  899px
+) {
+
+  .lago-main-nav {
+
+    display:
+      none;
+
+  }
+
+
+  .lago-profile-text {
+
+    display:
+      none;
+
+  }
+
+
+  .lago-bottom {
+
+    display:
+      grid;
+
+  }
+
+
+  .lago-game-area {
+
+    grid-template-columns:
+      1fr;
+
+    align-items:
+      start;
+
+    overflow-x:
+      hidden;
+
+    overflow-y:
+      auto;
+
+    overscroll-behavior:
+      contain;
+
+    padding:
+      8px
+      0
+      16px;
+
+  }
+
+
+  .lago-game-area
+  > .lago-center {
+
+    order:
+      1;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type {
+
+    order:
+      2;
+
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      8px;
+
+    width:
+      100%;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
+
+    grid-column:
+      1 /
+      -1;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:last-of-type {
+
+    display:
+      none;
+
+  }
+
+
+  .lago-center {
+
+    min-height:
+      520px;
+
+  }
+
+
+  .lago-modern-snail {
+
+    width:
+      min(
+        75vw,
+        390px
+      );
+
+    height:
+      330px;
+
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (
+  max-width:
+  560px
+) {
+
+  #lagoModern {
+
+    width:
+      100%;
+
+    height:
+      100vh;
+
+    height:
+      100dvh;
+
+    overflow:
+      hidden;
+
+  }
+
+
+  .lago-modern-header {
+
+    flex:
+      0
+      0
+      auto;
+
+    width:
+      calc(
+        100% -
+        20px
+      );
+
+    padding:
+      calc(
+        7px +
+        env(
+          safe-area-inset-top
+        )
+      )
+      0
+      5px;
+
+    gap:
+      8px;
+
+    grid-template-columns:
+      1fr
+      auto;
+
+  }
+
+
+  .lago-brand-name {
+
+    font-size:
+      24px;
+
+  }
+
+
+  .lago-brand-tag {
+
+    display:
+      none;
+
+  }
+
+
+  .lago-profile {
+
+    padding:
+      5px;
+
+  }
+
+
+  .lago-profile-icon {
+
+    width:
+      34px;
+
+    height:
+      34px;
+
+  }
+
+
+  .lago-statbar {
+
+    width:
+      calc(
+        100% -
+        20px
+      );
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      5px;
+
+  }
+
+
+  .lago-stat-card {
+
+    padding:
+      6px
+      7px;
+
+  }
+
+
+  .lago-stat-label {
+
+    font-size:
+      6px;
+
+  }
+
+
+  .lago-stat-value {
+
+    font-size:
+      15px;
+
+  }
+
+
+  .lago-game-area {
+
+    flex:
+      1
+      1
+      auto;
+
+    min-height:
+      0;
+
+    width:
+      calc(
+        100% -
+        20px
+      );
+
+    display:
+      grid;
+
+    grid-template-columns:
+      1fr;
+
+    grid-template-rows:
+      minmax(
+        0,
+        1fr
+      )
+      auto;
+
+    gap:
+      5px;
+
+    align-items:
+      stretch;
+
+    overflow:
+      hidden;
+
+    padding:
+      2px
+      0
+      4px;
+
+  }
+
+
+  .lago-game-area
+  > .lago-center {
+
+    order:
+      1;
+
+    height:
+      100%;
+
+    min-height:
+      0;
+
+    justify-content:
+      center;
+
+    overflow:
+      hidden;
+
+  }
+
+
+  .lago-center-title {
+
+    flex:
+      0
+      0
+      auto;
+
+    font-size:
+      34px;
+
+  }
+
+
+  .lago-center-sub {
+
+    flex:
+      0
+      0
+      auto;
+
+    margin-top:
+      4px;
+
+    font-size:
+      7px;
+
+  }
+
+
+  .lago-modern-snail {
+
+    flex:
+      0
+      1
+      auto;
+
+    width:
+      min(
+        74vw,
+        300px
+      );
+
+    height:
+      min(
+        29dvh,
+        245px
+      );
+
+    min-height:
+      0;
+
+    margin:
+      0
+      0
+      2px;
+
+  }
+
+
+  .lago-speech {
+
+    flex:
+      0
+      0
+      auto;
+
+    min-height:
+      30px;
+
+    max-width:
+      240px;
+
+    padding:
+      6px
+      11px;
+
+    font-size:
+      10px;
+
+  }
+
+
+  .lago-tap-hint {
+
+    flex:
+      0
+      0
+      auto;
+
+    min-height:
+      20px;
+
+    margin-top:
+      4px;
+
+    padding:
+      2px
+      6px;
+
+    font-size:
+      11px;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type {
+
+    order:
+      2;
+
+    width:
+      100%;
+
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      7px;
+
+    padding:
+      0;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  > .lago-side-card {
+
+    grid-column:
+      1 /
+      -1;
+
+    min-height:
+      76px;
+
+    padding:
+      10px
+      12px;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    justify-content:
+      center;
+
+  }
+
+
+  .lago-game-area
+  > .lago-side:first-of-type
+  .lago-side-big {
+
+    font-size:
+      26px;
+
+  }
+
+
+  .lago-action {
+
+    min-height:
+      48px;
+
+    padding:
+      7px
+      9px;
+
+  }
+
+
+  .lago-bottom {
+
+    width:
+      calc(
+        100% -
+        20px
+      );
+
+    margin:
+      0
+      auto
+      calc(
+        4px +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    padding:
+      4px;
+
+    gap:
+      2px;
+
+  }
+
+
+  .lago-bottom-btn {
+
+    min-height:
+      42px;
+
+    font-size:
+      7px;
+
+  }
+
+
+  #lagoLanguageButton {
+
+    position:
+      fixed !important;
+
+    left:
+      72px !important;
+
+    right:
+      auto !important;
+
+    top:
+      calc(
+        12px +
+        env(
+          safe-area-inset-top
+        )
+      ) !important;
+
+    bottom:
+      auto !important;
+
+    width:
+      34px !important;
+
+    min-width:
+      34px !important;
+
+    max-width:
+      34px !important;
+
+    height:
+      32px !important;
+
+    padding:
+      0 !important;
+
+    display:
+      grid !important;
+
+    place-items:
+      center !important;
+
+    border-radius:
+      10px !important;
+
+    z-index:
+      5001 !important;
+
+  }
+
+
+  #lagoLanguageButton
+  .lago-icon-slot,
+
+  #lagoLanguageButton
+  .lago-language-button-code {
+
+    display:
+      none !important;
+
+  }
+
+
+  #lagoLanguageButton
+  .lago-language-button-flag {
+
+    display:
+      block !important;
+
+    margin:
+      0 !important;
+
+    font-size:
+      17px !important;
+
+  }
+
+}
+
+
+/* =========================================================
+   SHORT MOBILE
+   ========================================================= */
+
+@media
+(
+  max-width:
+  560px
+)
+and
+(
+  max-height:
+  740px
+) {
+
+  .lago-stat-card {
+
+    padding:
+      5px
+      7px;
+
+  }
+
+
+  .lago-center-title {
+
+    font-size:
+      30px;
+
+  }
+
+
+  .lago-modern-snail {
+
+    width:
+      min(
+        68vw,
+        270px
+      );
+
+    height:
+      min(
+        25dvh,
+        205px
+      );
+
+  }
+
+
+  .lago-action {
+
+    min-height:
+      40px;
+
+  }
+
+
+  .lago-bottom-btn {
+
+    min-height:
+      38px;
+
+  }
+
+}
+
+
+/* =========================================================
+   UPGRADE MOBILE
+   ========================================================= */
+
+@media (
+  max-width:
+  720px
+) {
+
+  .lago-upgrade-screen {
+
+    align-items:
+      stretch;
+
+    padding:
+      0;
+
+  }
+
+
+  .lago-upgrade-shell {
+
+    width:
+      100%;
+
+    max-height:
+      100dvh;
+
+    min-height:
+      100dvh;
+
+    padding:
+      max(
+        18px,
+        env(
+          safe-area-inset-top
+        )
+      )
+      14px
+      max(
+        18px,
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    border:
+      0;
+
+    border-radius:
+      0;
+
+  }
+
+
+  .lago-upgrade-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .lago-upgrade-card-desc {
+
+    min-height:
+      0;
+
+  }
+
+}
+
+
+/* =========================================================
+   ACCESSIBILITY / REDUCED MOTION
+   ========================================================= */
+
+/* =========================================================
    UPGRADE — CANONICAL LAGO TYPOGRAPHY
    ========================================================= */
 
