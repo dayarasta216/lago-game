@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  24;
+  25;
 
 
   const BASE_LAGO_MODEL =
@@ -234,17 +234,20 @@ import {
           material.side =
             THREE.DoubleSide;
 
-          material.needsUpdate =
+                  material.needsUpdate =
             true;
+
+        }
+      );
 
     }
   );
 
 }
 
-    const loader =
-    new GLTFLoader();
 
+  const loader =
+    new GLTFLoader();
 
 
   /*
