@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  26;
+  27;
 
 
   const BASE_LAGO_MODEL =
@@ -1119,81 +1119,66 @@ return {
     }
 
 
-    const promise =
-  fetchAndParseGLB(
-    key
-  )
-    .then(
-      gltf => {
+      const promise =
+      fetchAndParseGLB(
+        key
+      )
+        .then(
+          gltf => {
 
-        const template =
-          gltf?.scene;
-
-
-        if (!template) {
-
-          throw new Error(
-            `GLB has no scene: ${key}`
-          );
-
-        }
+            const template =
+              gltf?.scene;
 
 
-        normalizeModel(
-          template,
-          key
-        );
+            if (!template) {
 
-
-        modelCache.set(
-          key,
-          template
-        );
-
-
-        modelPromiseCache.delete(
-          key
-        );
-
-
-        return template;
-
-      }
-    )
-    .catch(
-      error => {
-
-        modelPromiseCache.delete(
-          key
-        );
-
-
-        throw error;
-
-      }
-    );
-
-            undefined,
-
-
-            error => {
-
-              modelPromiseCache.delete(
-                key
-              );
-
-
-              reject(
-                error
+              throw new Error(
+                `GLB has no scene: ${key}`
               );
 
             }
 
-          );
 
-        }
-      );
+            normalizeModel(
+              template,
+              key
+            );
 
+
+            modelCache.set(
+              key,
+              template
+            );
+
+
+            modelPromiseCache.delete(
+              key
+            );
+
+
+            return template;
+
+          }
+        )
+        .catch(
+          error => {
+
+            modelPromiseCache.delete(
+              key
+            );
+
+
+            console.error(
+              "[LAGO 3D] GLB failed:",
+              key,
+              error
+            );
+
+
+            throw error;
+
+          }
+        );
 
     modelPromiseCache.set(
       key,
