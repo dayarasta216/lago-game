@@ -10,7 +10,7 @@ import {
 
 
   const VERSION =
-  25;
+  26;
 
 
   const BASE_LAGO_MODEL =
@@ -982,7 +982,7 @@ return {
         ) {
 
           child.frustumCulled =
-            true;
+  false;
 
         }
 
@@ -991,6 +991,81 @@ return {
 
   }
 
+  async function fetchAndParseGLB(
+  modelUrl
+) {
+
+  const absoluteUrl =
+    new URL(
+      modelUrl,
+      document.baseURI
+    );
+
+
+  const response =
+    await fetch(
+      absoluteUrl.href,
+      {
+        cache:
+          "force-cache",
+
+        credentials:
+          "same-origin"
+      }
+    );
+
+
+  if (
+    !response.ok
+  ) {
+
+    throw new Error(
+      `GLB HTTP ${response.status}: ${absoluteUrl.pathname}`
+    );
+
+  }
+
+
+  const buffer =
+    await response.arrayBuffer();
+
+
+  if (
+    buffer.byteLength <
+    20
+  ) {
+
+    throw new Error(
+      `GLB response is empty: ${absoluteUrl.pathname}`
+    );
+
+  }
+
+
+  const resourcePath =
+    new URL(
+      "./",
+      absoluteUrl
+    ).href;
+
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      loader.parse(
+        buffer,
+        resourcePath,
+        resolve,
+        reject
+      );
+
+    }
+  );
+
+}
 
   function getTemplate(
     modelUrl
@@ -1045,63 +1120,58 @@ return {
 
 
     const promise =
-      new Promise(
-        (
-          resolve,
-          reject
-        ) => {
+  fetchAndParseGLB(
+    key
+  )
+    .then(
+      gltf => {
 
-          loader.load(
-
-            key,
-
-
-            gltf => {
-
-              try {
-
-                const template =
-                  gltf.scene;
+        const template =
+          gltf?.scene;
 
 
-                normalizeModel(
-  template,
-  key
-);
+        if (!template) {
+
+          throw new Error(
+            `GLB has no scene: ${key}`
+          );
+
+        }
 
 
-                modelCache.set(
-                  key,
-                  template
-                );
+        normalizeModel(
+          template,
+          key
+        );
 
 
-                modelPromiseCache.delete(
-                  key
-                );
+        modelCache.set(
+          key,
+          template
+        );
 
 
-                resolve(
-                  template
-                );
-
-              } catch (
-                error
-              ) {
-
-                modelPromiseCache.delete(
-                  key
-                );
+        modelPromiseCache.delete(
+          key
+        );
 
 
-                reject(
-                  error
-                );
+        return template;
 
-              }
+      }
+    )
+    .catch(
+      error => {
 
-            },
+        modelPromiseCache.delete(
+          key
+        );
 
+
+        throw error;
+
+      }
+    );
 
             undefined,
 
@@ -2267,6 +2337,12 @@ let lastRenderedAt =
 
 
     resize();
+
+    renderer
+  ?.render(
+    scene,
+    camera
+  );
 
   }
 
