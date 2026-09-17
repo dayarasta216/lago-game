@@ -702,4 +702,672 @@ model3d:
     });
 
 
+})();       * =====================================================
+       * NAREK
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_dog_snail",
+
+        name:
+          "Narek",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "LEGENDARY",
+
+    
+       model3d:
+  "./assets/model/roster/narek.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            price:
+              150000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            minutes:
+              1200
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * SOLA
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_pink_snail",
+
+        name:
+          "Sola",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "EPIC",
+
+        
+       model3d:
+  "./assets/model/roster/sola.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            price:
+              190000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * БАМБИНИ "ДОК"
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_cockroach",
+
+        name:
+          'Бамбини "Док"',
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "EPIC",
+
+       model3d:
+  "./assets/model/roster/doc.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            price:
+              260000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * МАРВИН
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_giraffe_bird",
+
+        name:
+          "Марвин",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "LEGENDARY",
+
+
+model3d:
+  "./assets/model/roster/marvin.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            price:
+              330000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * ФАРИД
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_fennec",
+
+        name:
+          "Фарид",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "LEGENDARY",
+
+        model3d:
+  "./assets/model/roster/farid.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            price:
+              500000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            minutes:
+              3000
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * МИКИ
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_goose",
+
+        name:
+          "Мики",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "EPIC",
+
+        model3d:
+  "./assets/model/roster/miki.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            /*
+             * Temporary balance value.
+             * We tune economy later.
+             */
+            price:
+              420000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+      /*
+       * =====================================================
+       * ОЛЕГ
+       * =====================================================
+       */
+
+      Object.freeze({
+
+        id:
+          "comic_pig",
+
+        name:
+          "Олег",
+
+        type:
+          "comic",
+
+        series:
+          "comic-01",
+
+        rarity:
+          "LEGENDARY",
+
+        model3d:
+  "./assets/model/roster/oleg.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              true,
+
+            currency:
+              "SP",
+
+            /*
+             * Temporary balance value.
+             * We tune economy later.
+             */
+            price:
+              460000
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+           }),
+
+      Object.freeze({
+
+        id:
+          "comic_bozz",
+
+        name:
+          "Bozz",
+
+        type:
+          "comic",
+
+        series:
+          "comic-02",
+
+        /*
+         * Economy/rarity will be tuned
+         * separately.
+         */
+        rarity:
+          "EPIC",
+
+        model3d:
+          "./assets/model/roster/bozz.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            currency:
+              "SP",
+
+            price:
+              0
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+      }),
+
+
+                Object.freeze({
+
+        id:
+          "comic_taya",
+
+        name:
+          "Taya",
+
+        type:
+          "comic",
+
+        series:
+          "comic-02",
+
+        rarity:
+          "EPIC",
+
+        model3d:
+          "./assets/model/roster/taya.glb?v=2",
+
+        shop:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            currency:
+              "SP",
+
+            price:
+              0
+
+          }),
+
+        playtimeUnlock:
+          Object.freeze({
+
+            enabled:
+              false,
+
+            minutes:
+              0
+
+          }),
+
+        dailyReward:
+          false
+
+           })
+
+    ]);
+
+
+  /*
+   * =========================================================
+   * HELPERS
+   * =========================================================
+   */
+
+
+  function clone(
+    value
+  ) {
+
+    return JSON.parse(
+      JSON.stringify(
+        value
+      )
+    );
+
+  }
+
+
+  function getAll() {
+
+    return CHARACTERS
+      .map(
+        clone
+      );
+
+  }
+
+
+  function getById(
+    id
+  ) {
+
+    const key =
+      String(
+        id || ""
+      ).trim();
+
+
+    const character =
+      CHARACTERS.find(
+        item =>
+          item.id ===
+          key
+      );
+
+
+    return character
+      ? clone(
+          character
+        )
+      : null;
+
+  }
+
+
+  function getShopCharacters() {
+
+    return getAll()
+      .filter(
+        character =>
+          character
+            .shop
+            ?.enabled ===
+          true
+      );
+
+  }
+
+
+  function getPlaytimeUnlockCharacters() {
+
+    return getAll()
+      .filter(
+        character =>
+
+          character
+            .playtimeUnlock
+            ?.enabled ===
+          true &&
+
+          Number(
+            character
+              .playtimeUnlock
+              ?.minutes
+          ) > 0
+      );
+
+  }
+
+
+  function isComicCharacter(
+    id
+  ) {
+
+    return Boolean(
+      getById(
+        id
+      )
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * INTEGRITY
+   * =========================================================
+   */
+
+
+  const ids =
+    CHARACTERS.map(
+      character =>
+        character.id
+    );
+
+
+  if (
+    new Set(
+      ids
+    ).size !==
+    ids.length
+  ) {
+
+    throw new Error(
+      "[LAGO CHARACTERS] Duplicate character ID."
+    );
+
+  }
+
+
+  window.LAGO_CHARACTERS =
+    Object.freeze({
+
+      version:
+        VERSION,
+
+      getAll,
+
+      getById,
+
+      getShopCharacters,
+
+      getPlaytimeUnlockCharacters,
+
+      isComicCharacter
+
+    });
+
+
 })();
