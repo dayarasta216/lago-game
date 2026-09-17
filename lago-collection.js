@@ -1049,19 +1049,8 @@
      * Desktop may show the complete
      * catalogue including locked entries.
      */
-    const catalog =
-      mobile
-
-        ? fullCatalog.filter(
-            character =>
-              character.id ===
-                "lago" ||
-              owned.has(
-                character.id
-              )
-          )
-
-        : fullCatalog;
+   const catalog =
+  fullCatalog;
 
 
     const ownedCount =
@@ -1219,9 +1208,12 @@
                   class="lago-skin-series"
                 >
                   ${
-                    isLago
-                      ? "ORIGINAL"
-                      : "COMIC 01"
+                   isLago
+  ? "ORIGINAL"
+  : String(
+      character.series ||
+      "COMIC"
+    ).toUpperCase()
                   }
                 </div>
 
