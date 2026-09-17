@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 28;
+  const VERSION = 29;
   const BASE_LAGO_MODEL = "./assets/model/roster/lago.glb?v=2";
   const BASE_IDS = new Set(["default", "lago"]);
   const TARGET_SIZE = 2.35;
@@ -36,7 +36,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let animationFrame = 0;
   let pulse = 0;
   let pulseVelocity = 0;
+  let interactiveHost = null;
+  let dragPointerId = null;
+  let dragLastX = 0;
+  let manualYaw = -0.12;
 
+  
   const status = {
     main: "idle",
     modelUrl: "",
@@ -586,7 +591,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       ) *
       0.018;
 
-    holder.rotation.y =
+       holder.rotation.y =
+      manualYaw +
       Math.sin(
         time *
         0.42
@@ -643,7 +649,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     canvas.hidden =
       true;
 
-    Object.assign(
+       Object.assign(
       canvas.style,
       {
         position:
@@ -663,6 +669,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         zIndex:
           "2",
+
+        pointerEvents:
+          "none",
 
         touchAction:
           "none"
@@ -814,7 +823,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       }
     );
 
-    resize();
+        resize();
+
+    bindInteraction();
 
     if (!animationFrame) {
       animationFrame =
@@ -824,6 +835,115 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
     return true;
+
+    function bindInteraction() {
+    const host =
+      area();
+
+    if (!host) {
+      return;
+    }
+
+    if (
+      host ===
+      interactiveHost
+    ) {
+      return;
+    }
+
+    interactiveHost =
+      host;
+
+    host.style.touchAction =
+      "none";
+
+    const release =
+      event => {
+
+        if (
+          dragPointerId ===
+          null
+        ) {
+          return;
+        }
+
+        if (
+          event?.pointerId !==
+            undefined &&
+          event.pointerId !==
+            dragPointerId
+        ) {
+          return;
+        }
+
+        try {
+          host
+            .releasePointerCapture
+            ?.(dragPointerId);
+        } catch (_) {}
+
+        dragPointerId =
+          null;
+      };
+
+    host.addEventListener(
+      "pointerdown",
+      event => {
+        dragPointerId =
+          event.pointerId;
+
+        dragLastX =
+          event.clientX;
+
+        host
+          .setPointerCapture
+          ?.(event.pointerId);
+      }
+    );
+
+    host.addEventListener(
+      "pointermove",
+      event => {
+        if (
+          event.pointerId !==
+          dragPointerId
+        ) {
+          return;
+        }
+
+        const dx =
+          event.clientX -
+          dragLastX;
+
+        dragLastX =
+          event.clientX;
+
+        manualYaw +=
+          dx * 0.012;
+      }
+    );
+
+    host.addEventListener(
+      "pointerup",
+      release
+    );
+
+    host.addEventListener(
+      "pointercancel",
+      release
+    );
+
+    host.addEventListener(
+      "pointerleave",
+      event => {
+        if (
+          event.buttons ===
+          0
+        ) {
+          release(event);
+        }
+      }
+    );
   }
 
   function ensureRenderer() {
