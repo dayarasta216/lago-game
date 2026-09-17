@@ -234,7 +234,7 @@ import {
           material.side =
             THREE.DoubleSide;
 
-                  material.needsUpdate =
+          material.needsUpdate =
             true;
 
         }
@@ -248,6 +248,7 @@ import {
 
   const loader =
     new GLTFLoader();
+
 
 
   /*
@@ -3099,12 +3100,6 @@ show3D(
 
     return;
 
-           previewIntersectionObserver
-      ?.unobserve
-      ?.(
-        host
-      );
-       
   }
 
   if (
