@@ -4,7 +4,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
   "use strict";
 
 
-  const VERSION = 21;
+  const VERSION = 22;
 
   const GAME_ID =
     "knife-challenge";
@@ -471,11 +471,11 @@ let dangerTime =
 
       .lago-knife-title {
         font-size:
-          clamp(
-            30px,
-            5.2vw,
-            58px
-          );
+  clamp(
+    28px,
+    4.4vw,
+    50px
+  );
 
         font-weight:
           1000;
@@ -566,8 +566,7 @@ let dangerTime =
 
       .lago-knife-hud-item {
         padding:
-          10px 12px;
-
+  8px 11px;
         border:
           1px solid
           rgba(
@@ -635,11 +634,18 @@ let dangerTime =
         flex:
           1;
 
-        min-height:
-          610px;
+       min-height:
+  0;
 
-        margin-top:
-          12px;
+height:
+  clamp(
+    520px,
+    68dvh,
+    760px
+  );
+
+margin-top:
+  10px;
 
         overflow:
           hidden;
@@ -654,8 +660,7 @@ let dangerTime =
           );
 
         border-radius:
-          24px;
-
+  20px;
         background:
           #19110d;
       }
@@ -982,7 +987,7 @@ let dangerTime =
 
       .lago-balance-button {
         min-height:
-          48px;
+  46px;
 
         border:
           1px solid
@@ -1242,29 +1247,96 @@ let dangerTime =
         }
 
 
-        .lago-knife-stage {
-          min-height:
-            640px;
-        }
+       .lago-knife-stage {
+  min-height:
+    500px;
 
+  height:
+    min(
+      66dvh,
+      620px
+    );
+
+  border-radius:
+    16px;
+}
+.lago-knife-stage::after {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  z-index:
+    8;
+
+  pointer-events:
+    none;
+
+  border-radius:
+    inherit;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.12) 0%,
+      rgba(0,0,0,0) 28%,
+      rgba(0,0,0,0) 68%,
+      rgba(0,0,0,.18) 100%
+    );
+
+  box-shadow:
+    inset 0 0 90px
+    rgba(0,0,0,.20);
+}
 
         .lago-balance-ui {
-          bottom:
-            82px;
+         bottom:
+  78px;
 
-          width:
-            min(
-              330px,
-              84vw
-            );
-        }
+width:
+  min(
+    280px,
+    82vw
+
+    .lago-knife-title {
+  font-size:
+    34px;
+}
+
+.lago-knife-subtitle {
+  font-size:
+    8px;
+}
+
+.lago-knife-close {
+  width:
+    40px;
+
+  height:
+    40px;
+
+  flex-basis:
+    40px;
+}
+
+.lago-balance-button {
+  min-height:
+    54px;
+}
+  );
+  
 
 
         .lago-balance-controls {
           width:
-            94%;
-        }
-
+  min(
+    460px,
+    86%
+  );
       }
 
     `;
@@ -1843,18 +1915,18 @@ let dangerTime =
       new THREE.Scene();
 
 
-    scene.background =
-      new THREE.Color(
-        0x21160f
-      );
+   scene.background =
+  new THREE.Color(
+    0x151114
+  );
 
 
-    scene.fog =
-      new THREE.Fog(
-        0x21160f,
-        12,
-        24
-      );
+scene.fog =
+  new THREE.Fog(
+    0x151114,
+    13,
+    28
+  );
 
 camera =
   new THREE.PerspectiveCamera(
@@ -1871,16 +1943,16 @@ camera =
  * become much more obvious.
  */
 camera.position.set(
-  6.6,
-  5.6,
-  10.8
+  6.15,
+  4.85,
+  10.15
 );
 
 
 camera.lookAt(
-  0,
-  1.15,
-  0
+  0.15,
+  1.35,
+  0.05
 );
 
     scene.add(
@@ -2057,6 +2129,45 @@ camera.lookAt(
       characterLight
     );
 
+    const frontLight =
+  new THREE.DirectionalLight(
+    0xeaf5ff,
+    1.35
+  );
+
+
+frontLight.position.set(
+  0,
+  3.8,
+  7.5
+);
+
+
+scene.add(
+  frontLight
+);
+
+
+const underCabinetLight =
+  new THREE.PointLight(
+    0xffb86a,
+    1.75,
+    7.5,
+    2
+  );
+
+
+underCabinetLight.position.set(
+  0,
+  3.15,
+  -1.65
+);
+
+
+scene.add(
+  underCabinetLight
+);
+
   }
 
     
@@ -2154,7 +2265,7 @@ camera.lookAt(
           .55,
           7.2
         ),
-        0x5a3827,
+        0x292427,
         new THREE.Vector3(
           0,
           -.28,
@@ -2196,7 +2307,7 @@ camera.lookAt(
           .22,
           4.4
         ),
-        0xb97842,
+        0xa96538,
         new THREE.Vector3(
           .2,
           .16,
@@ -2260,7 +2371,7 @@ camera.lookAt(
                 1.6,
                 .72
               ),
-              0x70472f,
+              0x533328,
               new THREE.Vector3(
                 x,
                 4.62,
@@ -2303,7 +2414,7 @@ camera.lookAt(
           .7,
           1.2
         ),
-        0x54585a,
+        0x34383b,
         new THREE.Vector3(
           0,
           4.42,
@@ -2322,7 +2433,7 @@ camera.lookAt(
           1.8,
           .8
         ),
-        0x4b4f51,
+        0x303438,
         new THREE.Vector3(
           0,
           5.65,
@@ -3091,18 +3202,24 @@ camera.lookAt(
         bladeGeometry,
 
         new THREE
-          .MeshStandardMaterial({
+  .MeshPhysicalMaterial({
 
-            color:
-              0xc9cfd2,
+    color:
+      0xdce7eb,
 
-            roughness:
-              .20,
+    roughness:
+      .16,
 
-            metalness:
-              .96
+    metalness:
+      1,
 
-          })
+    clearcoat:
+      .55,
+
+    clearcoatRoughness:
+      .18
+
+  })
 
       );
 
@@ -3538,43 +3655,46 @@ const tablet =
 
 camera.fov =
   compact
-    ? 44
+    ? 42
     : tablet
-      ? 39
-      : 36;
+      ? 37
+      : 34;
 
 
 camera.position.set(
 
   compact
-    ? 5.2
+    ? 4.55
     : tablet
-      ? 6.0
-      : 6.6,
+      ? 5.45
+      : 6.15,
 
   compact
-    ? 6.25
+    ? 5.25
     : tablet
-      ? 5.9
-      : 5.6,
+      ? 5.05
+      : 4.85,
 
   compact
-    ? 12.8
+    ? 11.35
     : tablet
-      ? 11.7
-      : 10.8
+      ? 10.75
+      : 10.15
 
 );
 
 
 camera.lookAt(
-  0,
   compact
-    ? 1.0
-    : 1.15,
-  0
-);
+    ? 0
+    : 0.15,
 
+  compact
+    ? 1.18
+    : 1.35,
+
+  0.05
+);
 
 camera
   .updateProjectionMatrix();
