@@ -1066,9 +1066,11 @@
 
 
           <button
-            class="lago-action"
-            data-action="upgrade"
-          >
+  class="lago-action"
+  id="lagoUpgradeButton"
+  data-action="upgrade"
+  type="button"
+>
 
             <div
               class="lago-action-icon"
@@ -1182,12 +1184,15 @@
           "
         >
 
-          <div
-            class="
-              lago-side-card
-              lago-dashboard-card
-            "
-          >
+         <button
+  class="
+    lago-side-card
+    lago-dashboard-card
+    lago-dashboard-button
+  "
+  id="lagoDailyBonusButton"
+  type="button"
+>
 
             <div
               class="lago-side-title"
@@ -1209,16 +1214,17 @@
                   data-lago-icon="daily"
                 ></span>
 
-              </div>
+              </button>
 
 
               <div>
 
-                <div
-                  class="lago-dashboard-status"
-                >
-                  COMING NEXT
-                </div>
+               <div
+  class="lago-dashboard-status"
+  id="lagoDailyBonusStatus"
+>
+  CLAIM NOW
+</div>
 
                 <div
                   class="lago-side-desc"
@@ -1233,12 +1239,15 @@
           </div>
 
 
-          <div
-            class="
-              lago-side-card
-              lago-dashboard-card
-            "
-          >
+          <button
+  class="
+    lago-side-card
+    lago-dashboard-card
+    lago-dashboard-button
+  "
+  id="lagoDailyTasksButton"
+  type="button"
+>
 
             <div
               class="lago-side-title"
@@ -1247,11 +1256,12 @@
             </div>
 
 
-            <div
-              class="lago-dashboard-value"
-            >
-              0 / 3
-            </div>
+           <div
+  class="lago-dashboard-value"
+  id="lagoDailyTasksValue"
+>
+  0 / 3
+</div>
 
 
             <div
@@ -1475,21 +1485,506 @@ const snailArea =
    * =========================================================
    */
 
+  const DAILY_TASK_STORAGE =
+  "lago_daily_tasks_v1";
+
+
+function dailyDateKey() {
+
+  const now =
+    new Date();
+
+
+  return [
+    now.getFullYear(),
+    String(
+      now.getMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      now.getDate()
+    ).padStart(2, "0")
+  ].join("-");
+
+}
+
+
+function readDailyTasks() {
+
+  let saved =
+    null;
+
+
+  try {
+
+    saved =
+      JSON.parse(
+        localStorage.getItem(
+          DAILY_TASK_STORAGE
+        ) ||
+        "null"
+      );
+
+  } catch {
+    saved = null;
+  }
+
+
+  const clicks =
+    Number(
+      readTapState()
+        ?.totalClicks
+    ) || 0;
+
+
+  if (
+    !saved ||
+    saved.date !==
+      dailyDateKey()
+  ) {
+
+    saved = {
+
+      date:
+        dailyDateKey(),
+
+      clickStart:
+        clicks,
+
+      miniGamePlayed:
+        false
+
+    };
+
+
+    localStorage.setItem(
+      DAILY_TASK_STORAGE,
+      JSON.stringify(
+        saved
+      )
+    );
+
+  }
+
+
+  return saved;
+
+}
+
+
+function writeDailyTasks(
+  state
+) {
+
+  localStorage.setItem(
+    DAILY_TASK_STORAGE,
+    JSON.stringify(
+      state
+    )
+  );
+
+}
+
+
+function dailyTaskState() {
+
+  const saved =
+    readDailyTasks();
+
+
+  const clicks =
+    Number(
+      readTapState()
+        ?.totalClicks
+    ) || 0;
+
+
+  const tapProgress =
+    Math.min(
+      25,
+      Math.max(
+        0,
+        clicks -
+        Number(
+          saved.clickStart ||
+          0
+        )
+      )
+    );
+
+
+  const bonusDone =
+    window.LAGO_REWARDS
+      ?.canClaim
+      ?.() ===
+    false;
+
+
+  return {
+
+    saved,
+
+    tapProgress,
+
+    tapDone:
+      tapProgress >=
+      25,
+
+    gameDone:
+      saved.miniGamePlayed ===
+      true,
+
+    bonusDone
+
+  };
+
+}
+
+
+function updateDailyDashboard() {
+
+  const task =
+    dailyTaskState();
+
+
+  const completed =
+    [
+      task.tapDone,
+      task.gameDone,
+      task.bonusDone
+    ]
+      .filter(Boolean)
+      .length;
+
+
+  $("lagoDailyTasksValue")
+    ?.replaceChildren(
+      `${completed} / 3`
+    );
+
+
+  const bonusStatus =
+    $("lagoDailyBonusStatus");
+
+
+  if (bonusStatus) {
+
+    bonusStatus.textContent =
+      task.bonusDone
+        ? "CLAIMED TODAY"
+        : "CLAIM NOW";
+
+  }
+
+}
+
+
+function claimDailyBonus() {
+
+  const rewards =
+    window.LAGO_REWARDS;
+
+
+  if (
+    !rewards ||
+    typeof rewards.claim !==
+      "function"
+  ) {
+
+    window.LAGO_UI
+      ?.toast
+      ?.(
+        "DAILY REWARD UNAVAILABLE"
+      );
+
+    return;
+
+  }
+
+
+  rewards.claim();
+
+
+  updateDailyDashboard();
+
+}
+
+
+function ensureDailyTasksPanel() {
+
+  let panel =
+    $("lagoDailyTasksPanel");
+
+
+  if (panel) {
+    return panel;
+  }
+
+
+  panel =
+    document.createElement(
+      "div"
+    );
+
+
+  panel.id =
+    "lagoDailyTasksPanel";
+
+  panel.className =
+    "lago-daily-task-panel";
+
+
+  panel.innerHTML = `
+    <div class="lago-daily-task-shell">
+
+      <div class="lago-daily-task-header">
+
+        <div>
+          <div class="lago-daily-task-kicker">
+            DAILY
+          </div>
+
+          <div class="lago-daily-task-title">
+            DAILY TASKS
+          </div>
+        </div>
+
+        <button
+          class="lago-daily-task-close"
+          type="button"
+          aria-label="Close"
+        >
+          <span
+            class="lago-icon-slot"
+            data-lago-icon="close"
+          ></span>
+        </button>
+
+      </div>
+
+      <div
+        class="lago-daily-task-list"
+        id="lagoDailyTaskList"
+      ></div>
+
+    </div>
+  `;
+
+
+  document.body.appendChild(
+    panel
+  );
+
+
+  window.LAGO_UI
+    ?.hydrate
+    ?.(panel);
+
+
+  panel
+    .querySelector(
+      ".lago-daily-task-close"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        panel.classList.remove(
+          "show"
+        );
+
+      }
+    );
+
+
+  return panel;
+
+}
+
+
+function openDailyTasks() {
+
+  const panel =
+    ensureDailyTasksPanel();
+
+
+  const state =
+    dailyTaskState();
+
+
+  const list =
+    $("lagoDailyTaskList");
+
+
+  if (list) {
+
+    list.innerHTML = `
+
+      <div class="lago-daily-task-row ${state.tapDone ? "done" : ""}">
+        <div class="lago-daily-task-check">
+          ${state.tapDone ? "✓" : ""}
+        </div>
+        <div>TAP 25 TIMES</div>
+        <div>${state.tapProgress} / 25</div>
+      </div>
+
+      <div class="lago-daily-task-row ${state.gameDone ? "done" : ""}">
+        <div class="lago-daily-task-check">
+          ${state.gameDone ? "✓" : ""}
+        </div>
+        <div>PLAY 1 MINI-GAME</div>
+        <div>${state.gameDone ? "1 / 1" : "0 / 1"}</div>
+      </div>
+
+      <div class="lago-daily-task-row ${state.bonusDone ? "done" : ""}">
+        <div class="lago-daily-task-check">
+          ${state.bonusDone ? "✓" : ""}
+        </div>
+        <div>CLAIM DAILY BONUS</div>
+        <div>${state.bonusDone ? "1 / 1" : "0 / 1"}</div>
+      </div>
+
+    `;
+
+
+    window.LAGO_LANGUAGE
+      ?.translateDOM
+      ?.(list);
+
+  }
+
+
+  panel.classList.add(
+    "show"
+  );
+
+}
+
   function bind() {
 
     /*
      * Side actions.
      */
-    document
-      .querySelectorAll(
-        "[data-action]"
-      )
-      .forEach(
-        button => {
 
-          button.addEventListener(
-            "click",
-            () => {
+$("lagoDailyBonusButton")
+  ?.addEventListener(
+    "click",
+    claimDailyBonus
+  );
+
+
+$("lagoDailyTasksButton")
+  ?.addEventListener(
+    "click",
+    openDailyTasks
+  );
+
+
+document.addEventListener(
+  "lago:mini-game-run-finish",
+  () => {
+
+    const state =
+      readDailyTasks();
+
+
+    state.miniGamePlayed =
+      true;
+
+
+    writeDailyTasks(
+      state
+    );
+
+
+    updateDailyDashboard();
+
+  }
+);
+
+
+document.addEventListener(
+  "lago:daily-reward",
+  updateDailyDashboard
+);
+    
+   const modernRoot =
+  $("lagoModern");
+
+
+modernRoot
+  ?.addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target
+          ?.closest
+          ?.("[data-action]");
+
+
+      if (
+        !button ||
+        !modernRoot.contains(
+          button
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      const action =
+        button.dataset
+          .action;
+
+
+      if (
+        action ===
+        "upgrade"
+      ) {
+
+        const open =
+          window.LAGO_TAP_GAME
+            ?.openUpgrades;
+
+
+        if (
+          typeof open ===
+          "function"
+        ) {
+
+          open();
+
+        } else {
+
+          window.LAGO_UI
+            ?.toast
+            ?.(
+              "UPGRADES UNAVAILABLE"
+            );
+
+        }
+
+
+        return;
+
+      }
+
+
+      if (
+        action ===
+        "steal"
+      ) {
+
+        window.LAGO_TAP_GAME
+          ?.steal
+          ?.();
+
+      }
+
+    }
+  );
 
               const action =
                 button.dataset
@@ -1856,6 +2351,8 @@ const snailArea =
      * Account Core.
      */
     renderDumEnergy();
+
+    updateDailyDashboard();
 
 
     /*
