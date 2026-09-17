@@ -37,7 +37,7 @@ const GAME_MODULES =
         load() {
 
        return import(
- "./lago-game-knife.js?v=21"
+ "./lago-game-knife.js?v=22"
 );
         }
 
