@@ -4,7 +4,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
   "use strict";
 
 
-  const VERSION = 22;
+  const VERSION = 23;
 
   const GAME_ID =
     "knife-challenge";
@@ -2089,7 +2089,7 @@ camera.lookAt(
      */
     const rimLight =
       new THREE.DirectionalLight(
-        0x9fdcff,
+        0x6d4734,
 1.15
       );
 
@@ -2237,6 +2237,53 @@ scene.add(
     mesh.castShadow =
       true;
 
+
+    mesh.receiveShadow =
+      true;
+
+
+    return mesh;
+
+  }
+
+    function cylinder(
+    radiusTop,
+    radiusBottom,
+    height,
+    radialSegments,
+    color,
+    position,
+    roughness = .7,
+    metalness = 0
+  ) {
+
+    const mesh =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+            radiusTop,
+            radiusBottom,
+            height,
+            radialSegments
+          ),
+
+        material(
+          color,
+          roughness,
+          metalness
+        )
+
+      );
+
+
+    mesh.position.copy(
+      position
+    );
+
+
+    mesh.castShadow =
+      true;
 
     mesh.receiveShadow =
       true;
@@ -2961,7 +3008,614 @@ scene.add(
 
         }
       );
+    /*
+     * =====================================================
+     * EXTRA REALISTIC KITCHEN DRESSING
+     * =====================================================
+     */
 
+    /*
+     * Side wall so the room stops feeling
+     * like an empty box.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          .55,
+          7.2,
+          7.4
+        ),
+        0x2a1c18,
+        new THREE.Vector3(
+          -6.95,
+          3.1,
+          .25
+        ),
+        .95
+      )
+    );
+
+
+    /*
+     * Front face of the countertop.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          14,
+          .85,
+          .52
+        ),
+        0x4a3026,
+        new THREE.Vector3(
+          0,
+          -.58,
+          3.88
+        ),
+        .88
+      )
+    );
+
+
+    /*
+     * Slightly cleaner countertop top cap.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          14.02,
+          .06,
+          7.24
+        ),
+        0xd29b63,
+        new THREE.Vector3(
+          0,
+          .02,
+          .45
+        ),
+        .42
+      )
+    );
+
+
+    /*
+     * Stove area under the pot.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          2.85,
+          .08,
+          2.18
+        ),
+        0x141516,
+        new THREE.Vector3(
+          -4.2,
+          .26,
+          -1.65
+        ),
+        .18,
+        .72
+      )
+    );
+
+    [
+      [-4.72, -2.12],
+      [-3.68, -2.12],
+      [-4.72, -1.18],
+      [-3.68, -1.18]
+    ].forEach(
+      ([x, z]) => {
+        const ring =
+          new THREE.Mesh(
+
+            new THREE
+              .TorusGeometry(
+                .26,
+                .03,
+                12,
+                36
+              ),
+
+            material(
+              0x232628,
+              .24,
+              .62
+            )
+
+          );
+
+        ring.rotation.x =
+          Math.PI / 2;
+
+        ring.position.set(
+          x,
+          .31,
+          z
+        );
+
+        ring.castShadow =
+          true;
+
+        ring.receiveShadow =
+          true;
+
+        world.add(
+          ring
+        );
+      }
+    );
+
+
+    /*
+     * Sink zone.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          2.45,
+          .08,
+          1.9
+        ),
+        0xc6c1b7,
+        new THREE.Vector3(
+          2.3,
+          .27,
+          -1.1
+        ),
+        .32,
+        .18
+      )
+    );
+
+    world.add(
+      box(
+        new THREE.Vector3(
+          1.92,
+          .62,
+          1.38
+        ),
+        0x2b2f33,
+        new THREE.Vector3(
+          2.3,
+          -.02,
+          -1.1
+        ),
+        .28,
+        .62
+      )
+    );
+
+    const faucetBase =
+      cylinder(
+        .14,
+        .16,
+        .12,
+        22,
+        0xc7cfd4,
+        new THREE.Vector3(
+          2.05,
+          .38,
+          -1.92
+        ),
+        .22,
+        .92
+      );
+
+    world.add(
+      faucetBase
+    );
+
+    const faucetNeck =
+      cylinder(
+        .055,
+        .055,
+        1.02,
+        18,
+        0xb8c1c7,
+        new THREE.Vector3(
+          2.05,
+          .88,
+          -1.92
+        ),
+        .22,
+        .95
+      );
+
+    world.add(
+      faucetNeck
+    );
+
+    const faucetSpout =
+      cylinder(
+        .05,
+        .05,
+        .72,
+        18,
+        0xb8c1c7,
+        new THREE.Vector3(
+          2.34,
+          1.26,
+          -1.92
+        ),
+        .22,
+        .95
+      );
+
+    faucetSpout.rotation.z =
+      Math.PI / 2;
+
+    world.add(
+      faucetSpout
+    );
+
+    const faucetDrop =
+      cylinder(
+        .045,
+        .045,
+        .34,
+        18,
+        0xb8c1c7,
+        new THREE.Vector3(
+          2.68,
+          1.09,
+          -1.92
+        ),
+        .22,
+        .95
+      );
+
+    world.add(
+      faucetDrop
+    );
+
+
+    /*
+     * Soap dispenser.
+     */
+    const soapBottle =
+      box(
+        new THREE.Vector3(
+          .34,
+          .56,
+          .24
+        ),
+        0x7da36e,
+        new THREE.Vector3(
+          3.45,
+          .56,
+          -1.64
+        ),
+        .58
+      );
+
+    world.add(
+      soapBottle
+    );
+
+    const soapPump =
+      cylinder(
+        .04,
+        .04,
+        .24,
+        16,
+        0x2f3438,
+        new THREE.Vector3(
+          3.45,
+          .92,
+          -1.64
+        ),
+        .28,
+        .68
+      );
+
+    world.add(
+      soapPump
+    );
+
+    const soapNozzle =
+      cylinder(
+        .03,
+        .03,
+        .22,
+        14,
+        0x2f3438,
+        new THREE.Vector3(
+          3.56,
+          1.0,
+          -1.64
+        ),
+        .28,
+        .68
+      );
+
+    soapNozzle.rotation.z =
+      Math.PI / 2;
+
+    world.add(
+      soapNozzle
+    );
+
+
+    /*
+     * Sponge.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          .34,
+          .12,
+          .22
+        ),
+        0xcad94c,
+        new THREE.Vector3(
+          3.06,
+          .34,
+          -.62
+        ),
+        .82
+      )
+    );
+
+    world.add(
+      box(
+        new THREE.Vector3(
+          .34,
+          .05,
+          .22
+        ),
+        0x2b8a63,
+        new THREE.Vector3(
+          3.06,
+          .43,
+          -.62
+        ),
+        .76
+      )
+    );
+
+
+    /*
+     * Dish rack.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          1.48,
+          .08,
+          .92
+        ),
+        0x52585d,
+        new THREE.Vector3(
+          4.28,
+          .30,
+          -.82
+        ),
+        .28,
+        .72
+      )
+    );
+
+    for (
+      let i = 0;
+      i < 5;
+      i++
+    ) {
+      const rackBar =
+        cylinder(
+          .018,
+          .018,
+          .72,
+          10,
+          0x6c7378,
+          new THREE.Vector3(
+            3.96 + i * .14,
+            .54,
+            -.82
+          ),
+          .22,
+          .74
+        );
+
+      rackBar.rotation.z =
+        Math.PI / 2;
+
+      world.add(
+        rackBar
+      );
+    }
+
+    for (
+      let i = 0;
+      i < 3;
+      i++
+    ) {
+      const miniPlate =
+        new THREE.Mesh(
+
+          new THREE
+            .CylinderGeometry(
+              .18,
+              .21,
+              .05,
+              28
+            ),
+
+          material(
+            0xe9e3d8,
+            .48
+          )
+
+        );
+
+      miniPlate.rotation.z =
+        -.25;
+
+      miniPlate.position.set(
+        4.08 + i * .18,
+        .50,
+        -.82
+      );
+
+      miniPlate.castShadow =
+        true;
+
+      miniPlate.receiveShadow =
+        true;
+
+      world.add(
+        miniPlate
+      );
+    }
+
+
+    /*
+     * Paper towel stand.
+     */
+    world.add(
+      cylinder(
+        .08,
+        .10,
+        .06,
+        20,
+        0x474b4e,
+        new THREE.Vector3(
+          -5.02,
+          .30,
+          1.52
+        ),
+        .34,
+        .62
+      )
+    );
+
+    world.add(
+      cylinder(
+        .055,
+        .055,
+        .92,
+        18,
+        0x8b664b,
+        new THREE.Vector3(
+          -5.02,
+          .75,
+          1.52
+        ),
+        .62,
+        .10
+      )
+    );
+
+    world.add(
+      cylinder(
+        .26,
+        .26,
+        .62,
+        24,
+        0xf0ece2,
+        new THREE.Vector3(
+          -5.02,
+          .67,
+          1.52
+        ),
+        .72
+      )
+    );
+
+
+    /*
+     * Rail under cabinets.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          4.6,
+          .05,
+          .06
+        ),
+        0x2d2f31,
+        new THREE.Vector3(
+          2.6,
+          3.62,
+          -2.42
+        ),
+        .26,
+        .72
+      )
+    );
+
+    [
+      1.05,
+      2.1,
+      3.15,
+      4.2
+    ].forEach(
+      x => {
+        const hook =
+          cylinder(
+            .02,
+            .02,
+            .22,
+            12,
+            0x2d2f31,
+            new THREE.Vector3(
+              x,
+              3.48,
+              -2.42
+            ),
+            .26,
+            .72
+          );
+
+        world.add(
+          hook
+        );
+      }
+    );
+
+
+    /*
+     * Kitchen towel.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          .72,
+          1.08,
+          .05
+        ),
+        0xc86a58,
+        new THREE.Vector3(
+          4.12,
+          2.2,
+          -2.38
+        ),
+        .92
+      )
+    );
+
+
+    /*
+     * Slight shadow strip under top cabinets
+     * for more depth.
+     */
+    world.add(
+      box(
+        new THREE.Vector3(
+          10.8,
+          .08,
+          .16
+        ),
+        0x1a1516,
+        new THREE.Vector3(
+          0,
+          3.86,
+          -2.5
+        ),
+        .95
+      )
+    );
+    
   }  
 
   /*
