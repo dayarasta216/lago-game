@@ -4,14 +4,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 5;
+  const VERSION = 6;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
-    "./assets/model/tanks/team-blue.glb?v=1";
+  "./assets/model/game/tanks/team-blue.glb?v=1";
 
-  const TEAM_RED_MODEL =
-    "./assets/model/tanks/team-red.glb?v=1";
+const TEAM_RED_MODEL =
+  "./assets/model/game/tanks/team-red.glb?v=1";
 
   const MAP_WIDTH = 72;
   const MAP_DEPTH = 54;
