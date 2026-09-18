@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 30;
+  const VERSION = 31;
   const BASE_LAGO_MODEL = "./assets/model/roster/lago.glb?v=2";
   const BASE_IDS = new Set(["default", "lago"]);
   const TARGET_SIZE = 2.35;
@@ -36,10 +36,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let animationFrame = 0;
   let pulse = 0;
   let pulseVelocity = 0;
-  let interactiveHost = null;
+    let interactiveHost = null;
   let dragPointerId = null;
+
+  host.style.cursor =
+  "grab";
+  
   let dragLastX = 0;
+  let dragLastY = 0;
+
   let manualYaw = -0.12;
+  let manualPitch = 0;
 
   
   const status = {
@@ -591,13 +598,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       ) *
       0.018;
 
-       holder.rotation.y =
-      manualYaw +
-      Math.sin(
-        time *
-        0.42
-      ) *
-      0.018;
+       holder.rotation.x =
+  manualPitch;
+
+
+holder.rotation.y =
+  manualYaw +
+  Math.sin(
+    time *
+    0.42
+  ) *
+  0.018;
+
+
+holder.rotation.z =
+  0;
 
     holder.scale.set(
       1 +
@@ -859,6 +874,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     host.style.touchAction =
       "none";
 
+    host.style.cursor =
+  "grab";
+
+
+host.style.userSelect =
+  "none";
+
     const release =
       event => {
 
@@ -889,41 +911,107 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       };
 
     host.addEventListener(
-      "pointerdown",
-      event => {
-        dragPointerId =
-          event.pointerId;
+  "pointerdown",
+  event => {
 
-        dragLastX =
-          event.clientX;
+    dragPointerId =
+      event.pointerId;
 
-        host
-          .setPointerCapture
-          ?.(event.pointerId);
-      }
-    );
 
-    host.addEventListener(
-      "pointermove",
-      event => {
-        if (
-          event.pointerId !==
-          dragPointerId
-        ) {
-          return;
-        }
+    dragLastX =
+      event.clientX;
 
-        const dx =
-          event.clientX -
-          dragLastX;
 
-        dragLastX =
-          event.clientX;
+    dragLastY =
+      event.clientY;
 
-        manualYaw +=
-          dx * 0.012;
-      }
-    );
+
+    host.style.cursor =
+      "grabbing";
+
+
+    host
+      .setPointerCapture
+      ?.(event.pointerId);
+
+  }
+);
+
+   host.addEventListener(
+  "pointermove",
+  event => {
+
+    if (
+      event.pointerId !==
+      dragPointerId
+    ) {
+      return;
+    }
+
+
+    const dx =
+      event.clientX -
+      dragLastX;
+
+
+    const dy =
+      event.clientY -
+      dragLastY;
+
+
+    dragLastX =
+      event.clientX;
+
+
+    dragLastY =
+      event.clientY;
+
+
+    /*
+     * Horizontal drag:
+     * unlimited 360° rotation.
+     */
+    manualYaw +=
+      dx * 0.012;
+
+
+    /*
+     * Keep yaw numerically clean
+     * after many complete rotations.
+     */
+    manualYaw =
+      THREE.MathUtils
+        .euclideanModulo(
+          manualYaw +
+          Math.PI,
+
+          Math.PI *
+          2
+        ) -
+      Math.PI;
+
+
+    /*
+     * Vertical drag:
+     * real 3D pitch.
+     *
+     * Clamp prevents the character
+     * from flipping completely
+     * upside down.
+     */
+    manualPitch =
+      THREE.MathUtils.clamp(
+
+        manualPitch +
+        dy * 0.010,
+
+        -1.20,
+        1.20
+
+      );
+
+  }
+);
 
     host.addEventListener(
       "pointerup",
