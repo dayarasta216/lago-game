@@ -3,7 +3,7 @@ import * as THREE from "three";
 (() => {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
   const GAME_ID = "lago-tanks";
 
   const MOVE_SPEED = 4.2;
@@ -63,6 +63,17 @@ const groundPlane =
     left: false,
     right: false
   };
+  let drivePointerId = null;
+let aimPointerId = null;
+
+let driveStartX = 0;
+let driveStartY = 0;
+
+let touchForward = 0;
+let touchTurn = 0;
+
+const TOUCH_DRIVE_RADIUS = 72;
+const TOUCH_DEAD_ZONE = .10;
 
 
   function runtime() {
@@ -364,17 +375,45 @@ const groundPlane =
       }
 
 
-      .lt-mobile button {
-        border:
-          1px solid
-          rgba(
-            255,
-            255,
-            255,
-            .16
-          );
+.lt-mobile button {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .16
+    );
 
-          .lt-fire {
+  border-radius:
+    13px;
+
+  background:
+    rgba(
+      7,
+      12,
+      15,
+      .78
+    );
+
+  color:
+    #fff;
+
+  font-size:
+    18px;
+
+  font-weight:
+    1000;
+
+  touch-action:
+    none;
+
+  user-select:
+    none;
+}
+
+
+.lt-fire {
   position:
     absolute;
 
@@ -598,11 +637,13 @@ const groundPlane =
 
 
       @media (
-        max-width: 760px
-        .lt-fire {
-  display:
-    block;
-}
+  max-width: 760px
+) {
+
+  .lt-fire {
+    display:
+      block;
+  }
       ) {
 
         .lt-title {
@@ -884,6 +925,468 @@ const groundPlane =
     }
   );
 
+
+  window.addEventListener(
+    "keyup",
+    event => {
+
+      keys.delete(
+        event.code
+      );
+
+    }
+  );
+
+
+  function updatePointer(
+    event
+  ) {
+
+    if (!canvas) {
+      return;
+    }
+
+
+    const rect =
+      canvas
+        .getBoundingClientRect();
+
+
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0
+    ) {
+      return;
+    }
+
+
+    pointerNdc.x =
+      (
+        (
+          event.clientX -
+          rect.left
+        ) /
+        rect.width
+      ) *
+      2 -
+      1;
+
+
+    pointerNdc.y =
+      -(
+        (
+          event.clientY -
+          rect.top
+        ) /
+        rect.height
+      ) *
+      2 +
+      1;
+
+  }
+
+
+  function updateDriveTouch(
+    event
+  ) {
+
+    const dx =
+      event.clientX -
+      driveStartX;
+
+
+    const dy =
+      event.clientY -
+      driveStartY;
+
+
+    let turn =
+      THREE.MathUtils.clamp(
+        -dx /
+        TOUCH_DRIVE_RADIUS,
+        -1,
+        1
+      );
+
+
+    let forward =
+      THREE.MathUtils.clamp(
+        -dy /
+        TOUCH_DRIVE_RADIUS,
+        -1,
+        1
+      );
+
+
+    if (
+      Math.abs(turn) <
+      TOUCH_DEAD_ZONE
+    ) {
+
+      turn = 0;
+
+    }
+
+
+    if (
+      Math.abs(forward) <
+      TOUCH_DEAD_ZONE
+    ) {
+
+      forward = 0;
+
+    }
+
+
+    /*
+     * Reverse is slightly slower
+     * than forward motion.
+     */
+    if (
+      forward <
+      0
+    ) {
+
+      forward *=
+        .70;
+
+    }
+
+
+    touchTurn =
+      turn;
+
+
+    touchForward =
+      forward;
+
+  }
+
+
+  function releaseTouch(
+    event
+  ) {
+
+    if (
+      event.pointerId ===
+      drivePointerId
+    ) {
+
+      drivePointerId =
+        null;
+
+      touchForward =
+        0;
+
+      touchTurn =
+        0;
+
+    }
+
+
+    if (
+      event.pointerId ===
+      aimPointerId
+    ) {
+
+      aimPointerId =
+        null;
+
+    }
+
+
+    try {
+
+      canvas
+        .releasePointerCapture
+        ?.(event.pointerId);
+
+    } catch (_) {}
+
+  }
+
+
+  canvas.addEventListener(
+    "pointerdown",
+    event => {
+
+      if (
+        event.pointerType ===
+        "touch"
+      ) {
+
+        event.preventDefault();
+
+
+        const rect =
+          canvas
+            .getBoundingClientRect();
+
+
+        const localX =
+          event.clientX -
+          rect.left;
+
+
+        /*
+         * LEFT 55%:
+         * invisible analog driving
+         * joystick.
+         */
+        if (
+          localX <
+          rect.width *
+          .55
+        ) {
+
+          if (
+            drivePointerId ===
+            null
+          ) {
+
+            drivePointerId =
+              event.pointerId;
+
+
+            driveStartX =
+              event.clientX;
+
+
+            driveStartY =
+              event.clientY;
+
+
+            touchForward =
+              0;
+
+
+            touchTurn =
+              0;
+
+
+            canvas
+              .setPointerCapture
+              ?.(event.pointerId);
+
+          }
+
+
+          return;
+
+        }
+
+
+        /*
+         * RIGHT 45%:
+         * turret aiming.
+         */
+        if (
+          aimPointerId ===
+          null
+        ) {
+
+          aimPointerId =
+            event.pointerId;
+
+
+          updatePointer(
+            event
+          );
+
+
+          canvas
+            .setPointerCapture
+            ?.(event.pointerId);
+
+        }
+
+
+        return;
+
+      }
+
+
+      /*
+       * Desktop mouse.
+       */
+      updatePointer(
+        event
+      );
+
+
+      if (
+        phase ===
+        "running"
+      ) {
+
+        fire();
+
+      }
+
+    }
+  );
+
+
+  canvas.addEventListener(
+    "pointermove",
+    event => {
+
+      if (
+        event.pointerType ===
+        "touch"
+      ) {
+
+        if (
+          event.pointerId ===
+          drivePointerId
+        ) {
+
+          event.preventDefault();
+
+
+          updateDriveTouch(
+            event
+          );
+
+
+          return;
+
+        }
+
+
+        if (
+          event.pointerId ===
+          aimPointerId
+        ) {
+
+          event.preventDefault();
+
+
+          updatePointer(
+            event
+          );
+
+        }
+
+
+        return;
+
+      }
+
+
+      updatePointer(
+        event
+      );
+
+    }
+  );
+
+
+  canvas.addEventListener(
+    "pointerup",
+    releaseTouch
+  );
+
+
+  canvas.addEventListener(
+    "pointercancel",
+    releaseTouch
+  );
+
+
+  overlay
+    .querySelectorAll(
+      "[data-control]"
+    )
+    .forEach(
+      button => {
+
+        const control =
+          button.dataset
+            .control;
+
+
+        const press =
+          event => {
+
+            event.preventDefault();
+
+
+            mobile[
+              control
+            ] = true;
+
+
+            button
+              .setPointerCapture
+              ?.(event.pointerId);
+
+          };
+
+
+        const release =
+          event => {
+
+            mobile[
+              control
+            ] = false;
+
+
+            try {
+
+              button
+                .releasePointerCapture
+                ?.(event?.pointerId);
+
+            } catch (_) {}
+
+          };
+
+
+        button.addEventListener(
+          "pointerdown",
+          press
+        );
+
+
+        button.addEventListener(
+          "pointerup",
+          release
+        );
+
+
+        button.addEventListener(
+          "pointercancel",
+          release
+        );
+
+      }
+    );
+
+
+  el(
+    "ltFire"
+  )
+    ?.addEventListener(
+      "pointerdown",
+      event => {
+
+        event.preventDefault();
+
+
+        if (
+          phase ===
+          "running"
+        ) {
+
+          fire();
+
+        }
+
+      }
+    );
+
+}
 
   window.addEventListener(
     "keyup",
@@ -1719,67 +2222,82 @@ turret.add(
     }
 
 
-    const forward =
+   const digitalForward =
 
-      (
+  (
+    keys.has(
+      "KeyW"
+    ) ||
+    keys.has(
+      "ArrowUp"
+    ) ||
+    mobile.forward
+  )
+
+    ? 1
+
+    : (
         keys.has(
-          "KeyW"
+          "KeyS"
         ) ||
         keys.has(
-          "ArrowUp"
+          "ArrowDown"
         ) ||
-        mobile.forward
+        mobile.back
       )
 
-        ? 1
-
-        : (
-            keys.has(
-              "KeyS"
-            ) ||
-            keys.has(
-              "ArrowDown"
-            ) ||
-            mobile.back
-          )
-
-          ? -.7
-          : 0;
+      ? -.7
+      : 0;
 
 
-    const turn =
+const digitalTurn =
 
-      (
+  (
+    keys.has(
+      "KeyA"
+    ) ||
+    keys.has(
+      "ArrowLeft"
+    ) ||
+    mobile.left
+  )
+
+    ? 1
+
+    : (
         keys.has(
-          "KeyA"
+          "KeyD"
         ) ||
         keys.has(
-          "ArrowLeft"
+          "ArrowRight"
         ) ||
-        mobile.left
+        mobile.right
       )
 
-        ? 1
-
-        : (
-            keys.has(
-              "KeyD"
-            ) ||
-            keys.has(
-              "ArrowRight"
-            ) ||
-            mobile.right
-          )
-
-          ? -1
-          : 0;
+      ? -1
+      : 0;
 
 
-    tank.rotation.y +=
-      turn *
-      TURN_SPEED *
-      dt;
+const forward =
 
+  Math.abs(
+    touchForward
+  ) >
+  .001
+
+    ? touchForward
+    : digitalForward;
+
+
+const turn =
+
+  Math.abs(
+    touchTurn
+  ) >
+  .001
+
+    ? touchTurn
+    : digitalTurn;
 
     const direction =
       new THREE.Vector3(
@@ -2469,7 +2987,18 @@ renderer.render(
       phase =
         "idle";
 
+drivePointerId =
+  null;
 
+aimPointerId =
+  null;
+
+touchForward =
+  0;
+
+touchTurn =
+  0;
+      
       el(
         "ltPanelCopy"
       ).textContent =
