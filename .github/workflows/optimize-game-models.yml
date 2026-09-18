@@ -21,10 +21,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install gltfpack
+            - name: Install gltfpack
         run: |
           npm install --global gltfpack@1.2.0
-          gltfpack -h >/dev/null
+          command -v gltfpack
+          npm list --global gltfpack --depth=0
 
       - name: Verify source files
         shell: bash
