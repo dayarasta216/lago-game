@@ -1,10 +1,11 @@
 (() => {
   "use strict";
 
-  const VERSION = 4;
+ const VERSION = 5;
 
-  let lastRenderKey = "";
+let lastRenderKey = "";
 
+let previewObserver = null;
 
   function account() {
     return window.LAGO_ACCOUNT || null;
@@ -208,65 +209,213 @@
 
 }
 
-  function mountPreviewHosts(root) {
+function mountPreviewHostNow(
+  host
+) {
 
-    const page =
-      document.getElementById(
-        "lagoShop"
-      );
+  if (
+    !host ||
+    !host.isConnected
+  ) {
+    return;
+  }
 
 
-    if (
-      !root ||
-      !page?.classList.contains(
+  if (
+    host.querySelector(
+      ".lago-glb-preview-image"
+    ) ||
+    host._lago3dPreviewController
+  ) {
+    return;
+  }
+
+
+  const model =
+    host.dataset
+      .lagoGlbPreview;
+
+
+  if (!model) {
+    return;
+  }
+
+
+  window.LAGO_CHARACTER_3D
+    ?.mountPreview
+    ?.(
+      host,
+      model
+    );
+
+}
+
+
+function ensurePreviewObserver() {
+
+  if (previewObserver) {
+    return previewObserver;
+  }
+
+
+  if (
+    !(
+      "IntersectionObserver" in
+      window
+    )
+  ) {
+    return null;
+  }
+
+
+  previewObserver =
+    new IntersectionObserver(
+
+      entries => {
+
+        const page =
+          document.getElementById(
+            "lagoShop"
+          );
+
+
+        if (
+          !page
+            ?.classList
+            .contains(
+              "active"
+            )
+        ) {
+          return;
+        }
+
+
+        entries.forEach(
+          entry => {
+
+            if (
+              !entry.isIntersecting
+            ) {
+              return;
+            }
+
+
+            const host =
+              entry.target;
+
+
+            previewObserver
+              ?.unobserve(
+                host
+              );
+
+
+            requestAnimationFrame(
+              () =>
+                mountPreviewHostNow(
+                  host
+                )
+            );
+
+          }
+        );
+
+      },
+
+      {
+        root:
+          null,
+
+        /*
+         * Load slightly before
+         * the card becomes visible.
+         */
+        rootMargin:
+          "160px 0px",
+
+        threshold:
+          .01
+      }
+
+    );
+
+
+  return previewObserver;
+
+}
+
+
+function mountPreviewHosts(
+  root
+) {
+
+  const page =
+    document.getElementById(
+      "lagoShop"
+    );
+
+
+  if (
+    !root ||
+    !page
+      ?.classList
+      .contains(
         "active"
       )
-    ) {
-      return;
-    }
-
-
-    root
-      .querySelectorAll(
-        "[data-lago-glb-preview]"
-      )
-      .forEach(
-        host => {
-
-          /*
-           * Snapshot already exists:
-           * do absolutely nothing.
-           */
-          if (
-            host.querySelector(
-              ".lago-glb-preview-image"
-            ) ||
-            host
-              ._lago3dPreviewController
-          ) {
-            return;
-          }
-
-
-          const model =
-            host.dataset
-              .lagoGlbPreview;
-
-
-          if (!model) {
-            return;
-          }
-
-
-          window.LAGO_CHARACTER_3D
-            ?.mountPreview
-            ?.(
-              host,
-              model
-            );
-        }
-      );
+  ) {
+    return;
   }
+
+
+  const observer =
+    ensurePreviewObserver();
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        if (
+          host.querySelector(
+            ".lago-glb-preview-image"
+          ) ||
+          host
+            ._lago3dPreviewController
+        ) {
+          return;
+        }
+
+
+        /*
+         * Old browser fallback.
+         */
+        if (!observer) {
+
+          mountPreviewHostNow(
+            host
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * IMPORTANT:
+         * observing does NOT download
+         * the GLB.
+         */
+        observer.observe(
+          host
+        );
+
+      }
+    );
+
+}
 
 
   function create() {
