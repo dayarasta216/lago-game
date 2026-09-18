@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 18;
+  const VERSION = 19;
 
 let overlay = null;
 
@@ -20,14 +20,14 @@ const gameModulePromises =
 const GAME_MODULES =
   Object.freeze({
 
-    "knife-challenge":
+    "lago-tanks":
       Object.freeze({
 
         ready() {
 
           return (
             typeof window
-              .LAGO_KNIFE_GAME
+              .LAGO_TANKS
               ?.show ===
             "function"
           );
@@ -36,9 +36,10 @@ const GAME_MODULES =
 
         load() {
 
-       return import(
- "./lago-game-knife.js?v=23"
-);
+          return import(
+            "./lago-game-tanks.js?v=1"
+          );
+
         }
 
       })
@@ -46,68 +47,75 @@ const GAME_MODULES =
   });
 
 
-  const CATALOG = [
+ const CATALOG = [
 
-    {
-      id: "tap-lago",
-      name: "TAP LAGO",
-      description:
-        "Core Lago progression.",
-      icon: "snail",
-      status: "available",
-      dumCost: 0,
-      maxRewardSP: 0
-    },
+  {
+    id: "tap-lago",
+    name: "TAP LAGO",
+    description:
+      "Core Lago progression.",
+    icon: "snail",
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 0
+  },
 
-    {
-      id: "knife-challenge",
-      name: "KNIFE CHALLENGE",
-      description:
-        "Balance, timing and terrible decisions.",
-     icon: "knife",
-status: "available",
-dumCost: 5,
-      maxRewardSP: 250
-    },
+  {
+    id: "lago-tanks",
+    name: "LAGO TANKS",
+    description:
+      "3D tank battles. Solo and multiplayer.",
+    emoji: "💥",
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 300
+  },
 
-    {
-      id: "slowest-race",
-      name: "SLOWEST RACE",
-      description:
-        "Win by being strategically slow.",
-      icon: "race",
-      status: "coming",
-      dumCost: 4,
-      maxRewardSP: 200
-    },
+  {
+    id: "lago-moto",
+    name: "LAGO MOTO",
+    description:
+      "Physics motorcycle challenge.",
+    emoji: "🏍️",
+    status: "coming",
+    dumCost: 5,
+    maxRewardSP: 300
+  },
 
-    {
-      id: "brain-loading",
-      name: "BRAIN LOADING",
-      description:
-        "Short logic rounds with Lago rules.",
-      icon: "brain",
-      status: "coming",
-      dumCost: 3,
-      maxRewardSP: 150
-    },
+  {
+    id: "cart-chaos",
+    name: "CART CHAOS",
+    description:
+      "Shopping cart racing.",
+    emoji: "🛒",
+    status: "coming",
+    dumCost: 5,
+    maxRewardSP: 300
+  },
 
-    {
-      id: "miki-greenhouse",
-      name: "MIKI'S GREENHOUSE",
-      description:
-        "Miki's suspicious cartoon greenhouse management game.",
-      emoji: "🌿",
-      status: "coming",
-      dumCost: 5,
-      maxRewardSP: 300,
+  {
+    id: "lago-101",
+    name: "101",
+    description:
+      "Four-player multiplayer card game.",
+    emoji: "🃏",
+    status: "coming",
+    dumCost: 4,
+    maxRewardSP: 250
+  },
 
-      requiredCharacter:
-        "comic_goose"
-    }
+  {
+    id: "lago-platformer",
+    name: "LAGO PLATFORMER",
+    description:
+      "Lago platform adventure.",
+    emoji: "🏁",
+    status: "coming",
+    dumCost: 4,
+    maxRewardSP: 250
+  }
 
-  ];
-
+];
 
   function runtime() {
     return window.LAGO_MINIGAMES || null;
