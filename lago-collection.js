@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 14;
+  const VERSION = 15;
 
 
   const LAGO_CHARACTER =
@@ -127,6 +127,8 @@
   let lastSkinsKey =
     "";
 
+  let previewObserver =
+  null;
 
   function state() {
 
@@ -474,66 +476,224 @@
 
 }
 
-  function mountPreviewHosts(root) {
+  function mountPreviewHostNow(
+  host
+) {
 
-    const page =
-      document.getElementById(
-        "lagoCollection"
-      );
-
-
-    if (
-      !root ||
-      !page?.classList.contains(
-        "active"
-      )
-    ) {
-      return;
-    }
-
-
-    root
-      .querySelectorAll(
-        "[data-lago-glb-preview]"
-      )
-      .forEach(
-        host => {
-
-          /*
-           * Never regenerate an already
-           * completed static snapshot.
-           */
-          if (
-            host.querySelector(
-              ".lago-glb-preview-image"
-            ) ||
-            host
-              ._lago3dPreviewController
-          ) {
-            return;
-          }
-
-
-          const model =
-            host.dataset
-              .lagoGlbPreview;
-
-
-          if (!model) {
-            return;
-          }
-
-
-          window.LAGO_CHARACTER_3D
-            ?.mountPreview
-            ?.(
-              host,
-              model
-            );
-        }
-      );
+  if (
+    !host ||
+    !host.isConnected
+  ) {
+    return;
   }
 
+
+  if (
+    host.querySelector(
+      ".lago-glb-preview-image"
+    ) ||
+    host._lago3dPreviewController
+  ) {
+    return;
+  }
+
+
+  const model =
+    host.dataset
+      .lagoGlbPreview;
+
+
+  if (!model) {
+    return;
+  }
+
+
+  window.LAGO_CHARACTER_3D
+    ?.mountPreview
+    ?.(
+      host,
+      model
+    );
+
+}
+
+
+function ensurePreviewObserver() {
+
+  if (previewObserver) {
+    return previewObserver;
+  }
+
+
+  if (
+    !(
+      "IntersectionObserver" in
+      window
+    )
+  ) {
+    return null;
+  }
+
+
+  previewObserver =
+    new IntersectionObserver(
+
+      entries => {
+
+        const page =
+          document.getElementById(
+            "lagoCollection"
+          );
+
+
+        if (
+          !page
+            ?.classList
+            .contains(
+              "active"
+            )
+        ) {
+          return;
+        }
+
+
+        entries.forEach(
+          entry => {
+
+            if (
+              !entry.isIntersecting
+            ) {
+              return;
+            }
+
+
+            const host =
+              entry.target;
+
+
+            previewObserver
+              ?.unobserve(
+                host
+              );
+
+
+            requestAnimationFrame(
+              () =>
+                mountPreviewHostNow(
+                  host
+                )
+            );
+
+          }
+        );
+
+      },
+
+      {
+        root:
+          null,
+
+        rootMargin:
+          "160px 0px",
+
+        threshold:
+          .01
+      }
+
+    );
+
+
+  return previewObserver;
+
+}
+
+
+function mountPreviewHosts(
+  root
+) {
+
+  const page =
+    document.getElementById(
+      "lagoCollection"
+    );
+
+
+  if (
+    !root ||
+    !page
+      ?.classList
+      .contains(
+        "active"
+      )
+  ) {
+    return;
+  }
+
+
+  /*
+   * Current selected character gets
+   * priority. Usually it is already
+   * in the shared GLB cache because
+   * Tap Tap rendered it first.
+   */
+  const currentHost =
+    root.querySelector(
+      "#lagoCollectionCurrent [data-lago-glb-preview]"
+    );
+
+
+  if (currentHost) {
+
+    mountPreviewHostNow(
+      currentHost
+    );
+
+  }
+
+
+  const observer =
+    ensurePreviewObserver();
+
+
+  root
+    .querySelectorAll(
+      "[data-lago-glb-preview]"
+    )
+    .forEach(
+      host => {
+
+        if (
+          host ===
+            currentHost ||
+          host.querySelector(
+            ".lago-glb-preview-image"
+          ) ||
+          host
+            ._lago3dPreviewController
+        ) {
+          return;
+        }
+
+
+        if (!observer) {
+
+          mountPreviewHostNow(
+            host
+          );
+
+          return;
+
+        }
+
+
+        observer.observe(
+          host
+        );
+
+      }
+    );
+
+}
 
   function create() {
 
