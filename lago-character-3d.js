@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 31;
+  const VERSION = 32;
   const BASE_LAGO_MODEL = "./assets/model/roster/lago.glb?v=2";
   const BASE_IDS = new Set(["default", "lago"]);
   const TARGET_SIZE = 2.35;
@@ -36,12 +36,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let animationFrame = 0;
   let pulse = 0;
   let pulseVelocity = 0;
-    let interactiveHost = null;
+     let interactiveHost = null;
   let dragPointerId = null;
 
-  host.style.cursor =
-  "grab";
-  
   let dragLastX = 0;
   let dragLastY = 0;
 
