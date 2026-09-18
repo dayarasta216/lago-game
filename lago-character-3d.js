@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 29;
+  const VERSION = 30;
   const BASE_LAGO_MODEL = "./assets/model/roster/lago.glb?v=2";
   const BASE_IDS = new Set(["default", "lago"]);
   const TARGET_SIZE = 2.35;
@@ -827,7 +827,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     bindInteraction();
 
-    if (!animationFrame) {
+       if (!animationFrame) {
       animationFrame =
         requestAnimationFrame(
           animate
@@ -835,8 +835,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
     return true;
+  }
 
-    function bindInteraction() {
+
+  function bindInteraction() {
     const host =
       area();
 
@@ -1681,7 +1683,54 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     )
   );
 
+    function bootMainRenderer(
+    attempt = 0
+  ) {
+
+    if (area()) {
+
+      apply();
+
+      return;
+
+    }
+
+
+    if (
+      attempt >=
+      240
+    ) {
+
+      status.main =
+        "host-missing";
+
+
+      status.lastError =
+        "modernSnailArea was not created";
+
+
+      console.error(
+        "[LAGO 3D] Main character host was not created"
+      );
+
+
+      return;
+
+    }
+
+
+    requestAnimationFrame(
+      () =>
+        bootMainRenderer(
+          attempt + 1
+        )
+    );
+
+  }
+
+
   requestAnimationFrame(
-    apply
+    () =>
+      bootMainRenderer(0)
   );
 })();
