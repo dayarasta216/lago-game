@@ -112,15 +112,11 @@ jobs:
             -km \
             -ke
 
-      - name: Optimize Narek
+           - name: Copy lightweight Narek
         run: |
-          gltfpack \
-            -i assets/model/roster/narek.glb \
-            -o assets/model/game/characters/narek.glb \
-            -si 1.0 \
-            -kn \
-            -km \
-            -ke
+          cp \
+            assets/model/roster/narek.glb \
+            assets/model/game/characters/narek.glb
 
       - name: Optimize Sola
         run: |
@@ -471,7 +467,20 @@ jobs:
               )
 
 
-              if (
+                            if (
+                  source.name ==
+                  "narek.glb"
+              ):
+                  if (
+                      output.stat().st_size !=
+                      source.stat().st_size
+                  ):
+                      raise RuntimeError(
+                          f"{output}: Narek must be "
+                          f"copied unchanged"
+                      )
+
+              elif (
                   output.stat().st_size >=
                   source.stat().st_size
               ):
