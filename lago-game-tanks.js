@@ -3,12 +3,16 @@ import * as THREE from "three";
 (() => {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2;
   const GAME_ID = "lago-tanks";
 
   const MOVE_SPEED = 4.2;
   const TURN_SPEED = 2.45;
   const ARENA_LIMIT = 10;
+
+  const BULLET_SPEED = 14;
+const BULLET_LIFE = 1.8;
+const FIRE_COOLDOWN = .38;
 
   let overlay = null;
   let canvas = null;
@@ -19,9 +23,32 @@ import * as THREE from "three";
   let clock = null;
   let resizeObserver = null;
 
-  let tank = null;
-  let turret = null;
-  let commanderPivot = null;
+ let tank = null;
+let turret = null;
+let muzzle = null;
+let commanderPivot = null;
+
+let bullets = [];
+let impacts = [];
+let solidBoxes = [];
+
+let fireCooldown = 0;
+
+const pointerNdc =
+  new THREE.Vector2();
+
+const raycaster =
+  new THREE.Raycaster();
+
+const groundPlane =
+  new THREE.Plane(
+    new THREE.Vector3(
+      0,
+      1,
+      0
+    ),
+    0
+  );
 
   let animationFrame = 0;
   let phase = "idle";
@@ -347,6 +374,59 @@ import * as THREE from "three";
             .16
           );
 
+          .lt-fire {
+  position:
+    absolute;
+
+  right:
+    18px;
+
+  bottom:
+    18px;
+
+  z-index:
+    32;
+
+  display:
+    none;
+
+  width:
+    82px;
+
+  height:
+    82px;
+
+  border:
+    1px solid
+    rgba(
+      204,
+      255,
+      0,
+      .55
+    );
+
+  border-radius:
+    50%;
+
+  background:
+    #ccff00;
+
+  color:
+    #130614;
+
+  font-size:
+    13px;
+
+  font-weight:
+    1000;
+
+  touch-action:
+    none;
+
+  user-select:
+    none;
+}
+
         border-radius: 13px;
 
         background:
@@ -519,6 +599,10 @@ import * as THREE from "three";
 
       @media (
         max-width: 760px
+        .lt-fire {
+  display:
+    block;
+}
       ) {
 
         .lt-title {
@@ -647,6 +731,13 @@ import * as THREE from "three";
 
           </div>
 
+<button
+  class="lt-fire"
+  id="ltFire"
+  type="button"
+>
+  FIRE
+</button>
 
           <section
             class="lt-panel"
@@ -698,6 +789,8 @@ import * as THREE from "three";
         </main>
 
       </div>
+
+      
 
     `;
 
@@ -758,101 +851,228 @@ import * as THREE from "three";
   }
 
 
-  function bindControls() {
+ function bindControls() {
 
-    window.addEventListener(
-      "keydown",
-      event => {
+  window.addEventListener(
+    "keydown",
+    event => {
 
-        keys.add(
-          event.code
-        );
-
-      }
-    );
-
-
-    window.addEventListener(
-      "keyup",
-      event => {
-
-        keys.delete(
-          event.code
-        );
-
-      }
-    );
-
-
-    overlay
-      .querySelectorAll(
-        "[data-control]"
-      )
-      .forEach(
-        button => {
-
-          const control =
-            button.dataset
-              .control;
-
-
-          const press =
-            event => {
-
-              event.preventDefault();
-
-              mobile[
-                control
-              ] = true;
-
-
-              button
-                .setPointerCapture
-                ?.(event.pointerId);
-
-            };
-
-
-          const release =
-            event => {
-
-              mobile[
-                control
-              ] = false;
-
-
-              try {
-
-                button
-                  .releasePointerCapture
-                  ?.(event?.pointerId);
-
-              } catch (_) {}
-
-            };
-
-
-          button.addEventListener(
-            "pointerdown",
-            press
-          );
-
-
-          button.addEventListener(
-            "pointerup",
-            release
-          );
-
-
-          button.addEventListener(
-            "pointercancel",
-            release
-          );
-
-        }
+      keys.add(
+        event.code
       );
 
+
+      if (
+        event.code ===
+        "Space"
+      ) {
+
+        event.preventDefault();
+
+
+        if (
+          phase ===
+          "running"
+        ) {
+
+          fire();
+
+        }
+
+      }
+
+    }
+  );
+
+
+  window.addEventListener(
+    "keyup",
+    event => {
+
+      keys.delete(
+        event.code
+      );
+
+    }
+  );
+
+
+  function updatePointer(
+    event
+  ) {
+
+    if (!canvas) {
+      return;
+    }
+
+
+    const rect =
+      canvas
+        .getBoundingClientRect();
+
+
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0
+    ) {
+      return;
+    }
+
+
+    pointerNdc.x =
+      (
+        (
+          event.clientX -
+          rect.left
+        ) /
+        rect.width
+      ) *
+      2 -
+      1;
+
+
+    pointerNdc.y =
+      -(
+        (
+          event.clientY -
+          rect.top
+        ) /
+        rect.height
+      ) *
+      2 +
+      1;
+
   }
+
+
+  canvas.addEventListener(
+    "pointermove",
+    updatePointer
+  );
+
+
+  canvas.addEventListener(
+    "pointerdown",
+    event => {
+
+      updatePointer(
+        event
+      );
+
+
+      /*
+       * Mouse click fires.
+       * Touch only aims;
+       * mobile FIRE is separate.
+       */
+      if (
+        phase ===
+          "running" &&
+        event.pointerType !==
+          "touch"
+      ) {
+
+        fire();
+
+      }
+
+    }
+  );
+
+
+  overlay
+    .querySelectorAll(
+      "[data-control]"
+    )
+    .forEach(
+      button => {
+
+        const control =
+          button.dataset
+            .control;
+
+
+        const press =
+          event => {
+
+            event.preventDefault();
+
+
+            mobile[
+              control
+            ] = true;
+
+
+            button
+              .setPointerCapture
+              ?.(event.pointerId);
+
+          };
+
+
+        const release =
+          event => {
+
+            mobile[
+              control
+            ] = false;
+
+
+            try {
+
+              button
+                .releasePointerCapture
+                ?.(event?.pointerId);
+
+            } catch (_) {}
+
+          };
+
+
+        button.addEventListener(
+          "pointerdown",
+          press
+        );
+
+
+        button.addEventListener(
+          "pointerup",
+          release
+        );
+
+
+        button.addEventListener(
+          "pointercancel",
+          release
+        );
+
+      }
+    );
+
+
+  el(
+    "ltFire"
+  )
+    ?.addEventListener(
+      "pointerdown",
+      event => {
+
+        event.preventDefault();
+
+
+        if (
+          phase ===
+          "running"
+        ) {
+
+          fire();
+
+        }
+
+      }
+    );
+
+}
 
 
   function createRenderer() {
@@ -998,6 +1218,9 @@ import * as THREE from "three";
 
   function buildArena() {
 
+solidBoxes =
+  [];
+    
     const ground =
       new THREE.Mesh(
 
@@ -1061,6 +1284,23 @@ import * as THREE from "three";
           wall
         );
 
+wall.updateMatrixWorld(
+  true
+);
+
+
+solidBoxes.push(
+
+  new THREE.Box3()
+    .setFromObject(
+      wall
+    )
+    .expandByScalar(
+      .08
+    )
+
+);
+        
       }
     );
 
@@ -1099,6 +1339,23 @@ import * as THREE from "three";
           crate
         );
 
+crate.updateMatrixWorld(
+  true
+);
+
+
+solidBoxes.push(
+
+  new THREE.Box3()
+    .setFromObject(
+      crate
+    )
+    .expandByScalar(
+      .08
+    )
+
+);
+        
       }
     );
 
@@ -1225,6 +1482,20 @@ import * as THREE from "three";
       barrel
     );
 
+    muzzle =
+  new THREE.Object3D();
+
+
+muzzle.position.set(
+  0,
+  .16,
+  -1.72
+);
+
+
+turret.add(
+  muzzle
+);
 
     commanderPivot =
       new THREE.Group();
@@ -1550,6 +1821,476 @@ import * as THREE from "three";
 
   }
 
+  function aimTurret() {
+
+  if (
+    !tank ||
+    !turret ||
+    !camera
+  ) {
+    return;
+  }
+
+
+  raycaster.setFromCamera(
+    pointerNdc,
+    camera
+  );
+
+
+  const point =
+    new THREE.Vector3();
+
+
+  if (
+    !raycaster.ray
+      .intersectPlane(
+        groundPlane,
+        point
+      )
+  ) {
+    return;
+  }
+
+
+  /*
+   * Convert target from world
+   * space into tank-local space.
+   */
+  const local =
+    tank.worldToLocal(
+      point.clone()
+    );
+
+
+  turret.rotation.y =
+    Math.atan2(
+      -local.x,
+      -local.z
+    );
+
+}
+
+
+function fire() {
+
+  if (
+    phase !==
+      "running" ||
+    !muzzle ||
+    fireCooldown >
+      0
+  ) {
+    return;
+  }
+
+
+  fireCooldown =
+    FIRE_COOLDOWN;
+
+
+  tank.updateMatrixWorld(
+    true
+  );
+
+
+  const origin =
+    new THREE.Vector3();
+
+
+  muzzle.getWorldPosition(
+    origin
+  );
+
+
+  const rotation =
+    new THREE.Quaternion();
+
+
+  turret.getWorldQuaternion(
+    rotation
+  );
+
+
+  const direction =
+    new THREE.Vector3(
+      0,
+      0,
+      -1
+    )
+      .applyQuaternion(
+        rotation
+      )
+      .normalize();
+
+
+  const projectile =
+    new THREE.Mesh(
+
+      new THREE
+        .SphereGeometry(
+          .13,
+          12,
+          8
+        ),
+
+      new THREE
+        .MeshBasicMaterial({
+
+          color:
+            0xccff00
+
+        })
+
+    );
+
+
+  projectile.position.copy(
+    origin
+  );
+
+
+  scene.add(
+    projectile
+  );
+
+
+  bullets.push({
+
+    mesh:
+      projectile,
+
+    direction,
+
+    age:
+      0
+
+  });
+
+}
+
+
+function createImpact(
+  position
+) {
+
+  const impact =
+    new THREE.Mesh(
+
+      new THREE
+        .SphereGeometry(
+          .18,
+          12,
+          8
+        ),
+
+      new THREE
+        .MeshBasicMaterial({
+
+          color:
+            0xffc54d,
+
+          transparent:
+            true,
+
+          opacity:
+            1
+
+        })
+
+    );
+
+
+  impact.position.copy(
+    position
+  );
+
+
+  scene.add(
+    impact
+  );
+
+
+  impacts.push({
+
+    mesh:
+      impact,
+
+    age:
+      0
+
+  });
+
+}
+
+
+function bulletHitsSolid(
+  position
+) {
+
+  if (
+    Math.abs(
+      position.x
+    ) >
+      11 ||
+    Math.abs(
+      position.z
+    ) >
+      11
+  ) {
+
+    return true;
+
+  }
+
+
+  return solidBoxes.some(
+    bounds =>
+      bounds.containsPoint(
+        position
+      )
+  );
+
+}
+
+
+function removeBullet(
+  index
+) {
+
+  const bullet =
+    bullets[
+      index
+    ];
+
+
+  if (!bullet) {
+    return;
+  }
+
+
+  scene.remove(
+    bullet.mesh
+  );
+
+
+  bullet.mesh.geometry
+    ?.dispose
+    ?.();
+
+
+  bullet.mesh.material
+    ?.dispose
+    ?.();
+
+
+  bullets.splice(
+    index,
+    1
+  );
+
+}
+
+
+function updateBullets(
+  dt
+) {
+
+  for (
+    let index =
+      bullets.length -
+      1;
+
+    index >= 0;
+
+    index--
+  ) {
+
+    const bullet =
+      bullets[
+        index
+      ];
+
+
+    bullet.age +=
+      dt;
+
+
+    bullet.mesh.position
+      .addScaledVector(
+
+        bullet.direction,
+
+        BULLET_SPEED *
+        dt
+
+      );
+
+
+    if (
+      bulletHitsSolid(
+        bullet.mesh.position
+      )
+    ) {
+
+      createImpact(
+        bullet.mesh.position
+      );
+
+
+      removeBullet(
+        index
+      );
+
+
+      continue;
+
+    }
+
+
+    if (
+      bullet.age >=
+      BULLET_LIFE
+    ) {
+
+      removeBullet(
+        index
+      );
+
+    }
+
+  }
+
+}
+
+
+function updateImpacts(
+  dt
+) {
+
+  for (
+    let index =
+      impacts.length -
+      1;
+
+    index >= 0;
+
+    index--
+  ) {
+
+    const impact =
+      impacts[
+        index
+      ];
+
+
+    impact.age +=
+      dt;
+
+
+    const progress =
+      THREE.MathUtils.clamp(
+        impact.age /
+        .24,
+        0,
+        1
+      );
+
+
+    impact.mesh.scale
+      .setScalar(
+        1 +
+        progress *
+        2.8
+      );
+
+
+    impact.mesh.material
+      .opacity =
+      1 -
+      progress;
+
+
+    if (
+      progress >=
+      1
+    ) {
+
+      scene.remove(
+        impact.mesh
+      );
+
+
+      impact.mesh.geometry
+        ?.dispose
+        ?.();
+
+
+      impact.mesh.material
+        ?.dispose
+        ?.();
+
+
+      impacts.splice(
+        index,
+        1
+      );
+
+    }
+
+  }
+
+}
+
+
+function clearCombatFX() {
+
+  for (
+    let index =
+      bullets.length -
+      1;
+
+    index >= 0;
+
+    index--
+  ) {
+
+    removeBullet(
+      index
+    );
+
+  }
+
+
+  impacts.forEach(
+    impact => {
+
+      scene.remove(
+        impact.mesh
+      );
+
+
+      impact.mesh.geometry
+        ?.dispose
+        ?.();
+
+
+      impact.mesh.material
+        ?.dispose
+        ?.();
+
+    }
+  );
+
+
+  impacts =
+    [];
+
+
+  fireCooldown =
+    0;
+
+}
 
   function updateCamera() {
 
@@ -1617,18 +2358,39 @@ import * as THREE from "three";
       );
 
 
-    updateTank(
-      dt
-    );
+   fireCooldown =
+  Math.max(
+    0,
+    fireCooldown -
+    dt
+  );
 
 
-    updateCamera();
+updateTank(
+  dt
+);
 
 
-    renderer.render(
-      scene,
-      camera
-    );
+aimTurret();
+
+
+updateBullets(
+  dt
+);
+
+
+updateImpacts(
+  dt
+);
+
+
+updateCamera();
+
+
+renderer.render(
+  scene,
+  camera
+);
 
 
     animationFrame =
@@ -1661,6 +2423,8 @@ import * as THREE from "three";
 
     try {
 
+      clearCombatFX();
+
       await mountCommander();
 
 
@@ -1675,9 +2439,9 @@ import * as THREE from "three";
       ).textContent =
         window.innerWidth < 760
 
-          ? "USE THE D-PAD TO DRIVE"
+          ? "D-PAD DRIVE · TOUCH ARENA TO AIM · FIRE"
 
-          : "WASD / ARROWS · DRIVE THE TANK";
+          : "WASD · MOUSE AIM · CLICK / SPACE FIRE";
 
 
       phase =
