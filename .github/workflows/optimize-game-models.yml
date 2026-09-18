@@ -112,7 +112,7 @@ jobs:
             -km \
             -ke
 
-           - name: Copy lightweight Narek
+           -      - name: Copy lightweight Narek
         run: |
           cp \
             assets/model/roster/narek.glb \
@@ -467,10 +467,27 @@ jobs:
               )
 
 
-                            if (
+                                         if (
                   source.name ==
                   "narek.glb"
               ):
+                  if (
+                      output.stat().st_size !=
+                      source.stat().st_size
+                  ):
+                      raise RuntimeError(
+                          f"{output}: Narek must be "
+                          f"copied unchanged"
+                      )
+
+              elif (
+                  output.stat().st_size >=
+                  source.stat().st_size
+              ):
+                  raise RuntimeError(
+                      f"{output}: optimized file "
+                      f"is not smaller than source"
+                  )
                   if (
                       output.stat().st_size !=
                       source.stat().st_size
