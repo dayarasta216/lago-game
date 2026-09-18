@@ -1,18 +1,160 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 (() => {
   "use strict";
 
-  const VERSION = 3;
+  const VERSION = 4;
   const GAME_ID = "lago-tanks";
 
-  const MOVE_SPEED = 4.2;
-  const TURN_SPEED = 2.45;
-  const ARENA_LIMIT = 10;
+  const TEAM_BLUE_MODEL =
+    "./assets/model/tanks/team-blue.glb?v=1";
 
-  const BULLET_SPEED = 14;
-const BULLET_LIFE = 1.8;
-const FIRE_COOLDOWN = .38;
+  const TEAM_RED_MODEL =
+    "./assets/model/tanks/team-red.glb?v=1";
+
+  const MAP_WIDTH = 72;
+  const MAP_DEPTH = 54;
+
+  const MAP_HALF_X =
+    MAP_WIDTH / 2 - 2;
+
+  const MAP_HALF_Z =
+    MAP_DEPTH / 2 - 2;
+
+  const MOVE_SPEED = 6.0;
+  const REVERSE_SPEED = 3.6;
+  const TURN_SPEED = 2.25;
+  const TANK_RADIUS = 1.25;
+
+  const BULLET_SPEED = 21;
+  const BULLET_LIFE = 2.7;
+  const FIRE_COOLDOWN = 0.42;
+
+  const TOUCH_DRIVE_RADIUS = 82;
+  const TOUCH_DEAD_ZONE = 0.10;
+
+
+  /*
+   * =========================================================
+   * MULTIPLAYER 4 VS 4 SPAWNS
+   * =========================================================
+   */
+
+  const BLUE_SPAWNS =
+    Object.freeze([
+
+      Object.freeze({
+        x: -29,
+        z: -9,
+        yaw: -Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: -29,
+        z: -3,
+        yaw: -Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: -29,
+        z: 3,
+        yaw: -Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: -29,
+        z: 9,
+        yaw: -Math.PI / 2
+      })
+
+    ]);
+
+
+  const RED_SPAWNS =
+    Object.freeze([
+
+      Object.freeze({
+        x: 29,
+        z: -9,
+        yaw: Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: 29,
+        z: -3,
+        yaw: Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: 29,
+        z: 3,
+        yaw: Math.PI / 2
+      }),
+
+      Object.freeze({
+        x: 29,
+        z: 9,
+        yaw: Math.PI / 2
+      })
+
+    ]);
+
+
+  /*
+   * =========================================================
+   * MAP TERRAIN
+   * =========================================================
+   */
+
+  const HILLS =
+    Object.freeze([
+
+      Object.freeze({
+        x: -18,
+        z: -16,
+        radius: 8.0,
+        height: 2.5
+      }),
+
+      Object.freeze({
+        x: -9,
+        z: 15,
+        radius: 7.0,
+        height: 1.8
+      }),
+
+      Object.freeze({
+        x: 15,
+        z: -15,
+        radius: 8.5,
+        height: 2.3
+      }),
+
+      Object.freeze({
+        x: 22,
+        z: 13,
+        radius: 7.0,
+        height: 1.9
+      }),
+
+      Object.freeze({
+        x: 1,
+        z: 20,
+        radius: 6.5,
+        height: 1.3
+      })
+
+    ]);
+
+
+  const loader =
+    new GLTFLoader();
+
+
+  const tankTemplatePromises =
+    new Map();
+
 
   let overlay = null;
   let canvas = null;
@@ -21,87 +163,146 @@ const FIRE_COOLDOWN = .38;
   let scene = null;
   let camera = null;
   let clock = null;
-  let resizeObserver = null;
 
- let tank = null;
-let turret = null;
-let muzzle = null;
-let commanderPivot = null;
+  let resizeObserver =
+    null;
 
-let bullets = [];
-let impacts = [];
-let solidBoxes = [];
 
-let fireCooldown = 0;
+  let player = null;
+  let playerVisual = null;
+  let aimMarker = null;
 
-const pointerNdc =
-  new THREE.Vector2();
-
-const raycaster =
-  new THREE.Raycaster();
-
-const groundPlane =
-  new THREE.Plane(
-    new THREE.Vector3(
-      0,
-      1,
-      0
-    ),
-    0
-  );
 
   let animationFrame = 0;
-  let phase = "idle";
-  let context = null;
+
+  let phase =
+    "idle";
+
+  let context =
+    null;
+
+
+  let fireCooldown = 0;
+
+  let bullets = [];
+  let impacts = [];
+  let solidRects = [];
+
+
+  const aimWorld =
+    new THREE.Vector3(
+      0,
+      0,
+      -10
+    );
+
+
+  let hasAim =
+    false;
+
+
+  /*
+   * =========================================================
+   * TOUCH CONTROL
+   * =========================================================
+   */
+
+  let drivePointerId =
+    null;
+
+  let aimPointerId =
+    null;
+
+
+  let driveStartX = 0;
+  let driveStartY = 0;
+
+
+  let touchForward = 0;
+  let touchTurn = 0;
+
 
   const keys =
     new Set();
 
+
   const mobile = {
-    forward: false,
-    back: false,
-    left: false,
-    right: false
+
+    forward:
+      false,
+
+    back:
+      false,
+
+    left:
+      false,
+
+    right:
+      false
+
   };
-  let drivePointerId = null;
-let aimPointerId = null;
 
-let driveStartX = 0;
-let driveStartY = 0;
 
-let touchForward = 0;
-let touchTurn = 0;
+  const pointerNdc =
+    new THREE.Vector2();
 
-const TOUCH_DRIVE_RADIUS = 72;
-const TOUCH_DEAD_ZONE = .10;
+
+  const raycaster =
+    new THREE.Raycaster();
+
+
+  const groundPlane =
+    new THREE.Plane(
+
+      new THREE.Vector3(
+        0,
+        1,
+        0
+      ),
+
+      0
+
+    );
 
 
   function runtime() {
-    return window.LAGO_MINIGAMES || null;
+
+    return (
+      window.LAGO_MINIGAMES ||
+      null
+    );
+
   }
 
 
-  function el(id) {
+  function el(
+    id
+  ) {
 
-    return overlay
-      ?.querySelector(
-        `#${id}`
-      ) || null;
+    return (
+      overlay
+        ?.querySelector(
+          `#${id}`
+        ) ||
+      null
+    );
 
   }
 
 
   function material(
     color,
-    roughness = .72,
-    metalness = .08
+    roughness = 0.78,
+    metalness = 0.06
   ) {
 
     return new THREE
       .MeshStandardMaterial({
+
         color,
         roughness,
         metalness
+
       });
 
   }
@@ -124,13 +325,16 @@ const TOUCH_DEAD_ZONE = .10;
             z
           ),
 
-        material(color)
+        material(
+          color
+        )
 
       );
 
 
     mesh.castShadow =
       true;
+
 
     mesh.receiveShadow =
       true;
@@ -141,121 +345,343 @@ const TOUCH_DEAD_ZONE = .10;
   }
 
 
+  /*
+   * =========================================================
+   * TERRAIN HEIGHT
+   * =========================================================
+   */
+
+  function terrainHeight(
+    x,
+    z
+  ) {
+
+    let height =
+      0;
+
+
+    for (
+      const hill
+      of HILLS
+    ) {
+
+      const dx =
+        x -
+        hill.x;
+
+
+      const dz =
+        z -
+        hill.z;
+
+
+      const d2 =
+        dx * dx +
+        dz * dz;
+
+
+      const sigma2 =
+        hill.radius *
+        hill.radius;
+
+
+      height +=
+
+        hill.height *
+
+        Math.exp(
+
+          -d2 /
+          (
+            2 *
+            sigma2
+          )
+
+        );
+
+    }
+
+
+    return height;
+
+  }
+
+
+  function terrainSlope(
+    x,
+    z
+  ) {
+
+    const step =
+      0.28;
+
+
+    const hx =
+
+      terrainHeight(
+        x + step,
+        z
+      ) -
+
+      terrainHeight(
+        x - step,
+        z
+      );
+
+
+    const hz =
+
+      terrainHeight(
+        x,
+        z + step
+      ) -
+
+      terrainHeight(
+        x,
+        z - step
+      );
+
+
+    return {
+
+      x:
+        hx /
+        (
+          step *
+          2
+        ),
+
+      z:
+        hz /
+        (
+          step *
+          2
+        )
+
+    };
+
+  }
+
+
+  /*
+   * =========================================================
+   * UI
+   * =========================================================
+   */
+
   function createUI() {
 
     if (overlay) {
+
       return;
+
     }
 
 
     const style =
-      document.createElement(
-        "style"
-      );
+      document
+        .createElement(
+          "style"
+        );
 
 
     style.textContent = `
 
       #lagoTanksGame {
-        position: fixed;
-        inset: 0;
-        z-index: 22000;
 
-        display: none;
+        position:
+          fixed;
+
+        inset:
+          0;
+
+        z-index:
+          22000;
+
+        display:
+          none;
+
 
         padding:
-          calc(10px + env(safe-area-inset-top))
-          10px
-          calc(10px + env(safe-area-inset-bottom));
 
-        background: #07090c;
-        color: #fff;
+          calc(
+            10px +
+            env(
+              safe-area-inset-top
+            )
+          )
+
+          10px
+
+          calc(
+            10px +
+            env(
+              safe-area-inset-bottom
+            )
+          );
+
+
+        background:
+          #07090c;
+
+        color:
+          #fff;
+
 
         font-family:
           Inter,
           system-ui,
           sans-serif;
+
       }
 
 
       #lagoTanksGame.active {
-        display: block;
+
+        display:
+          block;
+
       }
 
 
       .lt-shell {
-        width:
-          min(1280px,100%);
 
-        height:
-          calc(
-            100dvh -
-            20px -
-            env(safe-area-inset-top) -
-            env(safe-area-inset-bottom)
+        width:
+          min(
+            1360px,
+            100%
           );
 
-        margin: auto;
 
-        display: flex;
-        flex-direction: column;
+        height:
 
-        min-height: 0;
+          calc(
+
+            100dvh -
+
+            20px -
+
+            env(
+              safe-area-inset-top
+            ) -
+
+            env(
+              safe-area-inset-bottom
+            )
+
+          );
+
+
+        margin:
+          auto;
+
+
+        display:
+          flex;
+
+
+        flex-direction:
+          column;
+
+
+        min-height:
+          0;
+
       }
 
 
       .lt-head {
-        display: flex;
+
+        display:
+          flex;
+
 
         align-items:
           flex-start;
 
+
         justify-content:
           space-between;
 
-        gap: 12px;
+
+        gap:
+          12px;
+
       }
 
 
       .lt-title {
+
         font-size:
+
           clamp(
-            32px,
-            5vw,
-            58px
+            30px,
+            4.6vw,
+            54px
           );
 
-        font-weight: 1000;
-        line-height: .92;
-        letter-spacing: -.055em;
+
+        font-weight:
+          1000;
+
+
+        line-height:
+          .92;
+
+
+        letter-spacing:
+          -.055em;
+
       }
 
 
       .lt-sub {
-        margin-top: 5px;
+
+        margin-top:
+          5px;
+
 
         color:
           rgba(
             255,
             255,
             255,
-            .42
+            .45
           );
 
-        font-size: 9px;
-        font-weight: 900;
+
+        font-size:
+          9px;
+
+
+        font-weight:
+          900;
+
+
+        letter-spacing:
+          .04em;
+
       }
 
 
       .lt-close {
-        width: 44px;
-        height: 44px;
+
+        width:
+          44px;
+
+
+        height:
+          44px;
+
 
         flex:
           0 0 44px;
 
+
         border:
+
           1px solid
+
           rgba(
             255,
             255,
@@ -263,9 +689,13 @@ const TOUCH_DEAD_ZONE = .10;
             .14
           );
 
-        border-radius: 50%;
+
+        border-radius:
+          50%;
+
 
         background:
+
           rgba(
             255,
             255,
@@ -273,24 +703,43 @@ const TOUCH_DEAD_ZONE = .10;
             .06
           );
 
-        color: #fff;
 
-        cursor: pointer;
+        color:
+          #fff;
+
+
+        cursor:
+          pointer;
+
       }
 
 
       .lt-stage {
-        position: relative;
 
-        flex: 1;
-        min-height: 0;
+        position:
+          relative;
 
-        margin-top: 10px;
 
-        overflow: hidden;
+        flex:
+          1;
+
+
+        min-height:
+          0;
+
+
+        margin-top:
+          9px;
+
+
+        overflow:
+          hidden;
+
 
         border:
+
           1px solid
+
           rgba(
             255,
             255,
@@ -298,177 +747,181 @@ const TOUCH_DEAD_ZONE = .10;
             .08
           );
 
-        border-radius: 20px;
 
-        background: #11171c;
+        border-radius:
+          18px;
+
+
+        background:
+          #11171c;
+
       }
 
 
       #lagoTanksCanvas {
-        position: absolute;
-        inset: 0;
 
-        width: 100%;
-        height: 100%;
+        position:
+          absolute;
 
-        display: block;
 
-        touch-action: none;
+        inset:
+          0;
+
+
+        width:
+          100%;
+
+
+        height:
+          100%;
+
+
+        display:
+          block;
+
+
+        touch-action:
+          none;
+
       }
 
 
       .lt-status {
-        position: absolute;
 
-        top: 12px;
-        left: 50%;
+        position:
+          absolute;
 
-        z-index: 20;
+
+        top:
+          10px;
+
+
+        left:
+          50%;
+
+
+        z-index:
+          20;
+
 
         transform:
-          translateX(-50%);
+          translateX(
+            -50%
+          );
+
+
+        max-width:
+          76%;
+
 
         padding:
-          8px 12px;
+          7px 11px;
 
-        border-radius: 999px;
+
+        border-radius:
+          999px;
+
 
         background:
+
           rgba(
             4,
             7,
             9,
-            .7
+            .70
           );
 
-        color: #ccff00;
 
-        font-size: 10px;
-        font-weight: 1000;
+        color:
+          #ccff00;
 
-        white-space: nowrap;
 
-        pointer-events: none;
+        font-size:
+          9px;
+
+
+        font-weight:
+          1000;
+
+
+        text-align:
+          center;
+
+
+        pointer-events:
+          none;
+
 
         backdrop-filter:
-          blur(8px);
+          blur(
+            8px
+          );
+
       }
 
 
       .lt-mobile {
-        position: absolute;
 
-        left: 14px;
-        bottom: 14px;
+        position:
+          absolute;
 
-        z-index: 30;
 
-        display: none;
+        left:
+          14px;
+
+
+        bottom:
+          14px;
+
+
+        z-index:
+          30;
+
+
+        display:
+          none;
+
 
         grid-template-columns:
-          repeat(3,48px);
+          repeat(
+            3,
+            48px
+          );
+
 
         grid-template-rows:
-          repeat(2,48px);
+          repeat(
+            2,
+            48px
+          );
 
-        gap: 5px;
+
+        gap:
+          5px;
+
       }
 
 
-.lt-mobile button {
-  border:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      .16
-    );
+      .lt-mobile button {
 
-  border-radius:
-    13px;
+        border:
 
-  background:
-    rgba(
-      7,
-      12,
-      15,
-      .78
-    );
+          1px solid
 
-  color:
-    #fff;
-
-  font-size:
-    18px;
-
-  font-weight:
-    1000;
-
-  touch-action:
-    none;
-
-  user-select:
-    none;
-}
+          rgba(
+            255,
+            255,
+            255,
+            .16
+          );
 
 
-.lt-fire {
-  position:
-    absolute;
+        border-radius:
+          13px;
 
-  right:
-    18px;
-
-  bottom:
-    18px;
-
-  z-index:
-    32;
-
-  display:
-    none;
-
-  width:
-    82px;
-
-  height:
-    82px;
-
-  border:
-    1px solid
-    rgba(
-      204,
-      255,
-      0,
-      .55
-    );
-
-  border-radius:
-    50%;
-
-  background:
-    #ccff00;
-
-  color:
-    #130614;
-
-  font-size:
-    13px;
-
-  font-weight:
-    1000;
-
-  touch-action:
-    none;
-
-  user-select:
-    none;
-}
-
-        border-radius: 13px;
 
         background:
+
           rgba(
             7,
             12,
@@ -476,56 +929,181 @@ const TOUCH_DEAD_ZONE = .10;
             .78
           );
 
-        color: #fff;
 
-        font-size: 18px;
-        font-weight: 1000;
+        color:
+          #fff;
 
-        touch-action: none;
-        user-select: none;
+
+        font-size:
+          18px;
+
+
+        font-weight:
+          1000;
+
+
+        touch-action:
+          none;
+
+
+        user-select:
+          none;
+
       }
 
 
       .lt-mobile
       [data-control="forward"] {
-        grid-column: 2;
-        grid-row: 1;
+
+        grid-column:
+          2;
+
+
+        grid-row:
+          1;
+
       }
 
 
       .lt-mobile
       [data-control="left"] {
-        grid-column: 1;
-        grid-row: 2;
+
+        grid-column:
+          1;
+
+
+        grid-row:
+          2;
+
       }
 
 
       .lt-mobile
       [data-control="back"] {
-        grid-column: 2;
-        grid-row: 2;
+
+        grid-column:
+          2;
+
+
+        grid-row:
+          2;
+
       }
 
 
       .lt-mobile
       [data-control="right"] {
-        grid-column: 3;
-        grid-row: 2;
+
+        grid-column:
+          3;
+
+
+        grid-row:
+          2;
+
+      }
+
+
+      .lt-fire {
+
+        position:
+          absolute;
+
+
+        right:
+          18px;
+
+
+        bottom:
+          18px;
+
+
+        z-index:
+          32;
+
+
+        display:
+          none;
+
+
+        width:
+          82px;
+
+
+        height:
+          82px;
+
+
+        border:
+
+          1px solid
+
+          rgba(
+            204,
+            255,
+            0,
+            .55
+          );
+
+
+        border-radius:
+          50%;
+
+
+        background:
+          #ccff00;
+
+
+        color:
+          #130614;
+
+
+        font-size:
+          13px;
+
+
+        font-weight:
+          1000;
+
+
+        touch-action:
+          none;
+
+
+        user-select:
+          none;
+
       }
 
 
       .lt-panel {
-        position: absolute;
-        inset: 0;
 
-        z-index: 80;
+        position:
+          absolute;
 
-        display: grid;
-        place-items: center;
 
-        padding: 20px;
+        inset:
+          0;
+
+
+        z-index:
+          80;
+
+
+        display:
+          grid;
+
+
+        place-items:
+          center;
+
+
+        padding:
+          18px;
+
 
         background:
+
           rgba(
             5,
             7,
@@ -533,98 +1111,165 @@ const TOUCH_DEAD_ZONE = .10;
             .82
           );
 
+
         backdrop-filter:
-          blur(12px);
+          blur(
+            12px
+          );
+
       }
 
 
       .lt-panel[hidden] {
+
         display:
           none !important;
+
       }
 
 
       .lt-card {
-        width:
-          min(470px,100%);
 
-        padding: 24px;
+        width:
+          min(
+            500px,
+            100%
+          );
+
+
+        padding:
+          22px;
+
 
         border:
+
           1px solid
+
           rgba(
             255,
             255,
             255,
-            .1
+            .10
           );
 
-        border-radius: 22px;
 
-        background: #10151a;
+        border-radius:
+          20px;
 
-        text-align: center;
+
+        background:
+          #10151a;
+
+
+        text-align:
+          center;
+
       }
 
 
       .lt-card-title {
-        font-size: 28px;
-        font-weight: 1000;
+
+        font-size:
+          28px;
+
+
+        font-weight:
+          1000;
+
       }
 
 
       .lt-card-copy {
-        margin-top: 10px;
+
+        margin-top:
+          9px;
+
 
         color:
+
           rgba(
             255,
             255,
             255,
-            .56
+            .58
           );
 
-        font-size: 11px;
-        line-height: 1.5;
+
+        font-size:
+          11px;
+
+
+        line-height:
+          1.5;
+
       }
 
 
       .lt-actions {
-        display: grid;
 
-        gap: 8px;
+        display:
+          grid;
 
-        margin-top: 18px;
+
+        gap:
+          8px;
+
+
+        margin-top:
+          16px;
+
       }
 
 
       .lt-actions button {
-        min-height: 48px;
 
-        border: 0;
-        border-radius: 12px;
+        min-height:
+          46px;
 
-        background: #ccff00;
-        color: #130614;
 
-        font-weight: 1000;
+        border:
+          0;
 
-        cursor: pointer;
+
+        border-radius:
+          11px;
+
+
+        background:
+          #ccff00;
+
+
+        color:
+          #130614;
+
+
+        font-weight:
+          1000;
+
+
+        cursor:
+          pointer;
+
       }
 
 
       .lt-actions
       .secondary {
+
         border:
+
           1px solid
+
           rgba(
             255,
             255,
             255,
-            .1
+            .10
           );
 
+
         background:
+
           rgba(
             255,
             255,
@@ -632,37 +1277,47 @@ const TOUCH_DEAD_ZONE = .10;
             .06
           );
 
-        color: #fff;
+
+        color:
+          #fff;
+
       }
 
 
       @media (
-  max-width: 760px
-) {
-
-  .lt-fire {
-    display:
-      block;
-  }
+        max-width:
+          760px
       ) {
 
         .lt-title {
-          font-size: 34px;
+
+          font-size:
+            33px;
+
         }
 
 
         .lt-mobile {
-          display: grid;
+
+          display:
+            grid;
+
+        }
+
+
+        .lt-fire {
+
+          display:
+            block;
+
         }
 
 
         .lt-status {
-          max-width: 75%;
 
-          white-space: normal;
-          text-align: center;
+          font-size:
+            8px;
 
-          font-size: 8px;
         }
 
       }
@@ -670,15 +1325,17 @@ const TOUCH_DEAD_ZONE = .10;
     `;
 
 
-    document.head.appendChild(
-      style
-    );
+    document.head
+      .appendChild(
+        style
+      );
 
 
     overlay =
-      document.createElement(
-        "div"
-      );
+      document
+        .createElement(
+          "div"
+        );
 
 
     overlay.id =
@@ -687,18 +1344,26 @@ const TOUCH_DEAD_ZONE = .10;
 
     overlay.innerHTML = `
 
-      <div class="lt-shell">
+      <div
+        class="lt-shell"
+      >
 
-        <header class="lt-head">
+        <header
+          class="lt-head"
+        >
 
           <div>
 
-            <div class="lt-title">
+            <div
+              class="lt-title"
+            >
               LAGO TANKS
             </div>
 
-            <div class="lt-sub">
-              T1 · 3D MOVEMENT PROTOTYPE
+            <div
+              class="lt-sub"
+            >
+              MAP 01 · 4V4 ARENA FOUNDATION
             </div>
 
           </div>
@@ -713,10 +1378,12 @@ const TOUCH_DEAD_ZONE = .10;
             type="button"
             aria-label="Close"
           >
+
             <span
               class="lago-icon-slot"
               data-lago-icon="close"
             ></span>
+
           </button>
 
         </header>
@@ -736,11 +1403,15 @@ const TOUCH_DEAD_ZONE = .10;
             class="lt-status"
             id="ltStatus"
           >
-            WASD / ARROWS · DRIVE THE TANK
+
+            4V4 MAP · BLUE BASE ↔ RED BASE
+
           </div>
 
 
-          <div class="lt-mobile">
+          <div
+            class="lt-mobile"
+          >
 
             <button
               data-control="forward"
@@ -749,6 +1420,7 @@ const TOUCH_DEAD_ZONE = .10;
               ▲
             </button>
 
+
             <button
               data-control="left"
               type="button"
@@ -756,12 +1428,14 @@ const TOUCH_DEAD_ZONE = .10;
               ◀
             </button>
 
+
             <button
               data-control="back"
               type="button"
             >
               ▼
             </button>
+
 
             <button
               data-control="right"
@@ -772,23 +1446,29 @@ const TOUCH_DEAD_ZONE = .10;
 
           </div>
 
-<button
-  class="lt-fire"
-  id="ltFire"
-  type="button"
->
-  FIRE
-</button>
+
+          <button
+            class="lt-fire"
+            id="ltFire"
+            type="button"
+          >
+            FIRE
+          </button>
+
 
           <section
             class="lt-panel"
             id="ltPanel"
           >
 
-            <div class="lt-card">
+            <div
+              class="lt-card"
+            >
 
-              <div class="lt-card-title">
-                LAGO TANKS
+              <div
+                class="lt-card-title"
+              >
+                MAP 01 · VILLAGE
               </div>
 
 
@@ -796,20 +1476,22 @@ const TOUCH_DEAD_ZONE = .10;
                 class="lt-card-copy"
                 id="ltPanelCopy"
               >
-                First playable checkpoint:
-                tank movement, 3D arena,
-                selected Lago character
-                mounted as the commander.
+
+                Large 4v4 battlefield with two bases,
+                roads, buildings, cover and terrain hills.
+
               </div>
 
 
-              <div class="lt-actions">
+              <div
+                class="lt-actions"
+              >
 
                 <button
                   id="ltPrimary"
                   type="button"
                 >
-                  START SOLO
+                  START LOCAL TEST
                 </button>
 
 
@@ -831,14 +1513,13 @@ const TOUCH_DEAD_ZONE = .10;
 
       </div>
 
-      
-
     `;
 
 
-    document.body.appendChild(
-      overlay
-    );
+    document.body
+      .appendChild(
+        overlay
+      );
 
 
     window.LAGO_UI
@@ -874,16 +1555,20 @@ const TOUCH_DEAD_ZONE = .10;
       "ltSecondary"
     )
       ?.addEventListener(
+
         "click",
+
         () => {
 
           hide();
+
 
           window.LAGO_GAMES
             ?.show
             ?.();
 
         }
+
       );
 
 
@@ -892,374 +1577,422 @@ const TOUCH_DEAD_ZONE = .10;
   }
 
 
- function bindControls() {
+  /*
+   * =========================================================
+   * INPUT
+   * =========================================================
+   */
 
-  window.addEventListener(
-    "keydown",
-    event => {
+  function bindControls() {
 
-      keys.add(
-        event.code
-      );
+    window.addEventListener(
 
+      "keydown",
 
-      if (
-        event.code ===
-        "Space"
-      ) {
+      event => {
 
-        event.preventDefault();
+        keys.add(
+          event.code
+        );
 
 
         if (
-          phase ===
-          "running"
+          event.code ===
+          "Space"
         ) {
 
-          fire();
+          event.preventDefault();
+
+
+          if (
+            phase ===
+            "running"
+          ) {
+
+            fire();
+
+          }
 
         }
 
       }
 
-    }
-  );
+    );
 
 
-  window.addEventListener(
-    "keyup",
-    event => {
+    window.addEventListener(
 
-      keys.delete(
-        event.code
-      );
+      "keyup",
 
-    }
-  );
+      event => {
 
+        keys.delete(
+          event.code
+        );
 
-  function updatePointer(
-    event
-  ) {
+      }
 
-    if (!canvas) {
-      return;
-    }
+    );
 
 
-    const rect =
-      canvas
-        .getBoundingClientRect();
-
-
-    if (
-      rect.width <= 0 ||
-      rect.height <= 0
-    ) {
-      return;
-    }
-
-
-    pointerNdc.x =
-      (
-        (
-          event.clientX -
-          rect.left
-        ) /
-        rect.width
-      ) *
-      2 -
-      1;
-
-
-    pointerNdc.y =
-      -(
-        (
-          event.clientY -
-          rect.top
-        ) /
-        rect.height
-      ) *
-      2 +
-      1;
-
-  }
-
-
-  function updateDriveTouch(
-    event
-  ) {
-
-    const dx =
-      event.clientX -
-      driveStartX;
-
-
-    const dy =
-      event.clientY -
-      driveStartY;
-
-
-    let turn =
-      THREE.MathUtils.clamp(
-        -dx /
-        TOUCH_DRIVE_RADIUS,
-        -1,
-        1
-      );
-
-
-    let forward =
-      THREE.MathUtils.clamp(
-        -dy /
-        TOUCH_DRIVE_RADIUS,
-        -1,
-        1
-      );
-
-
-    if (
-      Math.abs(turn) <
-      TOUCH_DEAD_ZONE
+    function updatePointer(
+      event
     ) {
 
-      turn = 0;
+      if (!canvas) {
 
-    }
+        return;
 
-
-    if (
-      Math.abs(forward) <
-      TOUCH_DEAD_ZONE
-    ) {
-
-      forward = 0;
-
-    }
+      }
 
 
-    /*
-     * Reverse is slightly slower
-     * than forward motion.
-     */
-    if (
-      forward <
-      0
-    ) {
+      const rect =
+        canvas
+          .getBoundingClientRect();
 
-      forward *=
-        .70;
-
-    }
-
-
-    touchTurn =
-      turn;
-
-
-    touchForward =
-      forward;
-
-  }
-
-
-  function releaseTouch(
-    event
-  ) {
-
-    if (
-      event.pointerId ===
-      drivePointerId
-    ) {
-
-      drivePointerId =
-        null;
-
-      touchForward =
-        0;
-
-      touchTurn =
-        0;
-
-    }
-
-
-    if (
-      event.pointerId ===
-      aimPointerId
-    ) {
-
-      aimPointerId =
-        null;
-
-    }
-
-
-    try {
-
-      canvas
-        .releasePointerCapture
-        ?.(event.pointerId);
-
-    } catch (_) {}
-
-  }
-
-
-  canvas.addEventListener(
-    "pointerdown",
-    event => {
 
       if (
-        event.pointerType ===
-        "touch"
+        rect.width <= 0 ||
+        rect.height <= 0
       ) {
 
-        event.preventDefault();
+        return;
+
+      }
 
 
-        const rect =
-          canvas
-            .getBoundingClientRect();
+      pointerNdc.x =
+
+        (
+          (
+            event.clientX -
+            rect.left
+          ) /
+          rect.width
+        ) *
+
+        2 -
+
+        1;
 
 
-        const localX =
-          event.clientX -
-          rect.left;
+      pointerNdc.y =
+
+        -(
+
+          (
+            event.clientY -
+            rect.top
+          ) /
+
+          rect.height
+
+        ) *
+
+        2 +
+
+        1;
+
+    }
 
 
-        /*
-         * LEFT 55%:
-         * invisible analog driving
-         * joystick.
-         */
-        if (
-          localX <
-          rect.width *
-          .55
-        ) {
+    function updateDriveTouch(
+      event
+    ) {
+
+      const dx =
+
+        event.clientX -
+        driveStartX;
+
+
+      const dy =
+
+        event.clientY -
+        driveStartY;
+
+
+      let turn =
+
+        THREE.MathUtils
+          .clamp(
+
+            -dx /
+            TOUCH_DRIVE_RADIUS,
+
+            -1,
+            1
+
+          );
+
+
+      let forward =
+
+        THREE.MathUtils
+          .clamp(
+
+            -dy /
+            TOUCH_DRIVE_RADIUS,
+
+            -1,
+            1
+
+          );
+
+
+      if (
+        Math.abs(
+          turn
+        ) <
+        TOUCH_DEAD_ZONE
+      ) {
+
+        turn =
+          0;
+
+      }
+
+
+      if (
+        Math.abs(
+          forward
+        ) <
+        TOUCH_DEAD_ZONE
+      ) {
+
+        forward =
+          0;
+
+      }
+
+
+      touchTurn =
+        turn;
+
+
+      touchForward =
+        forward;
+
+    }
+
+
+    function releaseTouch(
+      event
+    ) {
+
+      if (
+        event.pointerId ===
+        drivePointerId
+      ) {
+
+        drivePointerId =
+          null;
+
+
+        touchForward =
+          0;
+
+
+        touchTurn =
+          0;
+
+      }
+
+
+      if (
+        event.pointerId ===
+        aimPointerId
+      ) {
+
+        aimPointerId =
+          null;
+
+      }
+
+
+      try {
+
+        canvas
+          .releasePointerCapture
+          ?.(event.pointerId);
+
+      } catch (_) {}
+
+    }
+
+
+    canvas
+      .addEventListener(
+
+        "pointerdown",
+
+        event => {
 
           if (
-            drivePointerId ===
-            null
+            event.pointerType ===
+            "touch"
           ) {
 
-            drivePointerId =
-              event.pointerId;
+            event.preventDefault();
 
 
-            driveStartX =
-              event.clientX;
+            const rect =
+              canvas
+                .getBoundingClientRect();
 
 
-            driveStartY =
-              event.clientY;
+            const localX =
+
+              event.clientX -
+              rect.left;
 
 
-            touchForward =
-              0;
+            /*
+             * LEFT 55%:
+             * analog tank movement.
+             */
+
+            if (
+              localX <
+              rect.width *
+              0.55
+            ) {
+
+              if (
+                drivePointerId ===
+                null
+              ) {
+
+                drivePointerId =
+                  event.pointerId;
 
 
-            touchTurn =
-              0;
+                driveStartX =
+                  event.clientX;
 
 
-            canvas
-              .setPointerCapture
-              ?.(event.pointerId);
+                driveStartY =
+                  event.clientY;
+
+
+                touchForward =
+                  0;
+
+
+                touchTurn =
+                  0;
+
+
+                canvas
+                  .setPointerCapture
+                  ?.(event.pointerId);
+
+              }
+
+
+              return;
+
+            }
+
+
+            /*
+             * RIGHT 45%:
+             * aiming.
+             */
+
+            if (
+              aimPointerId ===
+              null
+            ) {
+
+              aimPointerId =
+                event.pointerId;
+
+
+              updatePointer(
+                event
+              );
+
+
+              canvas
+                .setPointerCapture
+                ?.(event.pointerId);
+
+            }
+
+
+            return;
 
           }
 
 
-          return;
-
-        }
-
-
-        /*
-         * RIGHT 45%:
-         * turret aiming.
-         */
-        if (
-          aimPointerId ===
-          null
-        ) {
-
-          aimPointerId =
-            event.pointerId;
-
-
           updatePointer(
             event
           );
 
 
-          canvas
-            .setPointerCapture
-            ?.(event.pointerId);
+          if (
+            phase ===
+            "running"
+          ) {
+
+            fire();
+
+          }
 
         }
 
-
-        return;
-
-      }
-
-
-      /*
-       * Desktop mouse.
-       */
-      updatePointer(
-        event
       );
 
 
-      if (
-        phase ===
-        "running"
-      ) {
+    canvas
+      .addEventListener(
 
-        fire();
+        "pointermove",
 
-      }
+        event => {
 
-    }
-  );
+          if (
+            event.pointerType ===
+            "touch"
+          ) {
 
+            if (
+              event.pointerId ===
+              drivePointerId
+            ) {
 
-  canvas.addEventListener(
-    "pointermove",
-    event => {
-
-      if (
-        event.pointerType ===
-        "touch"
-      ) {
-
-        if (
-          event.pointerId ===
-          drivePointerId
-        ) {
-
-          event.preventDefault();
+              event.preventDefault();
 
 
-          updateDriveTouch(
-            event
-          );
+              updateDriveTouch(
+                event
+              );
 
 
-          return;
+              return;
 
-        }
+            }
 
 
-        if (
-          event.pointerId ===
-          aimPointerId
-        ) {
+            if (
+              event.pointerId ===
+              aimPointerId
+            ) {
 
-          event.preventDefault();
+              event.preventDefault();
+
+
+              updatePointer(
+                event
+              );
+
+            }
+
+
+            return;
+
+          }
 
 
           updatePointer(
@@ -1268,320 +2001,139 @@ const TOUCH_DEAD_ZONE = .10;
 
         }
 
-
-        return;
-
-      }
-
-
-      updatePointer(
-        event
       );
 
-    }
-  );
+
+    canvas
+      .addEventListener(
+        "pointerup",
+        releaseTouch
+      );
 
 
-  canvas.addEventListener(
-    "pointerup",
-    releaseTouch
-  );
+    canvas
+      .addEventListener(
+        "pointercancel",
+        releaseTouch
+      );
 
 
-  canvas.addEventListener(
-    "pointercancel",
-    releaseTouch
-  );
+    overlay
+      .querySelectorAll(
+        "[data-control]"
+      )
+      .forEach(
+        button => {
+
+          const control =
+            button.dataset
+              .control;
 
 
-  overlay
-    .querySelectorAll(
-      "[data-control]"
-    )
-    .forEach(
-      button => {
+          const press =
+            event => {
 
-        const control =
-          button.dataset
-            .control;
+              event.preventDefault();
 
 
-        const press =
-          event => {
+              mobile[
+                control
+              ] =
+                true;
 
-            event.preventDefault();
-
-
-            mobile[
-              control
-            ] = true;
-
-
-            button
-              .setPointerCapture
-              ?.(event.pointerId);
-
-          };
-
-
-        const release =
-          event => {
-
-            mobile[
-              control
-            ] = false;
-
-
-            try {
 
               button
-                .releasePointerCapture
-                ?.(event?.pointerId);
+                .setPointerCapture
+                ?.(event.pointerId);
 
-            } catch (_) {}
-
-          };
+            };
 
 
-        button.addEventListener(
-          "pointerdown",
-          press
-        );
+          const release =
+            event => {
+
+              mobile[
+                control
+              ] =
+                false;
 
 
-        button.addEventListener(
-          "pointerup",
-          release
-        );
+              try {
+
+                button
+                  .releasePointerCapture
+                  ?.(event?.pointerId);
+
+              } catch (_) {}
+
+            };
 
 
-        button.addEventListener(
-          "pointercancel",
-          release
-        );
-
-      }
-    );
+          button
+            .addEventListener(
+              "pointerdown",
+              press
+            );
 
 
-  el(
-    "ltFire"
-  )
-    ?.addEventListener(
-      "pointerdown",
-      event => {
-
-        event.preventDefault();
+          button
+            .addEventListener(
+              "pointerup",
+              release
+            );
 
 
-        if (
-          phase ===
-          "running"
-        ) {
-
-          fire();
+          button
+            .addEventListener(
+              "pointercancel",
+              release
+            );
 
         }
 
-      }
-    );
-
-}
-
-  window.addEventListener(
-    "keyup",
-    event => {
-
-      keys.delete(
-        event.code
       );
 
-    }
-  );
+
+    el(
+      "ltFire"
+    )
+      ?.addEventListener(
+
+        "pointerdown",
+
+        event => {
+
+          event.preventDefault();
 
 
-  function updatePointer(
-    event
-  ) {
+          if (
+            phase ===
+            "running"
+          ) {
 
-    if (!canvas) {
-      return;
-    }
+            fire();
 
+          }
 
-    const rect =
-      canvas
-        .getBoundingClientRect();
+        }
 
-
-    if (
-      rect.width <= 0 ||
-      rect.height <= 0
-    ) {
-      return;
-    }
-
-
-    pointerNdc.x =
-      (
-        (
-          event.clientX -
-          rect.left
-        ) /
-        rect.width
-      ) *
-      2 -
-      1;
-
-
-    pointerNdc.y =
-      -(
-        (
-          event.clientY -
-          rect.top
-        ) /
-        rect.height
-      ) *
-      2 +
-      1;
+      );
 
   }
 
 
-  canvas.addEventListener(
-    "pointermove",
-    updatePointer
-  );
-
-
-  canvas.addEventListener(
-    "pointerdown",
-    event => {
-
-      updatePointer(
-        event
-      );
-
-
-      /*
-       * Mouse click fires.
-       * Touch only aims;
-       * mobile FIRE is separate.
-       */
-      if (
-        phase ===
-          "running" &&
-        event.pointerType !==
-          "touch"
-      ) {
-
-        fire();
-
-      }
-
-    }
-  );
-
-
-  overlay
-    .querySelectorAll(
-      "[data-control]"
-    )
-    .forEach(
-      button => {
-
-        const control =
-          button.dataset
-            .control;
-
-
-        const press =
-          event => {
-
-            event.preventDefault();
-
-
-            mobile[
-              control
-            ] = true;
-
-
-            button
-              .setPointerCapture
-              ?.(event.pointerId);
-
-          };
-
-
-        const release =
-          event => {
-
-            mobile[
-              control
-            ] = false;
-
-
-            try {
-
-              button
-                .releasePointerCapture
-                ?.(event?.pointerId);
-
-            } catch (_) {}
-
-          };
-
-
-        button.addEventListener(
-          "pointerdown",
-          press
-        );
-
-
-        button.addEventListener(
-          "pointerup",
-          release
-        );
-
-
-        button.addEventListener(
-          "pointercancel",
-          release
-        );
-
-      }
-    );
-
-
-  el(
-    "ltFire"
-  )
-    ?.addEventListener(
-      "pointerdown",
-      event => {
-
-        event.preventDefault();
-
-
-        if (
-          phase ===
-          "running"
-        ) {
-
-          fire();
-
-        }
-
-      }
-    );
-
-}
-
+  /*
+   * =========================================================
+   * THREE.JS
+   * =========================================================
+   */
 
   function createRenderer() {
 
     if (renderer) {
+
       return;
+
     }
 
 
@@ -1621,15 +2173,15 @@ const TOUCH_DEAD_ZONE = .10;
 
     scene.background =
       new THREE.Color(
-        0x11171c
+        0x9cb6c3
       );
 
 
     scene.fog =
       new THREE.Fog(
-        0x11171c,
-        18,
-        34
+        0x9cb6c3,
+        38,
+        82
       );
 
 
@@ -1638,25 +2190,22 @@ const TOUCH_DEAD_ZONE = .10;
         .PerspectiveCamera(
           48,
           1,
-          .1,
-          70
+          0.1,
+          120
         );
 
 
-    camera.position.set(
-      0,
-      12,
-      11
-    );
-
-
     scene.add(
+
       new THREE
         .HemisphereLight(
-          0xe9f3ff,
-          0x172018,
-          2.4
+
+          0xeaf7ff,
+          0x2e3928,
+          2.2
+
         )
+
     );
 
 
@@ -1664,14 +2213,14 @@ const TOUCH_DEAD_ZONE = .10;
       new THREE
         .DirectionalLight(
           0xffffff,
-          3
+          2.7
         );
 
 
     sun.position.set(
-      -6,
-      12,
-      8
+      -18,
+      30,
+      18
     );
 
 
@@ -1687,6 +2236,22 @@ const TOUCH_DEAD_ZONE = .10;
       );
 
 
+    sun.shadow.camera.left =
+      -38;
+
+
+    sun.shadow.camera.right =
+      38;
+
+
+    sun.shadow.camera.top =
+      30;
+
+
+    sun.shadow.camera.bottom =
+      -30;
+
+
     scene.add(
       sun
     );
@@ -1696,9 +2261,10 @@ const TOUCH_DEAD_ZONE = .10;
       new THREE.Clock();
 
 
-    buildArena();
+    buildMap01();
 
-    buildTank();
+
+    createPlayerShell();
 
 
     resizeObserver =
@@ -1719,23 +2285,82 @@ const TOUCH_DEAD_ZONE = .10;
   }
 
 
-  function buildArena() {
+  /*
+   * =========================================================
+   * TERRAIN MESH
+   * =========================================================
+   */
 
-solidBoxes =
-  [];
-    
+  function createTerrain() {
+
+    const geometry =
+      new THREE
+        .PlaneGeometry(
+
+          MAP_WIDTH,
+          MAP_DEPTH,
+
+          48,
+          36
+
+        );
+
+
+    const position =
+      geometry
+        .attributes
+        .position;
+
+
+    for (
+      let i = 0;
+      i < position.count;
+      i += 1
+    ) {
+
+      const x =
+        position.getX(
+          i
+        );
+
+
+      const localY =
+        position.getY(
+          i
+        );
+
+
+      const worldZ =
+        -localY;
+
+
+      position.setZ(
+
+        i,
+
+        terrainHeight(
+          x,
+          worldZ
+        )
+
+      );
+
+    }
+
+
+    geometry
+      .computeVertexNormals();
+
+
     const ground =
       new THREE.Mesh(
 
-        new THREE
-          .PlaneGeometry(
-            24,
-            24
-          ),
+        geometry,
 
         material(
-          0x526649,
-          .98
+          0x66785a,
+          0.98,
+          0
         )
 
       );
@@ -1754,331 +2379,1088 @@ solidBoxes =
       ground
     );
 
-
-    const wallColor =
-      0x73796f;
+  }
 
 
-    [
-      [0, .7, -11.2, 23, 1.4, .6],
-      [0, .7, 11.2, 23, 1.4, .6],
-      [-11.2, .7, 0, .6, 1.4, 23],
-      [11.2, .7, 0, .6, 1.4, 23]
-    ].forEach(
-      values => {
+  function addRoad(
+    x,
+    z,
+    width,
+    depth
+  ) {
 
-        const wall =
-          box(
-            values[3],
-            values[4],
-            values[5],
-            wallColor
-          );
+    const road =
+      new THREE.Mesh(
+
+        new THREE
+          .PlaneGeometry(
+            width,
+            depth
+          ),
+
+        new THREE
+          .MeshStandardMaterial({
+
+            color:
+              0x5f5c55,
+
+            roughness:
+              1,
+
+            metalness:
+              0,
+
+            polygonOffset:
+              true,
+
+            polygonOffsetFactor:
+              -2,
+
+            polygonOffsetUnits:
+              -2
+
+          })
+
+      );
 
 
-        wall.position.set(
-          values[0],
-          values[1],
-          values[2]
-        );
+    road.rotation.x =
+      -Math.PI /
+      2;
 
 
-        scene.add(
-          wall
-        );
+    road.position.set(
 
-wall.updateMatrixWorld(
-  true
-);
+      x,
 
+      terrainHeight(
+        x,
+        z
+      ) +
+      0.035,
 
-solidBoxes.push(
+      z
 
-  new THREE.Box3()
-    .setFromObject(
-      wall
-    )
-    .expandByScalar(
-      .08
-    )
-
-);
-        
-      }
     );
 
 
-    [
-      [-4, -3],
-      [4, -4],
-      [-3, 4],
-      [4, 3],
-      [0, 0]
-    ].forEach(
-      (
-        [
-          x,
-          z
-        ]
-      ) => {
-
-        const crate =
-          box(
-            1.8,
-            1.5,
-            1.8,
-            0x806844
-          );
+    road.receiveShadow =
+      true;
 
 
-        crate.position.set(
-          x,
-          .75,
-          z
-        );
-
-
-        scene.add(
-          crate
-        );
-
-crate.updateMatrixWorld(
-  true
-);
-
-
-solidBoxes.push(
-
-  new THREE.Box3()
-    .setFromObject(
-      crate
-    )
-    .expandByScalar(
-      .08
-    )
-
-);
-        
-      }
+    scene.add(
+      road
     );
 
   }
 
 
-  function buildTank() {
+  /*
+   * =========================================================
+   * COLLISION RECTS
+   * =========================================================
+   */
 
-    tank =
+  function addSolidRect(
+    x,
+    z,
+    halfX,
+    halfZ
+  ) {
+
+    solidRects.push({
+
+      minX:
+        x -
+        halfX,
+
+      maxX:
+        x +
+        halfX,
+
+      minZ:
+        z -
+        halfZ,
+
+      maxZ:
+        z +
+        halfZ
+
+    });
+
+  }
+
+
+  /*
+   * =========================================================
+   * BUILDINGS
+   * =========================================================
+   */
+
+  function addBuilding(
+    x,
+    z,
+    width,
+    depth,
+    height,
+    color
+  ) {
+
+    const group =
       new THREE.Group();
+
+
+    const baseY =
+      terrainHeight(
+        x,
+        z
+      );
 
 
     const body =
       box(
-        1.7,
-        .48,
-        2.25,
-        0x4d8f68
+        width,
+        height,
+        depth,
+        color
       );
 
 
     body.position.y =
-      .46;
+      height /
+      2;
 
 
-    tank.add(
+    group.add(
       body
     );
 
 
-    [
-      -.9,
-      .9
-    ].forEach(
-      x => {
-
-        const track =
-          box(
-            .32,
-            .32,
-            2.35,
-            0x1b2023
-          );
-
-
-        track.position.set(
-          x,
-          .31,
-          0
-        );
-
-
-        tank.add(
-          track
-        );
-
-      }
-    );
-
-
-    turret =
-      new THREE.Group();
-
-
-    turret.position.y =
-      .82;
-
-
-    tank.add(
-      turret
-    );
-
-
-    const turretBody =
+    const roof =
       new THREE.Mesh(
 
         new THREE
-          .CylinderGeometry(
-            .57,
-            .7,
-            .38,
-            24
+          .ConeGeometry(
+
+            Math.max(
+              width,
+              depth
+            ) *
+            0.72,
+
+            Math.max(
+              0.8,
+              height *
+              0.22
+            ),
+
+            4
+
           ),
 
         material(
-          0xccff00,
-          .62,
-          .12
+          0x584638,
+          0.94,
+          0
         )
 
       );
 
 
-    turretBody.position.y =
-      .12;
+    roof.rotation.y =
+      Math.PI /
+      4;
 
 
-    turretBody.castShadow =
+    roof.position.y =
+      height +
+      0.45;
+
+
+    roof.castShadow =
       true;
 
 
-    turret.add(
-      turretBody
+    roof.receiveShadow =
+      true;
+
+
+    group.add(
+      roof
     );
 
 
-    const barrel =
-      box(
-        .17,
-        .17,
-        1.45,
-        0x262c30
-      );
-
-
-    barrel.position.set(
-      0,
-      .16,
-      -.92
-    );
-
-
-    turret.add(
-      barrel
-    );
-
-    muzzle =
-  new THREE.Object3D();
-
-
-muzzle.position.set(
-  0,
-  .16,
-  -1.72
-);
-
-
-turret.add(
-  muzzle
-);
-
-    commanderPivot =
-      new THREE.Group();
-
-
-    commanderPivot.position.set(
-      0,
-      1.28,
-      .38
-    );
-
-
-    tank.add(
-      commanderPivot
-    );
-
-
-    tank.position.set(
-      0,
-      0,
-      4
+    group.position.set(
+      x,
+      baseY,
+      z
     );
 
 
     scene.add(
-      tank
+      group
+    );
+
+
+    addSolidRect(
+
+      x,
+      z,
+
+      width /
+      2 +
+      0.55,
+
+      depth /
+      2 +
+      0.55
+
     );
 
   }
 
 
-  async function mountCommander() {
+  function addWarehouse(
+    x,
+    z,
+    width,
+    depth,
+    height
+  ) {
 
-    if (
-      !commanderPivot
-    ) {
-      return;
-    }
-
-
-    commanderPivot.clear();
-
-
-    const modelUrl =
-      String(
-        context
-          ?.characterModel3d ||
-        ""
-      ).trim();
-
-
-    const api =
-      window.LAGO_CHARACTER_3D;
-
-
-    if (
-      !modelUrl ||
-      !api ||
-      typeof api.cloneModel !==
-        "function"
-    ) {
-
-      console.warn(
-        "[LAGO TANKS] Commander GLB unavailable"
+    const baseY =
+      terrainHeight(
+        x,
+        z
       );
 
-      return;
+
+    const building =
+      box(
+
+        width,
+        height,
+        depth,
+
+        0x777a72
+
+      );
+
+
+    building.position.set(
+
+      x,
+
+      baseY +
+      height /
+      2,
+
+      z
+
+    );
+
+
+    scene.add(
+      building
+    );
+
+
+    addSolidRect(
+
+      x,
+      z,
+
+      width /
+      2 +
+      0.6,
+
+      depth /
+      2 +
+      0.6
+
+    );
+
+  }
+
+
+  function addWall(
+    x,
+    z,
+    width,
+    depth,
+    rotation = 0
+  ) {
+
+    const wall =
+      box(
+
+        width,
+        1.45,
+        depth,
+
+        0x8b8173
+
+      );
+
+
+    wall.position.set(
+
+      x,
+
+      terrainHeight(
+        x,
+        z
+      ) +
+      0.73,
+
+      z
+
+    );
+
+
+    wall.rotation.y =
+      rotation;
+
+
+    scene.add(
+      wall
+    );
+
+
+    if (
+      Math.abs(
+        rotation
+      ) <
+      0.1
+    ) {
+
+      addSolidRect(
+
+        x,
+        z,
+
+        width /
+        2 +
+        0.35,
+
+        depth /
+        2 +
+        0.35
+
+      );
+
+    } else {
+
+      addSolidRect(
+
+        x,
+        z,
+
+        depth /
+        2 +
+        0.35,
+
+        width /
+        2 +
+        0.35
+
+      );
+
+    }
+
+  }
+
+
+  function addSpawnPad(
+    spawn,
+    color
+  ) {
+
+    const pad =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+
+            2.15,
+            2.15,
+            0.08,
+            32
+
+          ),
+
+        new THREE
+          .MeshStandardMaterial({
+
+            color,
+
+            roughness:
+              0.72,
+
+            metalness:
+              0.05,
+
+            transparent:
+              true,
+
+            opacity:
+              0.82
+
+          })
+
+      );
+
+
+    pad.position.set(
+
+      spawn.x,
+
+      terrainHeight(
+        spawn.x,
+        spawn.z
+      ) +
+      0.04,
+
+      spawn.z
+
+    );
+
+
+    pad.receiveShadow =
+      true;
+
+
+    scene.add(
+      pad
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * MAP 01
+   * =========================================================
+   */
+
+  function buildMap01() {
+
+    solidRects =
+      [];
+
+
+    createTerrain();
+
+
+    /*
+     * Main crossing roads.
+     */
+
+    addRoad(
+      0,
+      0,
+      66,
+      6.0
+    );
+
+
+    addRoad(
+      0,
+      0,
+      6.0,
+      48
+    );
+
+
+    /*
+     * Team bases.
+     */
+
+    for (
+      const spawn
+      of BLUE_SPAWNS
+    ) {
+
+      addSpawnPad(
+        spawn,
+        0x4f88ff
+      );
 
     }
 
 
-    const model =
-      await api.cloneModel(
-        modelUrl
+    for (
+      const spawn
+      of RED_SPAWNS
+    ) {
+
+      addSpawnPad(
+        spawn,
+        0xff5d58
+      );
+
+    }
+
+
+    /*
+     * Blue-side village.
+     */
+
+    addBuilding(
+      -18,
+      -8,
+      5.0,
+      4.2,
+      3.4,
+      0xa28e72
+    );
+
+
+    addBuilding(
+      -17,
+      7,
+      4.6,
+      4.6,
+      3.1,
+      0x9b8266
+    );
+
+
+    addBuilding(
+      -8,
+      -13,
+      4.4,
+      5.2,
+      3.2,
+      0x8f7c66
+    );
+
+
+    addBuilding(
+      -7,
+      11,
+      4.6,
+      4.2,
+      3.0,
+      0x9f8a72
+    );
+
+
+    /*
+     * Red-side village.
+     */
+
+    addBuilding(
+      18,
+      -8,
+      5.0,
+      4.2,
+      3.4,
+      0xa28e72
+    );
+
+
+    addBuilding(
+      17,
+      7,
+      4.6,
+      4.6,
+      3.1,
+      0x9b8266
+    );
+
+
+    addBuilding(
+      8,
+      -13,
+      4.4,
+      5.2,
+      3.2,
+      0x8f7c66
+    );
+
+
+    addBuilding(
+      7,
+      11,
+      4.6,
+      4.2,
+      3.0,
+      0x9f8a72
+    );
+
+
+    /*
+     * Central warehouses.
+     */
+
+    addWarehouse(
+      -1,
+      -15,
+      8.5,
+      4.8,
+      3.2
+    );
+
+
+    addWarehouse(
+      1,
+      15,
+      8.5,
+      4.8,
+      3.2
+    );
+
+
+    /*
+     * Defensive walls.
+     */
+
+    addWall(
+      -12,
+      0,
+      6.0,
+      0.65,
+      0
+    );
+
+
+    addWall(
+      12,
+      0,
+      6.0,
+      0.65,
+      0
+    );
+
+
+    addWall(
+      0,
+      -8,
+      5.5,
+      0.65,
+      Math.PI /
+      2
+    );
+
+
+    addWall(
+      0,
+      8,
+      5.5,
+      0.65,
+      Math.PI /
+      2
+    );
+
+
+    /*
+     * Crates / cover.
+     */
+
+    for (
+      const [
+        x,
+        z
+      ]
+
+      of [
+
+        [-23, -17],
+        [-23, 17],
+
+        [23, -17],
+        [23, 17],
+
+        [-3, -4],
+        [3, 4],
+
+        [-4, 4],
+        [4, -4]
+
+      ]
+    ) {
+
+      const crate =
+        box(
+          1.9,
+          1.5,
+          1.9,
+          0x7d684a
+        );
+
+
+      crate.position.set(
+
+        x,
+
+        terrainHeight(
+          x,
+          z
+        ) +
+        0.75,
+
+        z
+
+      );
+
+
+      scene.add(
+        crate
+      );
+
+
+      addSolidRect(
+        x,
+        z,
+        1.25,
+        1.25
+      );
+
+    }
+
+
+    /*
+     * Outer map walls.
+     */
+
+    const boundaryMaterial =
+      material(
+        0x6d746d,
+        0.95,
+        0
+      );
+
+
+    const boundaries = [
+
+      [
+        0,
+        0.75,
+        -MAP_DEPTH / 2,
+        MAP_WIDTH,
+        1.5,
+        0.65
+      ],
+
+      [
+        0,
+        0.75,
+        MAP_DEPTH / 2,
+        MAP_WIDTH,
+        1.5,
+        0.65
+      ],
+
+      [
+        -MAP_WIDTH / 2,
+        0.75,
+        0,
+        0.65,
+        1.5,
+        MAP_DEPTH
+      ],
+
+      [
+        MAP_WIDTH / 2,
+        0.75,
+        0,
+        0.65,
+        1.5,
+        MAP_DEPTH
+      ]
+
+    ];
+
+
+    for (
+      const values
+      of boundaries
+    ) {
+
+      const wall =
+        new THREE.Mesh(
+
+          new THREE
+            .BoxGeometry(
+
+              values[3],
+              values[4],
+              values[5]
+
+            ),
+
+          boundaryMaterial
+
+        );
+
+
+      wall.position.set(
+
+        values[0],
+        values[1],
+        values[2]
+
+      );
+
+
+      wall.castShadow =
+        true;
+
+
+      wall.receiveShadow =
+        true;
+
+
+      scene.add(
+        wall
+      );
+
+    }
+
+  }
+
+
+  /*
+   * =========================================================
+   * PLAYER
+   * =========================================================
+   */
+
+  function createPlayerShell() {
+
+    player =
+      new THREE.Group();
+
+
+    player.rotation.order =
+      "YXZ";
+
+
+    playerVisual =
+      new THREE.Group();
+
+
+    player.add(
+      playerVisual
+    );
+
+
+    /*
+     * Because both Meshy tank files are
+     * one single mesh, their real turret
+     * cannot rotate separately.
+     *
+     * This marker represents aim direction.
+     */
+
+    aimMarker =
+      new THREE.Group();
+
+
+    const lineGeometry =
+
+      new THREE
+        .BufferGeometry()
+        .setFromPoints([
+
+          new THREE.Vector3(
+            0,
+            0.28,
+            0
+          ),
+
+          new THREE.Vector3(
+            0,
+            0.28,
+            -3.4
+          )
+
+        ]);
+
+
+    const line =
+      new THREE.Line(
+
+        lineGeometry,
+
+        new THREE
+          .LineBasicMaterial({
+
+            color:
+              0xccff00,
+
+            transparent:
+              true,
+
+            opacity:
+              0.82
+
+          })
+
+      );
+
+
+    aimMarker.add(
+      line
+    );
+
+
+    player.add(
+      aimMarker
+    );
+
+
+    scene.add(
+      player
+    );
+
+
+    resetPlayerToSpawn();
+
+  }
+
+
+  function resetPlayerToSpawn() {
+
+    const spawn =
+      BLUE_SPAWNS[
+        1
+      ];
+
+
+    player.position.set(
+
+      spawn.x,
+
+      terrainHeight(
+        spawn.x,
+        spawn.z
+      ),
+
+      spawn.z
+
+    );
+
+
+    player.rotation.set(
+      0,
+      spawn.yaw,
+      0
+    );
+
+
+    aimMarker.rotation.y =
+      0;
+
+
+    hasAim =
+      false;
+
+  }
+
+
+  /*
+   * =========================================================
+   * GLB TANK
+   * =========================================================
+   */
+
+  function normalizeTankModel(
+    model
+  ) {
+
+    model.position.set(
+      0,
+      0,
+      0
+    );
+
+
+    model.rotation.set(
+      0,
+      0,
+      0
+    );
+
+
+    model.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    model.updateMatrixWorld(
+      true
+    );
+
+
+    let box3 =
+      new THREE
+        .Box3()
+        .setFromObject(
+          model
+        );
+
+
+    let size =
+      box3.getSize(
+        new THREE.Vector3()
+      );
+
+
+    /*
+     * Automatically rotate models
+     * exported sideways.
+     */
+
+    if (
+      size.x >
+      size.z *
+      1.15
+    ) {
+
+      model.rotation.y =
+        Math.PI /
+        2;
+
+
+      model.updateMatrixWorld(
+        true
+      );
+
+
+      box3 =
+        new THREE
+          .Box3()
+          .setFromObject(
+            model
+          );
+
+
+      size =
+        box3.getSize(
+          new THREE.Vector3()
+        );
+
+    }
+
+
+    const horizontal =
+      Math.max(
+
+        size.x,
+        size.z,
+        0.001
+
       );
 
 
     model.scale
-      .multiplyScalar(
-        .30
+      .setScalar(
+        3.25 /
+        horizontal
       );
 
 
@@ -2087,15 +3469,16 @@ turret.add(
     );
 
 
-    const bounds =
-      new THREE.Box3()
+    box3 =
+      new THREE
+        .Box3()
         .setFromObject(
           model
         );
 
 
     const center =
-      bounds.getCenter(
+      box3.getCenter(
         new THREE.Vector3()
       );
 
@@ -2109,14 +3492,18 @@ turret.add(
 
 
     model.position.y -=
-      bounds.min.y;
+      box3.min.y;
 
 
     model.traverse(
       child => {
 
-        if (!child.isMesh) {
+        if (
+          !child.isMesh
+        ) {
+
           return;
+
         }
 
 
@@ -2127,16 +3514,194 @@ turret.add(
         child.receiveShadow =
           true;
 
+
+        child.frustumCulled =
+          false;
+
+
+        const materials =
+
+          Array.isArray(
+            child.material
+          )
+
+            ? child.material
+            : [
+                child.material
+              ];
+
+
+        for (
+          const item
+          of materials
+        ) {
+
+          if (!item) {
+
+            continue;
+
+          }
+
+
+          if (
+            "roughness" in
+            item
+          ) {
+
+            item.roughness =
+
+              Math.max(
+
+                0.42,
+
+                Number(
+                  item.roughness ??
+                  0.7
+                )
+
+              );
+
+          }
+
+
+          item.needsUpdate =
+            true;
+
+        }
+
       }
+
     );
 
 
-    commanderPivot.add(
+    model.updateMatrixWorld(
+      true
+    );
+
+  }
+
+
+  function loadTankTemplate(
+    url
+  ) {
+
+    if (
+      tankTemplatePromises
+        .has(
+          url
+        )
+    ) {
+
+      return (
+        tankTemplatePromises
+          .get(
+            url
+          )
+      );
+
+    }
+
+
+    const promise =
+
+      new Promise(
+
+        (
+          resolve,
+          reject
+        ) => {
+
+          loader.load(
+
+            url,
+
+            gltf => {
+
+              const model =
+                gltf
+                  ?.scene;
+
+
+              if (!model) {
+
+                reject(
+
+                  new Error(
+                    `Tank GLB has no scene: ${url}`
+                  )
+
+                );
+
+
+                return;
+
+              }
+
+
+              normalizeTankModel(
+                model
+              );
+
+
+              resolve(
+                model
+              );
+
+            },
+
+            undefined,
+
+            reject
+
+          );
+
+        }
+
+      );
+
+
+    tankTemplatePromises
+      .set(
+        url,
+        promise
+      );
+
+
+    return promise;
+
+  }
+
+
+  async function mountPlayerTank() {
+
+    playerVisual.clear();
+
+
+    const template =
+
+      await loadTankTemplate(
+        TEAM_BLUE_MODEL
+      );
+
+
+    const model =
+      template.clone(
+        true
+      );
+
+
+    playerVisual.add(
       model
     );
 
   }
 
+
+  /*
+   * =========================================================
+   * RESIZE
+   * =========================================================
+   */
 
   function resize() {
 
@@ -2144,7 +3709,9 @@ turret.add(
       !renderer ||
       !camera
     ) {
+
       return;
+
     }
 
 
@@ -2155,7 +3722,9 @@ turret.add(
 
 
     if (!stage) {
+
       return;
+
     }
 
 
@@ -2173,27 +3742,33 @@ turret.add(
       );
 
 
-    renderer.setPixelRatio(
+    renderer
+      .setPixelRatio(
 
-      Math.min(
+        Math.min(
 
-        window.devicePixelRatio ||
-        1,
+          window.devicePixelRatio ||
+          1,
 
-        width < 760
-          ? 1.15
-          : 1.4
+          width <
+          760
 
-      )
+            ? 1.05
+            : 1.25
 
-    );
+        )
+
+      );
 
 
-    renderer.setSize(
-      width,
-      height,
-      false
-    );
+    renderer
+      .setSize(
+
+        width,
+        height,
+        false
+
+      );
 
 
     camera.aspect =
@@ -2202,8 +3777,11 @@ turret.add(
 
 
     camera.fov =
-      width < 760
-        ? 56
+
+      width <
+      760
+
+        ? 58
         : 48;
 
 
@@ -2213,415 +3791,634 @@ turret.add(
   }
 
 
-  function updateTank(
-    dt
+  /*
+   * =========================================================
+   * COLLISION
+   * =========================================================
+   */
+
+  function collidesAt(
+    x,
+    z
   ) {
 
-    if (!tank) {
-      return;
+    if (
+      Math.abs(
+        x
+      ) >
+      MAP_HALF_X ||
+
+      Math.abs(
+        z
+      ) >
+      MAP_HALF_Z
+    ) {
+
+      return true;
+
     }
 
 
-   const digitalForward =
+    return solidRects
+      .some(
+        rect =>
 
-  (
-    keys.has(
-      "KeyW"
-    ) ||
-    keys.has(
-      "ArrowUp"
-    ) ||
-    mobile.forward
-  )
+          x +
+          TANK_RADIUS >
+          rect.minX &&
 
-    ? 1
+          x -
+          TANK_RADIUS <
+          rect.maxX &&
 
-    : (
-        keys.has(
-          "KeyS"
-        ) ||
-        keys.has(
-          "ArrowDown"
-        ) ||
-        mobile.back
-      )
+          z +
+          TANK_RADIUS >
+          rect.minZ &&
 
-      ? -.7
-      : 0;
-
-
-const digitalTurn =
-
-  (
-    keys.has(
-      "KeyA"
-    ) ||
-    keys.has(
-      "ArrowLeft"
-    ) ||
-    mobile.left
-  )
-
-    ? 1
-
-    : (
-        keys.has(
-          "KeyD"
-        ) ||
-        keys.has(
-          "ArrowRight"
-        ) ||
-        mobile.right
-      )
-
-      ? -1
-      : 0;
-
-
-const forward =
-
-  Math.abs(
-    touchForward
-  ) >
-  .001
-
-    ? touchForward
-    : digitalForward;
-
-
-const turn =
-
-  Math.abs(
-    touchTurn
-  ) >
-  .001
-
-    ? touchTurn
-    : digitalTurn;
-
-    const direction =
-      new THREE.Vector3(
-        0,
-        0,
-        -1
-      )
-        .applyQuaternion(
-          tank.quaternion
-        );
-
-
-    tank.position
-      .addScaledVector(
-
-        direction,
-
-        forward *
-        MOVE_SPEED *
-        dt
+          z -
+          TANK_RADIUS <
+          rect.maxZ
 
       );
 
-
-    tank.position.x =
-      THREE.MathUtils.clamp(
-        tank.position.x,
-        -ARENA_LIMIT,
-        ARENA_LIMIT
-      );
-
-
-    tank.position.z =
-      THREE.MathUtils.clamp(
-        tank.position.z,
-        -ARENA_LIMIT,
-        ARENA_LIMIT
-      );
-
-  }
-
-  function aimTurret() {
-
-  if (
-    !tank ||
-    !turret ||
-    !camera
-  ) {
-    return;
-  }
-
-
-  raycaster.setFromCamera(
-    pointerNdc,
-    camera
-  );
-
-
-  const point =
-    new THREE.Vector3();
-
-
-  if (
-    !raycaster.ray
-      .intersectPlane(
-        groundPlane,
-        point
-      )
-  ) {
-    return;
   }
 
 
   /*
-   * Convert target from world
-   * space into tank-local space.
+   * =========================================================
+   * PLAYER MOVEMENT
+   * =========================================================
    */
-  const local =
-    tank.worldToLocal(
-      point.clone()
+
+  function updatePlayer(
+    dt
+  ) {
+
+    if (!player) {
+
+      return;
+
+    }
+
+
+    const digitalForward =
+
+      (
+        keys.has(
+          "KeyW"
+        ) ||
+
+        keys.has(
+          "ArrowUp"
+        ) ||
+
+        mobile.forward
+      )
+
+        ? 1
+
+        : (
+            keys.has(
+              "KeyS"
+            ) ||
+
+            keys.has(
+              "ArrowDown"
+            ) ||
+
+            mobile.back
+          )
+
+          ? -1
+          : 0;
+
+
+    const digitalTurn =
+
+      (
+        keys.has(
+          "KeyA"
+        ) ||
+
+        keys.has(
+          "ArrowLeft"
+        ) ||
+
+        mobile.left
+      )
+
+        ? 1
+
+        : (
+            keys.has(
+              "KeyD"
+            ) ||
+
+            keys.has(
+              "ArrowRight"
+            ) ||
+
+            mobile.right
+          )
+
+          ? -1
+          : 0;
+
+
+    const forward =
+
+      Math.abs(
+        touchForward
+      ) >
+      0.001
+
+        ? touchForward
+        : digitalForward;
+
+
+    const turn =
+
+      Math.abs(
+        touchTurn
+      ) >
+      0.001
+
+        ? touchTurn
+        : digitalTurn;
+
+
+    player.rotation.y +=
+
+      turn *
+      TURN_SPEED *
+      dt;
+
+
+    const direction =
+      new THREE.Vector3(
+
+        0,
+        0,
+        -1
+
+      )
+        .applyAxisAngle(
+
+          new THREE.Vector3(
+            0,
+            1,
+            0
+          ),
+
+          player.rotation.y
+
+        );
+
+
+    const speed =
+
+      forward >=
+      0
+
+        ? MOVE_SPEED
+        : REVERSE_SPEED;
+
+
+    const nextX =
+
+      player.position.x +
+
+      direction.x *
+      forward *
+      speed *
+      dt;
+
+
+    const nextZ =
+
+      player.position.z +
+
+      direction.z *
+      forward *
+      speed *
+      dt;
+
+
+    if (
+      !collidesAt(
+        nextX,
+        player.position.z
+      )
+    ) {
+
+      player.position.x =
+        nextX;
+
+    }
+
+
+    if (
+      !collidesAt(
+        player.position.x,
+        nextZ
+      )
+    ) {
+
+      player.position.z =
+        nextZ;
+
+    }
+
+
+    const groundY =
+      terrainHeight(
+
+        player.position.x,
+        player.position.z
+
+      );
+
+
+    const slope =
+      terrainSlope(
+
+        player.position.x,
+        player.position.z
+
+      );
+
+
+    player.position.y =
+      groundY +
+      0.03;
+
+
+    player.rotation.x =
+
+      THREE.MathUtils
+        .clamp(
+
+          slope.z *
+          0.65,
+
+          -0.24,
+          0.24
+
+        );
+
+
+    player.rotation.z =
+
+      THREE.MathUtils
+        .clamp(
+
+          -slope.x *
+          0.65,
+
+          -0.24,
+          0.24
+
+        );
+
+  }
+
+
+  /*
+   * =========================================================
+   * AIM
+   * =========================================================
+   */
+
+  function updateAim() {
+
+    if (
+      !player ||
+      !camera
+    ) {
+
+      return;
+
+    }
+
+
+    raycaster
+      .setFromCamera(
+
+        pointerNdc,
+        camera
+
+      );
+
+
+    const point =
+      new THREE.Vector3();
+
+
+    if (
+      !raycaster
+        .ray
+        .intersectPlane(
+
+          groundPlane,
+          point
+
+        )
+    ) {
+
+      return;
+
+    }
+
+
+    point.y =
+      terrainHeight(
+        point.x,
+        point.z
+      );
+
+
+    aimWorld.copy(
+      point
     );
 
 
-  turret.rotation.y =
-    Math.atan2(
-      -local.x,
-      -local.z
-    );
-
-}
+    hasAim =
+      true;
 
 
-function fire() {
+    const dx =
 
-  if (
-    phase !==
+      point.x -
+      player.position.x;
+
+
+    const dz =
+
+      point.z -
+      player.position.z;
+
+
+    const worldYaw =
+
+      Math.atan2(
+        -dx,
+        -dz
+      );
+
+
+    aimMarker.rotation.y =
+
+      worldYaw -
+      player.rotation.y;
+
+  }
+
+
+  /*
+   * =========================================================
+   * FIRE
+   * =========================================================
+   */
+
+  function fire() {
+
+    if (
+      phase !==
       "running" ||
-    !muzzle ||
-    fireCooldown >
+
+      !player ||
+
+      fireCooldown >
       0
-  ) {
-    return;
+    ) {
+
+      return;
+
+    }
+
+
+    fireCooldown =
+      FIRE_COOLDOWN;
+
+
+    const origin =
+      new THREE.Vector3(
+
+        player.position.x,
+
+        player.position.y +
+        0.78,
+
+        player.position.z
+
+      );
+
+
+    let direction;
+
+
+    if (hasAim) {
+
+      direction =
+
+        aimWorld
+          .clone()
+          .sub(
+            origin
+          )
+          .normalize();
+
+    } else {
+
+      direction =
+
+        new THREE.Vector3(
+          0,
+          0,
+          -1
+        )
+          .applyAxisAngle(
+
+            new THREE.Vector3(
+              0,
+              1,
+              0
+            ),
+
+            player.rotation.y
+
+          );
+
+    }
+
+
+    const projectile =
+      new THREE.Mesh(
+
+        new THREE
+          .SphereGeometry(
+            0.14,
+            10,
+            7
+          ),
+
+        new THREE
+          .MeshBasicMaterial({
+
+            color:
+              0xccff00
+
+          })
+
+      );
+
+
+    projectile.position
+      .copy(
+        origin
+      );
+
+
+    scene.add(
+      projectile
+    );
+
+
+    bullets.push({
+
+      mesh:
+        projectile,
+
+      direction,
+
+      age:
+        0
+
+    });
+
   }
 
 
-  fireCooldown =
-    FIRE_COOLDOWN;
-
-
-  tank.updateMatrixWorld(
-    true
-  );
-
-
-  const origin =
-    new THREE.Vector3();
-
-
-  muzzle.getWorldPosition(
-    origin
-  );
-
-
-  const rotation =
-    new THREE.Quaternion();
-
-
-  turret.getWorldQuaternion(
-    rotation
-  );
-
-
-  const direction =
-    new THREE.Vector3(
-      0,
-      0,
-      -1
-    )
-      .applyQuaternion(
-        rotation
-      )
-      .normalize();
-
-
-  const projectile =
-    new THREE.Mesh(
-
-      new THREE
-        .SphereGeometry(
-          .13,
-          12,
-          8
-        ),
-
-      new THREE
-        .MeshBasicMaterial({
-
-          color:
-            0xccff00
-
-        })
-
-    );
-
-
-  projectile.position.copy(
-    origin
-  );
-
-
-  scene.add(
-    projectile
-  );
-
-
-  bullets.push({
-
-    mesh:
-      projectile,
-
-    direction,
-
-    age:
-      0
-
-  });
-
-}
-
-
-function createImpact(
-  position
-) {
-
-  const impact =
-    new THREE.Mesh(
-
-      new THREE
-        .SphereGeometry(
-          .18,
-          12,
-          8
-        ),
-
-      new THREE
-        .MeshBasicMaterial({
-
-          color:
-            0xffc54d,
-
-          transparent:
-            true,
-
-          opacity:
-            1
-
-        })
-
-    );
-
-
-  impact.position.copy(
+  function bulletHitsSolid(
     position
-  );
-
-
-  scene.add(
-    impact
-  );
-
-
-  impacts.push({
-
-    mesh:
-      impact,
-
-    age:
-      0
-
-  });
-
-}
-
-
-function bulletHitsSolid(
-  position
-) {
-
-  if (
-    Math.abs(
-      position.x
-    ) >
-      11 ||
-    Math.abs(
-      position.z
-    ) >
-      11
   ) {
 
-    return true;
+    if (
+      Math.abs(
+        position.x
+      ) >
+      MAP_WIDTH /
+      2 ||
+
+      Math.abs(
+        position.z
+      ) >
+      MAP_DEPTH /
+      2
+    ) {
+
+      return true;
+
+    }
+
+
+    if (
+      position.y <=
+
+      terrainHeight(
+        position.x,
+        position.z
+      ) +
+
+      0.12
+    ) {
+
+      return true;
+
+    }
+
+
+    return solidRects
+      .some(
+        rect =>
+
+          position.x >=
+          rect.minX &&
+
+          position.x <=
+          rect.maxX &&
+
+          position.z >=
+          rect.minZ &&
+
+          position.z <=
+          rect.maxZ &&
+
+          position.y <=
+          5.5
+
+      );
 
   }
 
 
-  return solidBoxes.some(
-    bounds =>
-      bounds.containsPoint(
+  function createImpact(
+    position
+  ) {
+
+    const impact =
+      new THREE.Mesh(
+
+        new THREE
+          .SphereGeometry(
+            0.18,
+            10,
+            7
+          ),
+
+        new THREE
+          .MeshBasicMaterial({
+
+            color:
+              0xffc54d,
+
+            transparent:
+              true,
+
+            opacity:
+              1
+
+          })
+
+      );
+
+
+    impact.position
+      .copy(
         position
-      )
-  );
-
-}
+      );
 
 
-function removeBullet(
-  index
-) {
-
-  const bullet =
-    bullets[
-      index
-    ];
+    scene.add(
+      impact
+    );
 
 
-  if (!bullet) {
-    return;
+    impacts.push({
+
+      mesh:
+        impact,
+
+      age:
+        0
+
+    });
+
   }
 
 
-  scene.remove(
-    bullet.mesh
-  );
-
-
-  bullet.mesh.geometry
-    ?.dispose
-    ?.();
-
-
-  bullet.mesh.material
-    ?.dispose
-    ?.();
-
-
-  bullets.splice(
-    index,
-    1
-  );
-
-}
-
-
-function updateBullets(
-  dt
-) {
-
-  for (
-    let index =
-      bullets.length -
-      1;
-
-    index >= 0;
-
-    index--
+  function removeBullet(
+    index
   ) {
 
     const bullet =
@@ -2630,197 +4427,280 @@ function updateBullets(
       ];
 
 
-    bullet.age +=
-      dt;
+    if (!bullet) {
 
-
-    bullet.mesh.position
-      .addScaledVector(
-
-        bullet.direction,
-
-        BULLET_SPEED *
-        dt
-
-      );
-
-
-    if (
-      bulletHitsSolid(
-        bullet.mesh.position
-      )
-    ) {
-
-      createImpact(
-        bullet.mesh.position
-      );
-
-
-      removeBullet(
-        index
-      );
-
-
-      continue;
+      return;
 
     }
 
 
-    if (
-      bullet.age >=
-      BULLET_LIFE
-    ) {
-
-      removeBullet(
-        index
-      );
-
-    }
-
-  }
-
-}
+    scene.remove(
+      bullet.mesh
+    );
 
 
-function updateImpacts(
-  dt
-) {
-
-  for (
-    let index =
-      impacts.length -
-      1;
-
-    index >= 0;
-
-    index--
-  ) {
-
-    const impact =
-      impacts[
-        index
-      ];
+    bullet.mesh
+      .geometry
+      ?.dispose
+      ?.();
 
 
-    impact.age +=
-      dt;
+    bullet.mesh
+      .material
+      ?.dispose
+      ?.();
 
 
-    const progress =
-      THREE.MathUtils.clamp(
-        impact.age /
-        .24,
-        0,
-        1
-      );
-
-
-    impact.mesh.scale
-      .setScalar(
-        1 +
-        progress *
-        2.8
-      );
-
-
-    impact.mesh.material
-      .opacity =
-      1 -
-      progress;
-
-
-    if (
-      progress >=
+    bullets.splice(
+      index,
       1
-    ) {
-
-      scene.remove(
-        impact.mesh
-      );
-
-
-      impact.mesh.geometry
-        ?.dispose
-        ?.();
-
-
-      impact.mesh.material
-        ?.dispose
-        ?.();
-
-
-      impacts.splice(
-        index,
-        1
-      );
-
-    }
-
-  }
-
-}
-
-
-function clearCombatFX() {
-
-  for (
-    let index =
-      bullets.length -
-      1;
-
-    index >= 0;
-
-    index--
-  ) {
-
-    removeBullet(
-      index
     );
 
   }
 
 
-  impacts.forEach(
-    impact => {
+  function updateBullets(
+    dt
+  ) {
+
+    for (
+
+      let index =
+        bullets.length -
+        1;
+
+      index >= 0;
+
+      index -= 1
+
+    ) {
+
+      const bullet =
+        bullets[
+          index
+        ];
+
+
+      bullet.age +=
+        dt;
+
+
+      bullet.mesh
+        .position
+        .addScaledVector(
+
+          bullet.direction,
+
+          BULLET_SPEED *
+          dt
+
+        );
+
+
+      if (
+        bulletHitsSolid(
+          bullet.mesh.position
+        )
+      ) {
+
+        createImpact(
+          bullet.mesh.position
+        );
+
+
+        removeBullet(
+          index
+        );
+
+
+        continue;
+
+      }
+
+
+      if (
+        bullet.age >=
+        BULLET_LIFE
+      ) {
+
+        removeBullet(
+          index
+        );
+
+      }
+
+    }
+
+  }
+
+
+  function updateImpacts(
+    dt
+  ) {
+
+    for (
+
+      let index =
+        impacts.length -
+        1;
+
+      index >= 0;
+
+      index -= 1
+
+    ) {
+
+      const impact =
+        impacts[
+          index
+        ];
+
+
+      impact.age +=
+        dt;
+
+
+      const progress =
+
+        THREE.MathUtils
+          .clamp(
+
+            impact.age /
+            0.24,
+
+            0,
+            1
+
+          );
+
+
+      impact.mesh.scale
+        .setScalar(
+
+          1 +
+          progress *
+          2.8
+
+        );
+
+
+      impact.mesh
+        .material
+        .opacity =
+
+        1 -
+        progress;
+
+
+      if (
+        progress >=
+        1
+      ) {
+
+        scene.remove(
+          impact.mesh
+        );
+
+
+        impact.mesh
+          .geometry
+          ?.dispose
+          ?.();
+
+
+        impact.mesh
+          .material
+          ?.dispose
+          ?.();
+
+
+        impacts.splice(
+          index,
+          1
+        );
+
+      }
+
+    }
+
+  }
+
+
+  function clearCombatFX() {
+
+    for (
+
+      let index =
+        bullets.length -
+        1;
+
+      index >= 0;
+
+      index -= 1
+
+    ) {
+
+      removeBullet(
+        index
+      );
+
+    }
+
+
+    for (
+      const impact
+      of impacts
+    ) {
 
       scene.remove(
         impact.mesh
       );
 
 
-      impact.mesh.geometry
+      impact.mesh
+        .geometry
         ?.dispose
         ?.();
 
 
-      impact.mesh.material
+      impact.mesh
+        .material
         ?.dispose
         ?.();
 
     }
-  );
 
 
-  impacts =
-    [];
+    impacts =
+      [];
 
 
-  fireCooldown =
-    0;
+    fireCooldown =
+      0;
 
-}
+  }
+
+
+  /*
+   * =========================================================
+   * CAMERA
+   * =========================================================
+   */
 
   function updateCamera() {
 
     if (
-      !tank ||
+      !player ||
       !camera
     ) {
+
       return;
+
     }
 
 
     const compact =
+
       window.innerWidth <
       760;
 
@@ -2828,36 +4708,53 @@ function clearCombatFX() {
     const desired =
       new THREE.Vector3(
 
-        tank.position.x,
+        player.position.x,
 
-        compact
-          ? 15
-          : 12,
+        player.position.y +
 
-        tank.position.z +
         (
           compact
-            ? 12
-            : 10
+            ? 17.5
+            : 15.5
+        ),
+
+        player.position.z +
+
+        (
+          compact
+            ? 14.0
+            : 12.5
         )
 
       );
 
 
-    camera.position.lerp(
-      desired,
-      .08
-    );
+    camera.position
+      .lerp(
+        desired,
+        0.075
+      );
 
 
     camera.lookAt(
-      tank.position.x,
-      0,
-      tank.position.z
+
+      player.position.x,
+
+      player.position.y +
+      0.2,
+
+      player.position.z
+
     );
 
   }
 
+
+  /*
+   * =========================================================
+   * GAME LOOP
+   * =========================================================
+   */
 
   function loop() {
 
@@ -2865,53 +4762,64 @@ function clearCombatFX() {
       phase !==
       "running"
     ) {
+
       return;
+
     }
 
 
     const dt =
+
       Math.min(
-        .04,
+
+        0.04,
+
         clock.getDelta()
+
       );
 
 
-   fireCooldown =
-  Math.max(
-    0,
-    fireCooldown -
-    dt
-  );
+    fireCooldown =
+
+      Math.max(
+
+        0,
+
+        fireCooldown -
+        dt
+
+      );
 
 
-updateTank(
-  dt
-);
+    updatePlayer(
+      dt
+    );
 
 
-aimTurret();
+    updateAim();
 
 
-updateBullets(
-  dt
-);
+    updateBullets(
+      dt
+    );
 
 
-updateImpacts(
-  dt
-);
+    updateImpacts(
+      dt
+    );
 
 
-updateCamera();
+    updateCamera();
 
 
-renderer.render(
-  scene,
-  camera
-);
+    renderer.render(
+      scene,
+      camera
+    );
 
 
     animationFrame =
+
       requestAnimationFrame(
         loop
       );
@@ -2919,13 +4827,24 @@ renderer.render(
   }
 
 
+  /*
+   * =========================================================
+   * START
+   * =========================================================
+   */
+
   async function startGame() {
 
     if (
       phase ===
-      "running"
+      "running" ||
+
+      phase ===
+      "loading"
     ) {
+
       return;
+
     }
 
 
@@ -2933,17 +4852,22 @@ renderer.render(
       "loading";
 
 
+    clearCombatFX();
+
+
+    resetPlayerToSpawn();
+
+
     el(
       "ltPanelCopy"
     ).textContent =
-      "Loading commander GLB…";
+
+      "Loading Team Blue tank GLB…";
 
 
     try {
 
-      clearCombatFX();
-
-      await mountCommander();
+      await mountPlayerTank();
 
 
       el(
@@ -2955,11 +4879,13 @@ renderer.render(
       el(
         "ltStatus"
       ).textContent =
-        window.innerWidth < 760
 
-          ? "D-PAD DRIVE · TOUCH ARENA TO AIM · FIRE"
+        window.innerWidth <
+        760
 
-          : "WASD · MOUSE AIM · CLICK / SPACE FIRE";
+          ? "LEFT TOUCH DRIVE · RIGHT TOUCH AIM · FIRE"
+
+          : "WASD DRIVE · MOUSE AIM · CLICK / SPACE FIRE";
 
 
       phase =
@@ -2970,6 +4896,7 @@ renderer.render(
 
 
       animationFrame =
+
         requestAnimationFrame(
           loop
         );
@@ -2987,27 +4914,23 @@ renderer.render(
       phase =
         "idle";
 
-drivePointerId =
-  null;
 
-aimPointerId =
-  null;
-
-touchForward =
-  0;
-
-touchTurn =
-  0;
-      
       el(
         "ltPanelCopy"
       ).textContent =
-        "Tank could not start. Retry.";
+
+        "Tank GLB could not load. Check assets/model/tanks/team-blue.glb.";
 
     }
 
   }
 
+
+  /*
+   * =========================================================
+   * OPEN / CLOSE
+   * =========================================================
+   */
 
   function show(
     detail = {}
@@ -3015,25 +4938,32 @@ touchTurn =
 
     createUI();
 
+
     createRenderer();
 
 
     context =
+
       detail.context ||
+
       runtime()
         ?.getContext
         ?.() ||
+
       null;
 
 
-    overlay.classList.add(
-      "active"
-    );
+    overlay
+      .classList
+      .add(
+        "active"
+      );
 
 
     document.body
       .style
       .overflow =
+
       "hidden";
 
 
@@ -3050,7 +4980,8 @@ touchTurn =
     el(
       "ltPanelCopy"
     ).textContent =
-      "T1: drive the tank around the 3D arena. Your selected GLB character is mounted on the tank as the commander.";
+
+      "Map 01 is sized for 8 players: 4 Blue vs 4 Red. This checkpoint tests the new GLB tank and battlefield; networking comes after the map is stable.";
 
 
     resize();
@@ -3085,19 +5016,42 @@ touchTurn =
       "idle";
 
 
+    drivePointerId =
+      null;
+
+
+    aimPointerId =
+      null;
+
+
+    touchForward =
+      0;
+
+
+    touchTurn =
+      0;
+
+
+    hasAim =
+      false;
+
+
     keys.clear();
 
 
     Object.keys(
       mobile
-    ).forEach(
-      key => {
+    )
+      .forEach(
+        key => {
 
-        mobile[key] =
-          false;
+          mobile[
+            key
+          ] =
+            false;
 
-      }
-    );
+        }
+      );
 
 
     overlay
@@ -3110,10 +5064,17 @@ touchTurn =
     document.body
       .style
       .overflow =
+
       "";
 
   }
 
+
+  /*
+   * =========================================================
+   * GAME EVENT
+   * =========================================================
+   */
 
   document.addEventListener(
 
@@ -3139,6 +5100,12 @@ touchTurn =
   );
 
 
+  /*
+   * =========================================================
+   * PUBLIC API
+   * =========================================================
+   */
+
   window.LAGO_TANKS =
     Object.freeze({
 
@@ -3146,7 +5113,63 @@ touchTurn =
         VERSION,
 
       show,
-      hide
+
+      hide,
+
+
+      /*
+       * Multiplayer server will use
+       * exactly this map layout later.
+       */
+
+      getMultiplayerLayout() {
+
+        return {
+
+          mapId:
+            "village-01",
+
+          maxPlayers:
+            8,
+
+
+          teams: {
+
+            blue:
+
+              BLUE_SPAWNS
+                .map(
+                  item => ({
+                    ...item
+                  })
+                ),
+
+
+            red:
+
+              RED_SPAWNS
+                .map(
+                  item => ({
+                    ...item
+                  })
+                )
+
+          },
+
+
+          tankModels: {
+
+            blue:
+              TEAM_BLUE_MODEL,
+
+            red:
+              TEAM_RED_MODEL
+
+          }
+
+        };
+
+      }
 
     });
 
