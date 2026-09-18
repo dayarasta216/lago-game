@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 4;
+  const VERSION = 5;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
