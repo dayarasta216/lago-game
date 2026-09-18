@@ -31,15 +31,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-      - name: Verify source files
-        shell: bash
-        run: |
-          set -euo pipefail
 
           FILES=(
             "assets/model/tanks/team-blue.glb"
             "assets/model/tanks/team-red.glb"
-
             "assets/model/roster/lago.glb"
             "assets/model/roster/narek.glb"
             "assets/model/roster/sola.glb"
@@ -52,10 +47,8 @@ jobs:
             "assets/model/roster/taya.glb"
           )
 
-          for file in "${FILES[@]}"
-          do
-            if [ ! -f "$file" ]
-            then
+          for file in "${FILES[@]}"; do
+            if [ ! -f "$file" ]; then
               echo "ERROR: missing $file"
               exit 1
             fi
@@ -70,10 +63,6 @@ jobs:
           rm -rf assets/model/game
           mkdir -p assets/model/game/tanks
           mkdir -p assets/model/game/characters
-
-      # ======================================================
-      # TANKS
-      # ======================================================
 
       - name: Optimize Team Blue tank
         run: |
@@ -97,10 +86,6 @@ jobs:
             -km \
             -ke
 
-      # ======================================================
-      # CHARACTERS
-      # ======================================================
-
       - name: Optimize Lago
         run: |
           gltfpack \
@@ -112,7 +97,7 @@ jobs:
             -km \
             -ke
 
-           -      - name: Copy lightweight Narek
+      - name: Copy lightweight Narek
         run: |
           cp \
             assets/model/roster/narek.glb \
@@ -206,10 +191,6 @@ jobs:
             -km \
             -ke
 
-      # ======================================================
-      # VALIDATION
-      # ======================================================
-
       - name: Validate optimized GLB files
         shell: bash
         run: |
@@ -220,83 +201,35 @@ jobs:
           import struct
           from pathlib import Path
 
-
           PAIRS = [
-              (
-                  Path("assets/model/tanks/team-blue.glb"),
-                  Path("assets/model/game/tanks/team-blue.glb")
-              ),
-              (
-                  Path("assets/model/tanks/team-red.glb"),
-                  Path("assets/model/game/tanks/team-red.glb")
-              ),
-
-              (
-                  Path("assets/model/roster/lago.glb"),
-                  Path("assets/model/game/characters/lago.glb")
-              ),
-              (
-                  Path("assets/model/roster/narek.glb"),
-                  Path("assets/model/game/characters/narek.glb")
-              ),
-              (
-                  Path("assets/model/roster/sola.glb"),
-                  Path("assets/model/game/characters/sola.glb")
-              ),
-              (
-                  Path("assets/model/roster/doc.glb"),
-                  Path("assets/model/game/characters/doc.glb")
-              ),
-              (
-                  Path("assets/model/roster/marvin.glb"),
-                  Path("assets/model/game/characters/marvin.glb")
-              ),
-              (
-                  Path("assets/model/roster/farid.glb"),
-                  Path("assets/model/game/characters/farid.glb")
-              ),
-              (
-                  Path("assets/model/roster/miki.glb"),
-                  Path("assets/model/game/characters/miki.glb")
-              ),
-              (
-                  Path("assets/model/roster/oleg.glb"),
-                  Path("assets/model/game/characters/oleg.glb")
-              ),
-              (
-                  Path("assets/model/roster/bozz.glb"),
-                  Path("assets/model/game/characters/bozz.glb")
-              ),
-              (
-                  Path("assets/model/roster/taya.glb"),
-                  Path("assets/model/game/characters/taya.glb")
-              ),
+              ("team-blue", Path("assets/model/tanks/team-blue.glb"), Path("assets/model/game/tanks/team-blue.glb"), True),
+              ("team-red", Path("assets/model/tanks/team-red.glb"), Path("assets/model/game/tanks/team-red.glb"), True),
+              ("lago", Path("assets/model/roster/lago.glb"), Path("assets/model/game/characters/lago.glb"), True),
+              ("narek", Path("assets/model/roster/narek.glb"), Path("assets/model/game/characters/narek.glb"), False),
+              ("sola", Path("assets/model/roster/sola.glb"), Path("assets/model/game/characters/sola.glb"), True),
+              ("doc", Path("assets/model/roster/doc.glb"), Path("assets/model/game/characters/doc.glb"), True),
+              ("marvin", Path("assets/model/roster/marvin.glb"), Path("assets/model/game/characters/marvin.glb"), True),
+              ("farid", Path("assets/model/roster/farid.glb"), Path("assets/model/game/characters/farid.glb"), True),
+              ("miki", Path("assets/model/roster/miki.glb"), Path("assets/model/game/characters/miki.glb"), True),
+              ("oleg", Path("assets/model/roster/oleg.glb"), Path("assets/model/game/characters/oleg.glb"), True),
+              ("bozz", Path("assets/model/roster/bozz.glb"), Path("assets/model/game/characters/bozz.glb"), True),
+              ("taya", Path("assets/model/roster/taya.glb"), Path("assets/model/game/characters/taya.glb"), True),
           ]
-
 
           def read_glb(path):
               data = path.read_bytes()
 
               if len(data) < 20:
-                  raise RuntimeError(
-                      f"{path}: too small"
-                  )
+                  raise RuntimeError(f"{path}: too small")
 
-              magic, version, length = \
-                  struct.unpack_from(
-                      "<4sII",
-                      data,
-                      0
-                  )
+              magic, version, length = struct.unpack_from("<4sII", data, 0)
 
               if magic != b"glTF":
-                  raise RuntimeError(
-                      f"{path}: invalid GLB magic"
-                  )
+                  raise RuntimeError(f"{path}: invalid GLB magic")
 
               if version != 2:
                   raise RuntimeError(
-                      f"{path}: unsupported version {version}"
+                      f"{path}: unsupported GLB version {version}"
                   )
 
               if length != len(data):
@@ -305,15 +238,13 @@ jobs:
                   )
 
               offset = 12
-              doc = None
 
               while offset + 8 <= len(data):
-                  chunk_length, chunk_type = \
-                      struct.unpack_from(
-                          "<II",
-                          data,
-                          offset
-                      )
+                  chunk_length, chunk_type = struct.unpack_from(
+                      "<II",
+                      data,
+                      offset
+                  )
 
                   offset += 8
 
@@ -325,20 +256,15 @@ jobs:
                   offset += chunk_length
 
                   if chunk_type == 0x4E4F534A:
-                      doc = json.loads(
+                      return json.loads(
                           chunk
                           .decode("utf-8")
                           .rstrip("\x00 ")
                       )
-                      break
 
-              if doc is None:
-                  raise RuntimeError(
-                      f"{path}: JSON chunk missing"
-                  )
-
-              return doc
-
+              raise RuntimeError(
+                  f"{path}: JSON chunk missing"
+              )
 
           def triangles(doc):
               accessors = doc.get(
@@ -363,12 +289,10 @@ jobs:
                           continue
 
                       if "indices" in primitive:
-                          idx = primitive[
-                              "indices"
-                          ]
-
                           total += (
-                              accessors[idx]
+                              accessors[
+                                  primitive["indices"]
+                              ]
                               .get(
                                   "count",
                                   0
@@ -400,7 +324,6 @@ jobs:
 
               return total
 
-
           print("")
           print(
               "=== LAGO MODEL OPTIMIZATION REPORT ==="
@@ -408,7 +331,7 @@ jobs:
           print("")
 
           print(
-              f"{'MODEL':<32}"
+              f"{'MODEL':<16}"
               f"{'SOURCE MB':>12}"
               f"{'GAME MB':>12}"
               f"{'SRC TRI':>14}"
@@ -416,10 +339,15 @@ jobs:
               f"{'SIZE %':>10}"
           )
 
-          print("-" * 94)
+          print("-" * 78)
 
+          for (
+              name,
+              source,
+              output,
+              must_shrink
+          ) in PAIRS:
 
-          for source, output in PAIRS:
               if not output.exists():
                   raise RuntimeError(
                       f"Missing output: {output}"
@@ -433,13 +361,21 @@ jobs:
                   output
               )
 
+              source_bytes = (
+                  source.stat().st_size
+              )
+
+              output_bytes = (
+                  output.stat().st_size
+              )
+
               source_size = (
-                  source.stat().st_size /
+                  source_bytes /
                   1048576
               )
 
               output_size = (
-                  output.stat().st_size /
+                  output_bytes /
                   1048576
               )
 
@@ -452,13 +388,13 @@ jobs:
               )
 
               size_ratio = (
-                  output.stat().st_size /
-                  source.stat().st_size *
+                  output_bytes /
+                  source_bytes *
                   100
               )
 
               print(
-                  f"{output.name:<32}"
+                  f"{name:<16}"
                   f"{source_size:>12.2f}"
                   f"{output_size:>12.2f}"
                   f"{source_tri:>14,}"
@@ -466,46 +402,29 @@ jobs:
                   f"{size_ratio:>9.1f}%"
               )
 
+              if must_shrink:
 
-                                         if (
-                  source.name ==
-                  "narek.glb"
-              ):
                   if (
-                      output.stat().st_size !=
-                      source.stat().st_size
+                      output_bytes >=
+                      source_bytes
                   ):
                       raise RuntimeError(
-                          f"{output}: Narek must be "
-                          f"copied unchanged"
+                          f"{output}: optimized "
+                          f"file is not smaller "
+                          f"than source"
                       )
 
-              elif (
-                  output.stat().st_size >=
-                  source.stat().st_size
-              ):
-                  raise RuntimeError(
-                      f"{output}: optimized file "
-                      f"is not smaller than source"
-                  )
+              else:
+
                   if (
-                      output.stat().st_size !=
-                      source.stat().st_size
+                      output_bytes !=
+                      source_bytes
                   ):
                       raise RuntimeError(
-                          f"{output}: Narek must be "
-                          f"copied unchanged"
+                          f"{output}: lightweight "
+                          f"source must be copied "
+                          f"unchanged"
                       )
-
-              elif (
-                  output.stat().st_size >=
-                  source.stat().st_size
-              ):
-                  raise RuntimeError(
-                      f"{output}: optimized file "
-                      f"is not smaller than source"
-                  )
-
 
           print("")
           print(
@@ -521,10 +440,6 @@ jobs:
           echo ""
           echo "=== CHARACTERS ==="
           ls -lh assets/model/game/characters
-
-      # ======================================================
-      # COMMIT
-      # ======================================================
 
       - name: Commit optimized models
         shell: bash
@@ -542,7 +457,6 @@ jobs:
           git add \
             assets/model/game
 
-
           if git diff \
             --cached \
             --quiet
@@ -551,10 +465,8 @@ jobs:
             exit 0
           fi
 
-
           git commit \
             -m \
             "Add optimized game models"
-
 
           git push
