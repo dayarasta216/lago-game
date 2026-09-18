@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-           - name: Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -26,6 +26,11 @@ jobs:
           npm install --global gltfpack@1.2.0
           command -v gltfpack
           npm list --global gltfpack --depth=0
+
+      - name: Verify source files
+        shell: bash
+        run: |
+          set -euo pipefail
       - name: Verify source files
         shell: bash
         run: |
