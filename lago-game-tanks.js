@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=1";
 (() => {
   "use strict";
 
-  const VERSION = 8;
+  const VERSION = 9;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
