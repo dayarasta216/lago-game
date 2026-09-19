@@ -1,11 +1,11 @@
-import * as THREE from "three";
+аimport * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { rigTankModel } from "./lago-tank-rig.js?v=1";
 
 (() => {
   "use strict";
 
-  const VERSION = 7;
+  const VERSION = 8;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -3726,6 +3726,8 @@ if (
 playerVisual.add(
   model
 );
+
+}
 
   /*
    * =========================================================
