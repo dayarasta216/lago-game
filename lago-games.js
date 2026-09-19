@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 25;
+  const VERSION = 26;
 
 let overlay = null;
 
@@ -37,7 +37,7 @@ const GAME_MODULES =
         load() {
 
           return import(
-            "./lago-game-tanks.js?v=6"
+            "./lago-game-tanks.js?v=7"
           );
 
         }
