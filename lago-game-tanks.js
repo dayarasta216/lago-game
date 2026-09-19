@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 11;
+  const VERSION = 12;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -14,8 +14,8 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 const TEAM_RED_MODEL =
   "./assets/model/game/tanks/team-red.glb?v=1";
 
-  const MAP_WIDTH = 72;
-  const MAP_DEPTH = 54;
+ const MAP_WIDTH = 104;
+const MAP_DEPTH = 78;
 
   const MAP_HALF_X =
     MAP_WIDTH / 2 - 2;
@@ -42,64 +42,64 @@ const TEAM_RED_MODEL =
    * =========================================================
    */
 
-  const BLUE_SPAWNS =
-    Object.freeze([
+ const BLUE_SPAWNS =
+  Object.freeze([
 
-      Object.freeze({
-        x: -29,
-        z: -9,
-        yaw: -Math.PI / 2
-      }),
+    Object.freeze({
+      x: -42,
+      z: -12,
+      yaw: -Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: -29,
-        z: -3,
-        yaw: -Math.PI / 2
-      }),
+    Object.freeze({
+      x: -42,
+      z: -4,
+      yaw: -Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: -29,
-        z: 3,
-        yaw: -Math.PI / 2
-      }),
+    Object.freeze({
+      x: -42,
+      z: 4,
+      yaw: -Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: -29,
-        z: 9,
-        yaw: -Math.PI / 2
-      })
+    Object.freeze({
+      x: -42,
+      z: 12,
+      yaw: -Math.PI / 2
+    })
 
-    ]);
+  ]);
 
 
-  const RED_SPAWNS =
-    Object.freeze([
+ const RED_SPAWNS =
+  Object.freeze([
 
-      Object.freeze({
-        x: 29,
-        z: -9,
-        yaw: Math.PI / 2
-      }),
+    Object.freeze({
+      x: 42,
+      z: -12,
+      yaw: Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: 29,
-        z: -3,
-        yaw: Math.PI / 2
-      }),
+    Object.freeze({
+      x: 42,
+      z: -4,
+      yaw: Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: 29,
-        z: 3,
-        yaw: Math.PI / 2
-      }),
+    Object.freeze({
+      x: 42,
+      z: 4,
+      yaw: Math.PI / 2
+    }),
 
-      Object.freeze({
-        x: 29,
-        z: 9,
-        yaw: Math.PI / 2
-      })
+    Object.freeze({
+      x: 42,
+      z: 12,
+      yaw: Math.PI / 2
+    })
 
-    ]);
+  ]);
 
 
   /*
@@ -2199,67 +2199,59 @@ let playerMuzzle = null;
         );
 
 
-    scene.add(
+   const hemiLight =
+  new THREE.HemisphereLight(
+    0xdcecff,
+    0x6a705d,
+    1.15
+  );
 
-      new THREE
-        .HemisphereLight(
-
-          0xeaf7ff,
-          0x2e3928,
-          2.2
-
-        )
-
-    );
+scene.add(
+  hemiLight
+);
 
 
-    const sun =
-      new THREE
-        .DirectionalLight(
-          0xffffff,
-          2.7
-        );
+const sun =
+  new THREE.DirectionalLight(
+    0xffffff,
+    1.25
+  );
 
+sun.position.set(
+  28,
+  42,
+  22
+);
 
-    sun.position.set(
-      -18,
-      30,
-      18
-    );
+sun.castShadow =
+  true;
 
+sun.shadow.mapSize.set(
+  2048,
+  2048
+);
 
-    sun.castShadow =
-      true;
+sun.shadow.camera.left =
+  -90;
 
+sun.shadow.camera.right =
+  90;
 
-    sun.shadow
-      .mapSize
-      .set(
-        1024,
-        1024
-      );
+sun.shadow.camera.top =
+  90;
 
+sun.shadow.camera.bottom =
+  -90;
 
-    sun.shadow.camera.left =
-      -38;
+sun.shadow.camera.near =
+  1;
 
+sun.shadow.camera.far =
+  160;
 
-    sun.shadow.camera.right =
-      38;
-
-
-    sun.shadow.camera.top =
-      30;
-
-
-    sun.shadow.camera.bottom =
-      -30;
-
-
-    scene.add(
-      sun
-    );
-
+scene.add(
+  sun
+);
 
     clock =
       new THREE.Clock();
@@ -2861,19 +2853,19 @@ let playerMuzzle = null;
      */
 
     addRoad(
-      0,
-      0,
-      66,
-      6.0
-    );
+  0,
+  0,
+  96,
+  7.0
+);
 
 
-    addRoad(
-      0,
-      0,
-      6.0,
-      48
-    );
+addRoad(
+  0,
+  0,
+  7.0,
+  70
+);
 
 
     /*
@@ -3821,6 +3813,1071 @@ playerVisual.add(
 
   }
 
+  function setShadowRecursive(
+  root
+) {
+
+  root.traverse(
+    object => {
+
+      if (
+        object.isMesh
+      ) {
+
+        object.castShadow =
+          true;
+
+        object.receiveShadow =
+          true;
+
+      }
+
+    }
+  );
+
+}
+
+
+function makeMaterialSet() {
+
+  return Object.freeze({
+
+    grass:
+      new THREE.MeshStandardMaterial({
+        color: 0x92a784,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    grassDark:
+      new THREE.MeshStandardMaterial({
+        color: 0x7e9372,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    dirt:
+      new THREE.MeshStandardMaterial({
+        color: 0x8a775e,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    road:
+      new THREE.MeshStandardMaterial({
+        color: 0x73746b,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    wall:
+      new THREE.MeshStandardMaterial({
+        color: 0x59605a,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    houseBody:
+      new THREE.MeshStandardMaterial({
+        color: 0xb39f82,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    roof:
+      new THREE.MeshStandardMaterial({
+        color: 0x7b6757,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    wood:
+      new THREE.MeshStandardMaterial({
+        color: 0x856946,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    rock:
+      new THREE.MeshStandardMaterial({
+        color: 0x8f8f86,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    leaves:
+      new THREE.MeshStandardMaterial({
+        color: 0x6e8758,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true
+      }),
+
+    water:
+      new THREE.MeshStandardMaterial({
+        color: 0x6b95c9,
+        roughness: 0.95,
+        metalness: 0,
+        flatShading: true
+      })
+
+  });
+
+}
+
+
+function clearWorldColliders() {
+
+  WORLD_COLLIDERS.length =
+    0;
+
+}
+
+
+function pushWorldCollider(
+  centerX,
+  centerZ,
+  sizeX,
+  sizeZ,
+  pad = 0.8
+) {
+
+  WORLD_COLLIDERS.push({
+    minX:
+      centerX -
+      sizeX * 0.5 -
+      pad,
+
+    maxX:
+      centerX +
+      sizeX * 0.5 +
+      pad,
+
+    minZ:
+      centerZ -
+      sizeZ * 0.5 -
+      pad,
+
+    maxZ:
+      centerZ +
+      sizeZ * 0.5 +
+      pad
+  });
+
+}
+
+
+function addMesh(
+  parent,
+  geometry,
+  material,
+  x,
+  y,
+  z,
+  sx = 1,
+  sy = 1,
+  sz = 1,
+  ry = 0
+) {
+
+  const mesh =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+  mesh.position.set(
+    x,
+    y,
+    z
+  );
+
+  mesh.scale.set(
+    sx,
+    sy,
+    sz
+  );
+
+  mesh.rotation.y =
+    ry;
+
+  mesh.castShadow =
+    true;
+
+  mesh.receiveShadow =
+    true;
+
+  parent.add(mesh);
+
+  return mesh;
+
+}
+
+
+function makeHouse(
+  materials,
+  width = 10,
+  depth = 8,
+  bodyHeight = 5.5
+) {
+
+  const group =
+    new THREE.Group();
+
+  const body =
+    addMesh(
+      group,
+      new THREE.BoxGeometry(
+        width,
+        bodyHeight,
+        depth
+      ),
+      materials.houseBody,
+      0,
+      bodyHeight * 0.5,
+      0
+    );
+
+  const roof =
+    addMesh(
+      group,
+      new THREE.ConeGeometry(
+        Math.max(width, depth) * 0.68,
+        3.2,
+        4
+      ),
+      materials.roof,
+      0,
+      bodyHeight + 1.6,
+      0,
+      1,
+      1,
+      1,
+      Math.PI * 0.25
+    );
+
+  const door =
+    addMesh(
+      group,
+      new THREE.BoxGeometry(
+        1.8,
+        3.2,
+        0.35
+      ),
+      materials.wood,
+      0,
+      1.6,
+      depth * 0.5 + 0.18
+    );
+
+  const windowLeft =
+    addMesh(
+      group,
+      new THREE.BoxGeometry(
+        1.5,
+        1.2,
+        0.25
+      ),
+      materials.wall,
+      -2.4,
+      2.8,
+      depth * 0.5 + 0.15
+    );
+
+  const windowRight =
+    addMesh(
+      group,
+      new THREE.BoxGeometry(
+        1.5,
+        1.2,
+        0.25
+      ),
+      materials.wall,
+      2.4,
+      2.8,
+      depth * 0.5 + 0.15
+    );
+
+  void body;
+  void roof;
+  void door;
+  void windowLeft;
+  void windowRight;
+
+  setShadowRecursive(
+    group
+  );
+
+  group.userData.collider =
+    {
+      sizeX: width,
+      sizeZ: depth
+    };
+
+  return group;
+
+}
+
+
+function makeTree(
+  materials,
+  trunkHeight = 2.8,
+  crownSize = 2.8
+) {
+
+  const group =
+    new THREE.Group();
+
+  addMesh(
+    group,
+    new THREE.CylinderGeometry(
+      0.35,
+      0.45,
+      trunkHeight,
+      6
+    ),
+    materials.wood,
+    0,
+    trunkHeight * 0.5,
+    0
+  );
+
+  addMesh(
+    group,
+    new THREE.DodecahedronGeometry(
+      crownSize,
+      0
+    ),
+    materials.leaves,
+    0,
+    trunkHeight + crownSize * 0.75,
+    0,
+    1,
+    0.95,
+    1
+  );
+
+  setShadowRecursive(
+    group
+  );
+
+  group.userData.collider =
+    {
+      sizeX:
+        crownSize * 1.45,
+      sizeZ:
+        crownSize * 1.45
+    };
+
+  return group;
+
+}
+
+
+function makeRockCluster(
+  materials
+) {
+
+  const group =
+    new THREE.Group();
+
+  addMesh(
+    group,
+    new THREE.DodecahedronGeometry(
+      2.1,
+      0
+    ),
+    materials.rock,
+    -1.2,
+    1.4,
+    0,
+    1.1,
+    0.75,
+    1.0,
+    0.2
+  );
+
+  addMesh(
+    group,
+    new THREE.DodecahedronGeometry(
+      1.4,
+      0
+    ),
+    materials.rock,
+    1.3,
+    0.95,
+    0.7,
+    1,
+    0.7,
+    0.9,
+    0.5
+  );
+
+  addMesh(
+    group,
+    new THREE.DodecahedronGeometry(
+      1.0,
+      0
+    ),
+    materials.rock,
+    0.9,
+    0.8,
+    -1.0,
+    0.9,
+    0.7,
+    0.9,
+    0.1
+  );
+
+  setShadowRecursive(
+    group
+  );
+
+  group.userData.collider =
+    {
+      sizeX: 5.8,
+      sizeZ: 5.2
+    };
+
+  return group;
+
+}
+
+
+function makeCrateStack(
+  materials
+) {
+
+  const group =
+    new THREE.Group();
+
+  addMesh(
+    group,
+    new THREE.BoxGeometry(
+      2.4,
+      2.4,
+      2.4
+    ),
+    materials.wood,
+    -1.2,
+    1.2,
+    0
+  );
+
+  addMesh(
+    group,
+    new THREE.BoxGeometry(
+      2.4,
+      2.4,
+      2.4
+    ),
+    materials.wood,
+    1.2,
+    1.2,
+    0.4
+  );
+
+  addMesh(
+    group,
+    new THREE.BoxGeometry(
+      2.1,
+      2.1,
+      2.1
+    ),
+    materials.wood,
+    0.3,
+    3.2,
+    -0.6
+  );
+
+  setShadowRecursive(
+    group
+  );
+
+  group.userData.collider =
+    {
+      sizeX: 5.2,
+      sizeZ: 4.4
+    };
+
+  return group;
+
+}
+
+
+function makeLowHill(
+  materials,
+  radius = 6
+) {
+
+  const mesh =
+    new THREE.Mesh(
+      new THREE.SphereGeometry(
+        1,
+        14,
+        10
+      ),
+      materials.grassDark
+    );
+
+  mesh.scale.set(
+    radius,
+    2.3,
+    radius * 0.82
+  );
+
+  mesh.castShadow =
+    true;
+
+  mesh.receiveShadow =
+    true;
+
+  return mesh;
+
+}
+
+
+function makePond(
+  materials,
+  sx = 8,
+  sz = 6
+) {
+
+  const mesh =
+    new THREE.Mesh(
+      new THREE.CircleGeometry(
+        1,
+        18
+      ),
+      materials.water
+    );
+
+  mesh.rotation.x =
+    -Math.PI * 0.5;
+
+  mesh.scale.set(
+    sx,
+    sz,
+    1
+  );
+
+  mesh.receiveShadow =
+    true;
+
+  return mesh;
+
+}
+
+
+function placeProp(
+  scene,
+  prop,
+  x,
+  z,
+  ry = 0
+) {
+
+  prop.position.set(
+    x,
+    0,
+    z
+  );
+
+  prop.rotation.y =
+    ry;
+
+  scene.add(prop);
+
+  const collider =
+    prop.userData
+      ?.collider;
+
+  if (collider) {
+
+    pushWorldCollider(
+      x,
+      z,
+      collider.sizeX,
+      collider.sizeZ,
+      0.75
+    );
+
+  }
+
+}
+
+
+function buildStylizedArena(
+  scene
+) {
+
+  clearWorldColliders();
+
+  scene.background =
+    new THREE.Color(
+      0xb9d0df
+    );
+
+  scene.fog =
+    new THREE.Fog(
+      0xb9d0df,
+      80,
+      180
+    );
+
+  buildStylizedArena(
+  scene
+);
+  
+  const materials =
+    makeMaterialSet();
+
+  const world =
+    new THREE.Group();
+
+  world.name =
+    "StylizedArenaWorld";
+
+  scene.add(world);
+
+  /*
+   * Main ground
+   */
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      MAP_SIZE,
+      1.4,
+      MAP_SIZE
+    ),
+    materials.grass,
+    0,
+    -0.7,
+    0
+  );
+
+  /*
+   * Roads
+   */
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      16,
+      0.15,
+      MAP_SIZE - 8
+    ),
+    materials.road,
+    0,
+    0.03,
+    0
+  );
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      MAP_SIZE - 16,
+      0.15,
+      12
+    ),
+    materials.road,
+    0,
+    0.04,
+    0
+  );
+
+  /*
+   * Dirt patches
+   */
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      24,
+      0.08,
+      14
+    ),
+    materials.dirt,
+    -28,
+    0.02,
+    22,
+    1,
+    1,
+    1,
+    0.22
+  );
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      20,
+      0.08,
+      12
+    ),
+    materials.dirt,
+    26,
+    0.02,
+    -24,
+    1,
+    1,
+    1,
+    -0.18
+  );
+
+  /*
+   * Perimeter walls
+   */
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      MAP_SIZE,
+      5,
+      2.4
+    ),
+    materials.wall,
+    0,
+    2.5,
+    -MAP_HALF
+  );
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      MAP_SIZE,
+      5,
+      2.4
+    ),
+    materials.wall,
+    0,
+    2.5,
+    MAP_HALF
+  );
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      2.4,
+      5,
+      MAP_SIZE
+    ),
+    materials.wall,
+    -MAP_HALF,
+    2.5,
+    0
+  );
+
+  addMesh(
+    world,
+    new THREE.BoxGeometry(
+      2.4,
+      5,
+      MAP_SIZE
+    ),
+    materials.wall,
+    MAP_HALF,
+    2.5,
+    0
+  );
+
+  /*
+   * Houses / buildings
+   */
+
+  placeProp(
+    world,
+    makeHouse(
+      materials,
+      11,
+      9,
+      6
+    ),
+    -26,
+    -18,
+    0.15
+  );
+
+  placeProp(
+    world,
+    makeHouse(
+      materials,
+      10,
+      8,
+      5.5
+    ),
+    24,
+    -20,
+    -0.1
+  );
+
+  placeProp(
+    world,
+    makeHouse(
+      materials,
+      9,
+      7,
+      5.2
+    ),
+    -18,
+    22,
+    -0.2
+  );
+
+  placeProp(
+    world,
+    makeHouse(
+      materials,
+      12,
+      9,
+      6.2
+    ),
+    22,
+    20,
+    0.1
+  );
+
+  /*
+   * Crates / cover
+   */
+
+  placeProp(
+    world,
+    makeCrateStack(
+      materials
+    ),
+    -5,
+    -6,
+    0.12
+  );
+
+  placeProp(
+    world,
+    makeCrateStack(
+      materials
+    ),
+    8,
+    10,
+    -0.2
+  );
+
+  placeProp(
+    world,
+    makeCrateStack(
+      materials
+    ),
+    -14,
+    4,
+    0.3
+  );
+
+  placeProp(
+    world,
+    makeCrateStack(
+      materials
+    ),
+    15,
+    -8,
+    -0.1
+  );
+
+  /*
+   * Rock clusters
+   */
+
+  placeProp(
+    world,
+    makeRockCluster(
+      materials
+    ),
+    -34,
+    10,
+    0.2
+  );
+
+  placeProp(
+    world,
+    makeRockCluster(
+      materials
+    ),
+    34,
+    8,
+    -0.3
+  );
+
+  placeProp(
+    world,
+    makeRockCluster(
+      materials
+    ),
+    -30,
+    -28,
+    0.18
+  );
+
+  placeProp(
+    world,
+    makeRockCluster(
+      materials
+    ),
+    28,
+    -30,
+    -0.22
+  );
+
+  /*
+   * Trees
+   */
+
+  const treePositions = [
+    [-44, -20, 0.1],
+    [-40, -10, -0.2],
+    [-42, 4, 0.28],
+    [-38, 26, -0.16],
+
+    [42, -24, -0.12],
+    [39, -6, 0.18],
+    [44, 12, -0.1],
+    [41, 28, 0.22],
+
+    [-12, -40, 0.08],
+    [10, -42, -0.14],
+    [-8, 40, 0.24],
+    [12, 42, -0.09]
+  ];
+
+  for (const [
+    x,
+    z,
+    ry
+  ] of treePositions) {
+
+    placeProp(
+      world,
+      makeTree(
+        materials
+      ),
+      x,
+      z,
+      ry
+    );
+
+  }
+
+  /*
+   * Hills / bumps
+   */
+
+  const hillA =
+    makeLowHill(
+      materials,
+      8
+    );
+
+  hillA.position.set(
+    -45,
+    0.8,
+    38
+  );
+
+  world.add(
+    hillA
+  );
+
+  const hillB =
+    makeLowHill(
+      materials,
+      10
+    );
+
+  hillB.position.set(
+    44,
+    0.9,
+    -40
+  );
+
+  hillB.rotation.y =
+    0.5;
+
+  world.add(
+    hillB
+  );
+
+  const hillC =
+    makeLowHill(
+      materials,
+      6.5
+    );
+
+  hillC.position.set(
+    0,
+    0.75,
+    34
+  );
+
+  hillC.rotation.y =
+    -0.35;
+
+  world.add(
+    hillC
+  );
+
+  /*
+   * Ponds
+   */
+
+  const pondA =
+    makePond(
+      materials,
+      5.8,
+      4.6
+    );
+
+  pondA.position.set(
+    -34,
+    0.05,
+    34
+  );
+
+  pondA.rotation.z =
+    0.18;
+
+  world.add(
+    pondA
+  );
+
+  const pondB =
+    makePond(
+      materials,
+      4.4,
+      3.6
+    );
+
+  pondB.position.set(
+    32,
+    0.05,
+    -34
+  );
+
+  pondB.rotation.z =
+    -0.22;
+
+  world.add(
+    pondB
+  );
+
+  return world;
+
+}
 
   /*
    * =========================================================
@@ -3828,51 +4885,47 @@ playerVisual.add(
    * =========================================================
    */
 
-  function collidesAt(
-    x,
-    z
+ function collidesAt(
+  x,
+  z
+) {
+
+  if (
+    x < -PLAY_LIMIT ||
+    x > PLAY_LIMIT ||
+    z < -PLAY_LIMIT ||
+    z > PLAY_LIMIT
+  ) {
+
+    return true;
+
+  }
+
+  for (
+    const collider
+    of WORLD_COLLIDERS
   ) {
 
     if (
-      Math.abs(
-        x
-      ) >
-      MAP_HALF_X ||
-
-      Math.abs(
-        z
-      ) >
-      MAP_HALF_Z
+      x + TANK_COLLISION_RADIUS >
+        collider.minX &&
+      x - TANK_COLLISION_RADIUS <
+        collider.maxX &&
+      z + TANK_COLLISION_RADIUS >
+        collider.minZ &&
+      z - TANK_COLLISION_RADIUS <
+        collider.maxZ
     ) {
 
       return true;
 
     }
 
-
-    return solidRects
-      .some(
-        rect =>
-
-          x +
-          TANK_RADIUS >
-          rect.minX &&
-
-          x -
-          TANK_RADIUS <
-          rect.maxX &&
-
-          z +
-          TANK_RADIUS >
-          rect.minZ &&
-
-          z -
-          TANK_RADIUS <
-          rect.maxZ
-
-      );
-
   }
+
+  return false;
+
+}
 
 
   /*
