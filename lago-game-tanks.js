@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { rigTankModel } from "./lago-tank-rig.js?v=1";
 
 (() => {
   "use strict";
 
-  const VERSION = 6;
+  const VERSION = 7;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -168,9 +169,12 @@ const TEAM_RED_MODEL =
     null;
 
 
-  let player = null;
-  let playerVisual = null;
-  let aimMarker = null;
+ let player = null;
+let playerVisual = null;
+let aimMarker = null;
+
+let playerTurretPivot = null;
+let playerMuzzle = null;
 
 
   let animationFrame = 0;
@@ -3580,6 +3584,7 @@ const TEAM_RED_MODEL =
 
   }
 
+  
 
   function loadTankTemplate(
     url
@@ -3637,7 +3642,11 @@ const TEAM_RED_MODEL =
 
               }
 
-
+rigTankModel(
+  model,
+  url
+);
+              
               normalizeTankModel(
                 model
               );
@@ -3684,18 +3693,39 @@ const TEAM_RED_MODEL =
       );
 
 
-    const model =
-      template.clone(
-        true
-      );
+   const model =
+  template.clone(
+    true
+  );
 
 
-    playerVisual.add(
-      model
-    );
+playerTurretPivot =
+  model.getObjectByName(
+    "TurretPivot"
+  );
 
-  }
 
+playerMuzzle =
+  model.getObjectByName(
+    "Muzzle"
+  );
+
+
+if (
+  !playerTurretPivot ||
+  !playerMuzzle
+) {
+
+  throw new Error(
+    "Tank rig is incomplete."
+  );
+
+}
+
+
+playerVisual.add(
+  model
+);
 
   /*
    * =========================================================
@@ -4089,6 +4119,97 @@ const TEAM_RED_MODEL =
    * =========================================================
    */
 
+    function aimTurretAt(
+  worldPoint
+) {
+
+  if (
+    !player ||
+    !playerTurretPivot ||
+    !worldPoint
+  ) {
+
+    return;
+
+  }
+
+
+  const frame =
+    playerTurretPivot.parent;
+
+
+  if (!frame) {
+
+    return;
+
+  }
+
+
+  /*
+   * Ensure all parent transforms,
+   * including terrain pitch/roll,
+   * are current.
+   */
+
+  player.updateMatrixWorld(
+    true
+  );
+
+
+  /*
+   * Convert target from world space
+   * into the original tank mesh space.
+   */
+
+  const localTarget =
+    frame.worldToLocal(
+      worldPoint.clone()
+    );
+
+
+  const dx =
+
+    localTarget.x -
+
+    playerTurretPivot
+      .position.x;
+
+
+  const dz =
+
+    localTarget.z -
+
+    playerTurretPivot
+      .position.z;
+
+
+  if (
+    Math.hypot(
+      dx,
+      dz
+    ) <
+    0.001
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * Meshy barrel points toward local -X.
+   */
+
+  playerTurretPivot
+    .rotation.y =
+
+    Math.atan2(
+      dz,
+      -dx
+    );
+
+}
+
   function updateAim() {
 
     if (
@@ -4170,6 +4291,10 @@ const TEAM_RED_MODEL =
 
       worldYaw -
       player.rotation.y;
+
+    aimTurretAt(
+  point
+);
 
   }
 
