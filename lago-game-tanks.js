@@ -1,4 +1,4 @@
-аimport * as THREE from "three";
+import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { rigTankModel } from "./lago-tank-rig.js?v=1";
 
