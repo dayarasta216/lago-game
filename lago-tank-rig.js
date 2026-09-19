@@ -545,44 +545,55 @@ export function rigTankModel(
 
 
   const pivotY =
-    cutY;
+  cutY;
 
 
-  const pivotZ =
-
-    tipCount >
-      0
-
-      ? tipZ /
-        tipCount
-
-      : fallbackZ;
-
-
-  const muzzleX =
-
-    bounds.min.x +
-
-    spanX *
-    cfg.muzzleInsetRatioX;
+/*
+ * Turret yaw axis must stay in the
+ * lateral centre of the tank.
+ *
+ * Do NOT use barrel position here:
+ * the barrel is intentionally offset
+ * from the turret rotation axis.
+ */
+const pivotZ =
+  fallbackZ;
 
 
-  const muzzleY =
+const muzzleX =
 
-    tipCount >
-      0
+  bounds.min.x +
 
-      ? tipY /
-        tipCount
-
-      : cutY +
-        spanY *
-        0.25;
+  spanX *
+  cfg.muzzleInsetRatioX;
 
 
-  const muzzleZ =
-    pivotZ;
+const muzzleY =
 
+  tipCount >
+    0
+
+    ? tipY /
+      tipCount
+
+    : cutY +
+      spanY *
+      0.25;
+
+
+/*
+ * Muzzle keeps the real lateral
+ * position of the barrel.
+ */
+const muzzleZ =
+
+  tipCount >
+    0
+
+    ? tipZ /
+      tipCount
+
+    : fallbackZ;
 
   /*
    * Final hierarchy:
