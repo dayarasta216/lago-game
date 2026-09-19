@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 12;
+  const VERSION = 13;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -5908,11 +5908,32 @@ function buildStylizedArena(
       );
 
 
-    camera.position
-      .lerp(
-        desired,
-        0.075
-      );
+   const cameraDistance =
+  camera.position
+    .distanceTo(
+      desired
+    );
+
+
+if (
+  cameraDistance >
+  22
+) {
+
+  camera.position
+    .copy(
+      desired
+    );
+
+} else {
+
+  camera.position
+    .lerp(
+      desired,
+      0.075
+    );
+
+}
 
 
     camera.lookAt(
