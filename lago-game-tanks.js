@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 10;
+  const VERSION = 11;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -3426,9 +3426,8 @@ let playerMuzzle = null;
     ) {
 
       model.rotation.y =
-        Math.PI /
-        2;
-
+  -Math.PI /
+  2;
 
       model.updateMatrixWorld(
         true
