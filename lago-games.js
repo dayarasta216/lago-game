@@ -37,7 +37,7 @@ const GAME_MODULES =
         load() {
 
           return import(
-            "./lago-game-tanks.js?v=7"
+            "./lago-game-tanks.js?v=8"
           );
 
         }
