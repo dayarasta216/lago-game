@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 14;
+  const VERSION = 15;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -5358,124 +5358,151 @@ function collidesAt(
    * =========================================================
    */
 
-  function fire() {
+ function fire() {
 
-    if (
-      phase !==
-      "running" ||
+  if (
+    phase !==
+    "running" ||
 
-      !player ||
+    !player ||
 
-      fireCooldown >
-      0
-    ) {
+    !playerMuzzle ||
 
-      return;
+    fireCooldown >
+    0
+  ) {
 
-    }
-
-
-    fireCooldown =
-      FIRE_COOLDOWN;
-
-
-    const origin =
-      new THREE.Vector3(
-
-        player.position.x,
-
-        player.position.y +
-        0.78,
-
-        player.position.z
-
-      );
-
-
-    let direction;
-
-
-    if (hasAim) {
-
-      direction =
-
-        aimWorld
-          .clone()
-          .sub(
-            origin
-          )
-          .normalize();
-
-    } else {
-
-      direction =
-
-        new THREE.Vector3(
-          0,
-          0,
-          -1
-        )
-          .applyAxisAngle(
-
-            new THREE.Vector3(
-              0,
-              1,
-              0
-            ),
-
-            player.rotation.y
-
-          );
-
-    }
-
-
-    const projectile =
-      new THREE.Mesh(
-
-        new THREE
-          .SphereGeometry(
-            0.14,
-            10,
-            7
-          ),
-
-        new THREE
-          .MeshBasicMaterial({
-
-            color:
-              0xccff00
-
-          })
-
-      );
-
-
-    projectile.position
-      .copy(
-        origin
-      );
-
-
-    scene.add(
-      projectile
-    );
-
-
-    bullets.push({
-
-      mesh:
-        projectile,
-
-      direction,
-
-      age:
-        0
-
-    });
+    return;
 
   }
 
+
+  fireCooldown =
+    FIRE_COOLDOWN;
+
+
+  /*
+   * Берём реальную мировую позицию
+   * Muzzle внутри вращающейся башни.
+   */
+
+  player.updateMatrixWorld(
+    true
+  );
+
+
+  const origin =
+    new THREE.Vector3();
+
+
+  playerMuzzle
+    .getWorldPosition(
+      origin
+    );
+
+
+  let direction;
+
+
+  if (hasAim) {
+
+    direction =
+
+      aimWorld
+        .clone()
+        .sub(
+          origin
+        )
+        .normalize();
+
+  } else {
+
+    /*
+     * В исходном GLB ствол направлен
+     * вдоль локальной оси -X.
+     */
+
+    const muzzleQuaternion =
+      new THREE.Quaternion();
+
+
+    playerMuzzle
+      .getWorldQuaternion(
+        muzzleQuaternion
+      );
+
+
+    direction =
+
+      new THREE.Vector3(
+        -1,
+        0,
+        0
+      )
+        .applyQuaternion(
+          muzzleQuaternion
+        )
+        .normalize();
+
+  }
+
+
+  /*
+   * Чуть выносим снаряд вперёд,
+   * чтобы он появлялся уже за краем дула.
+   */
+
+  origin.addScaledVector(
+    direction,
+    0.18
+  );
+
+
+  const projectile =
+    new THREE.Mesh(
+
+      new THREE
+        .SphereGeometry(
+          0.14,
+          10,
+          7
+        ),
+
+      new THREE
+        .MeshBasicMaterial({
+
+          color:
+            0xccff00
+
+        })
+
+    );
+
+
+  projectile.position
+    .copy(
+      origin
+    );
+
+
+  scene.add(
+    projectile
+  );
+
+
+  bullets.push({
+
+    mesh:
+      projectile,
+
+    direction,
+
+    age:
+      0
+
+  });
+
+}
 
   function bulletHitsSolid(
     position
