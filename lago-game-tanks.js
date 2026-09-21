@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 19;
+  const VERSION = 20;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -101,7 +101,56 @@ const MAP_DEPTH = 78;
 
   ]);
 
+/*
+ * =========================================================
+ * 4V4 MAP LANES / BASE SAFETY
+ * =========================================================
+ */
 
+const MAP_LANES =
+  Object.freeze([
+
+    Object.freeze({
+      id: "north",
+      z: -22
+    }),
+
+    Object.freeze({
+      id: "center",
+      z: 0
+    }),
+
+    Object.freeze({
+      id: "south",
+      z: 22
+    })
+
+  ]);
+
+
+const SPAWN_PROTECTION_SECONDS =
+  3.0;
+
+
+const TEAM_BASES =
+  Object.freeze({
+
+    blue:
+      Object.freeze({
+        x: -42,
+        z: 0,
+        radius: 14
+      }),
+
+    red:
+      Object.freeze({
+        x: 42,
+        z: 0,
+        radius: 14
+      })
+
+  });
+  
   /*
    * =========================================================
    * MAP TERRAIN
@@ -3978,6 +4027,44 @@ addRoad(
   70
 );
 
+  /*
+ * Three combat lanes.
+ */
+
+addRoad(
+  0,
+  -22,
+  88,
+  5.5
+);
+
+
+addRoad(
+  0,
+  22,
+  88,
+  5.5
+);
+
+
+/*
+ * Rotation routes between lanes.
+ */
+
+addRoad(
+  -28,
+  0,
+  5.0,
+  48
+);
+
+
+addRoad(
+  28,
+  0,
+  5.0,
+  48
+);
 
     /*
      * Team bases.
@@ -4226,6 +4313,177 @@ addRoad(
 
     }
 
+/*
+ * 4v4 route cover.
+ *
+ * Mirrored around X=0 so both teams
+ * have equivalent battlefield cover.
+ */
+
+
+/*
+ * Spawn approach shields.
+ */
+
+addWall(
+  -35,
+  -12,
+  5.0,
+  0.72,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  -35,
+  12,
+  5.0,
+  0.72,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  35,
+  -12,
+  5.0,
+  0.72,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  35,
+  12,
+  5.0,
+  0.72,
+  Math.PI /
+  2
+);
+
+
+/*
+ * North lane cover.
+ */
+
+addWall(
+  -15,
+  -22,
+  4.6,
+  0.70,
+  0
+);
+
+
+addWall(
+  15,
+  -22,
+  4.6,
+  0.70,
+  0
+);
+
+
+addRock(
+  -5.5,
+  -25,
+  0.72,
+  0.3
+);
+
+
+addRock(
+  5.5,
+  -25,
+  0.72,
+  -0.3
+);
+
+
+/*
+ * South lane cover.
+ */
+
+addWall(
+  -15,
+  22,
+  4.6,
+  0.70,
+  0
+);
+
+
+addWall(
+  15,
+  22,
+  4.6,
+  0.70,
+  0
+);
+
+
+addRock(
+  -5.5,
+  25,
+  0.72,
+  -0.3
+);
+
+
+addRock(
+  5.5,
+  25,
+  0.72,
+  0.3
+);
+
+
+/*
+ * Rotation-route cover.
+ */
+
+addWall(
+  -28,
+  -5,
+  4.0,
+  0.68,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  -28,
+  5,
+  4.0,
+  0.68,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  28,
+  -5,
+  4.0,
+  0.68,
+  Math.PI /
+  2
+);
+
+
+addWall(
+  28,
+  5,
+  4.0,
+  0.68,
+  Math.PI /
+  2
+);
+    
 /*
  * Dirt and worn-ground patches.
  * Decorative only: no collision.
@@ -6624,7 +6882,34 @@ if (
             "village-01",
 
           maxPlayers:
-            8,
+  8,
+
+
+lanes:
+
+  MAP_LANES
+    .map(
+      item => ({
+        ...item
+      })
+    ),
+
+
+spawnProtectionSeconds:
+  SPAWN_PROTECTION_SECONDS,
+
+
+bases: {
+
+  blue: {
+    ...TEAM_BASES.blue
+  },
+
+  red: {
+    ...TEAM_BASES.red
+  }
+
+},
 
 
           teams: {
