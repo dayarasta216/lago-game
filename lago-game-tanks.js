@@ -4885,48 +4885,51 @@ function buildStylizedArena(
    * =========================================================
    */
 
- function collidesAt(
+function collidesAt(
   x,
   z
 ) {
 
   if (
-    x < -PLAY_LIMIT ||
-    x > PLAY_LIMIT ||
-    z < -PLAY_LIMIT ||
-    z > PLAY_LIMIT
+    Math.abs(
+      x
+    ) >
+    MAP_HALF_X ||
+
+    Math.abs(
+      z
+    ) >
+    MAP_HALF_Z
   ) {
 
     return true;
 
   }
 
-  for (
-    const collider
-    of WORLD_COLLIDERS
-  ) {
 
-    if (
-      x + TANK_COLLISION_RADIUS >
-        collider.minX &&
-      x - TANK_COLLISION_RADIUS <
-        collider.maxX &&
-      z + TANK_COLLISION_RADIUS >
-        collider.minZ &&
-      z - TANK_COLLISION_RADIUS <
-        collider.maxZ
-    ) {
+  return solidRects
+    .some(
+      rect =>
 
-      return true;
+        x +
+        TANK_RADIUS >
+        rect.minX &&
 
-    }
+        x -
+        TANK_RADIUS <
+        rect.maxX &&
 
-  }
+        z +
+        TANK_RADIUS >
+        rect.minZ &&
 
-  return false;
+        z -
+        TANK_RADIUS <
+        rect.maxZ
+
+    );
 
 }
-
 
   /*
    * =========================================================
