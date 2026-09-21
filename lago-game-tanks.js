@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 16;
+  const VERSION = 17;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -2832,6 +2832,444 @@ scene.add(
 
   }
 
+  /*
+ * =========================================================
+ * LOW-POLY MAP PROPS
+ * =========================================================
+ */
+
+function addTree(
+  x,
+  z,
+  scale = 1
+) {
+
+  const group =
+    new THREE.Group();
+
+
+  const baseY =
+    terrainHeight(
+      x,
+      z
+    );
+
+
+  const trunk =
+    new THREE.Mesh(
+
+      new THREE
+        .CylinderGeometry(
+          0.36 * scale,
+          0.48 * scale,
+          2.8 * scale,
+          6
+        ),
+
+      material(
+        0x75593f,
+        1,
+        0
+      )
+
+    );
+
+
+  trunk.position.y =
+    1.4 * scale;
+
+
+  trunk.castShadow =
+    true;
+
+  trunk.receiveShadow =
+    true;
+
+
+  group.add(
+    trunk
+  );
+
+
+  const crown =
+    new THREE.Mesh(
+
+      new THREE
+        .DodecahedronGeometry(
+          1.65 * scale,
+          0
+        ),
+
+      material(
+        0x607c50,
+        1,
+        0
+      )
+
+    );
+
+
+  crown.scale.set(
+    1,
+    0.88,
+    1
+  );
+
+
+  crown.position.y =
+    3.55 * scale;
+
+
+  crown.castShadow =
+    true;
+
+  crown.receiveShadow =
+    true;
+
+
+  group.add(
+    crown
+  );
+
+
+  group.position.set(
+    x,
+    baseY,
+    z
+  );
+
+
+  scene.add(
+    group
+  );
+
+
+  addSolidRect(
+    x,
+    z,
+    0.62 * scale,
+    0.62 * scale
+  );
+
+}
+
+
+function addRock(
+  x,
+  z,
+  scale = 1,
+  rotation = 0
+) {
+
+  const rock =
+    new THREE.Mesh(
+
+      new THREE
+        .DodecahedronGeometry(
+          1.15,
+          0
+        ),
+
+      material(
+        0x858780,
+        1,
+        0
+      )
+
+    );
+
+
+  rock.scale.set(
+    1.25 * scale,
+    0.82 * scale,
+    scale
+  );
+
+
+  rock.rotation.y =
+    rotation;
+
+
+  rock.position.set(
+
+    x,
+
+    terrainHeight(
+      x,
+      z
+    ) +
+    0.78 * scale,
+
+    z
+
+  );
+
+
+  rock.castShadow =
+    true;
+
+  rock.receiveShadow =
+    true;
+
+
+  scene.add(
+    rock
+  );
+
+
+  addSolidRect(
+    x,
+    z,
+    1.35 * scale,
+    1.1 * scale
+  );
+
+}
+
+
+function addBush(
+  x,
+  z,
+  scale = 1
+) {
+
+  const bush =
+    new THREE.Mesh(
+
+      new THREE
+        .DodecahedronGeometry(
+          0.9,
+          0
+        ),
+
+      material(
+        0x718b5e,
+        1,
+        0
+      )
+
+    );
+
+
+  bush.scale.set(
+    1.25 * scale,
+    0.72 * scale,
+    scale
+  );
+
+
+  bush.position.set(
+
+    x,
+
+    terrainHeight(
+      x,
+      z
+    ) +
+    0.55 * scale,
+
+    z
+
+  );
+
+
+  bush.castShadow =
+    true;
+
+  bush.receiveShadow =
+    true;
+
+
+  scene.add(
+    bush
+  );
+
+}
+
+
+function addFence(
+  x,
+  z,
+  length,
+  rotation = 0
+) {
+
+  const group =
+    new THREE.Group();
+
+
+  const wood =
+    material(
+      0x71573f,
+      1,
+      0
+    );
+
+
+  const postCount =
+    Math.max(
+      2,
+      Math.floor(
+        length /
+        2.2
+      ) +
+      1
+    );
+
+
+  for (
+    let index = 0;
+    index < postCount;
+    index += 1
+  ) {
+
+    const t =
+      index /
+      (
+        postCount -
+        1
+      );
+
+
+    const localX =
+      -length /
+      2 +
+      length *
+      t;
+
+
+    const post =
+      new THREE.Mesh(
+
+        new THREE
+          .BoxGeometry(
+            0.22,
+            1.5,
+            0.22
+          ),
+
+        wood
+
+      );
+
+
+    post.position.set(
+      localX,
+      0.75,
+      0
+    );
+
+
+    post.castShadow =
+      true;
+
+    post.receiveShadow =
+      true;
+
+
+    group.add(
+      post
+    );
+
+  }
+
+
+  for (
+    const y
+    of [
+      0.55,
+      1.08
+    ]
+  ) {
+
+    const rail =
+      new THREE.Mesh(
+
+        new THREE
+          .BoxGeometry(
+            length,
+            0.18,
+            0.18
+          ),
+
+        wood
+
+      );
+
+
+    rail.position.y =
+      y;
+
+
+    rail.castShadow =
+      true;
+
+    rail.receiveShadow =
+      true;
+
+
+    group.add(
+      rail
+    );
+
+  }
+
+
+  group.position.set(
+
+    x,
+
+    terrainHeight(
+      x,
+      z
+    ),
+
+    z
+
+  );
+
+
+  group.rotation.y =
+    rotation;
+
+
+  scene.add(
+    group
+  );
+
+
+  if (
+    Math.abs(
+      Math.sin(
+        rotation
+      )
+    ) <
+    0.5
+  ) {
+
+    addSolidRect(
+      x,
+      z,
+      length /
+      2 +
+      0.25,
+      0.38
+    );
+
+  } else {
+
+    addSolidRect(
+      x,
+      z,
+      0.38,
+      length /
+      2 +
+      0.25
+    );
+
+  }
+
+}
 
   /*
    * =========================================================
@@ -3115,6 +3553,145 @@ addRoad(
 
     }
 
+    /*
+ * Low-poly environment pass.
+ * Symmetrical 4v4 decoration.
+ */
+
+for (
+  const [
+    x,
+    z,
+    scale
+  ]
+
+  of [
+
+    [-35, -27, 1.05],
+    [-30, 27, 0.95],
+    [-24, 31, 1.10],
+    [-34, 22, 0.90],
+
+    [35, -27, 1.05],
+    [30, 27, 0.95],
+    [24, 31, 1.10],
+    [34, 22, 0.90],
+
+    [-12, -30, 0.88],
+    [12, -30, 0.88],
+    [-12, 30, 0.88],
+    [12, 30, 0.88]
+
+  ]
+) {
+
+  addTree(
+    x,
+    z,
+    scale
+  );
+
+}
+
+
+for (
+  const [
+    x,
+    z,
+    scale,
+    rotation
+  ]
+
+  of [
+
+    [-31, -19, 1.0, 0.25],
+    [-28, 17, 0.8, -0.35],
+    [-20, -26, 0.9, 0.6],
+
+    [31, -19, 1.0, -0.25],
+    [28, 17, 0.8, 0.35],
+    [20, -26, 0.9, -0.6],
+
+    [-7, 24, 0.72, 0.2],
+    [7, 24, 0.72, -0.2]
+
+  ]
+) {
+
+  addRock(
+    x,
+    z,
+    scale,
+    rotation
+  );
+
+}
+
+
+for (
+  const [
+    x,
+    z,
+    scale
+  ]
+
+  of [
+
+    [-37, -18, 0.9],
+    [-33, 16, 0.8],
+    [-26, -23, 0.75],
+    [-20, 25, 0.85],
+
+    [37, -18, 0.9],
+    [33, 16, 0.8],
+    [26, -23, 0.75],
+    [20, 25, 0.85],
+
+    [-10, 20, 0.72],
+    [10, 20, 0.72]
+
+  ]
+) {
+
+  addBush(
+    x,
+    z,
+    scale
+  );
+
+}
+
+
+addFence(
+  -31,
+  -8,
+  8,
+  0
+);
+
+
+addFence(
+  -31,
+  8,
+  8,
+  0
+);
+
+
+addFence(
+  31,
+  -8,
+  8,
+  0
+);
+
+
+addFence(
+  31,
+  8,
+  8,
+  0
+);
 
     /*
      * Outer map walls.
