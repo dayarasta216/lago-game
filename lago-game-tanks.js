@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 20;
+  const VERSION = 21;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -29,8 +29,13 @@ const MAP_DEPTH = 78;
   const TANK_RADIUS = 1.25;
 
   const BULLET_SPEED = 21;
-  const BULLET_LIFE = 2.7;
-  const FIRE_COOLDOWN = 0.42;
+const BULLET_LIFE = 2.7;
+const FIRE_COOLDOWN = 0.42;
+
+const TANK_MAX_HP = 100;
+const BULLET_DAMAGE = 34;
+const TANK_HIT_RADIUS = 1.55;
+const RESPAWN_DELAY_SECONDS = 3.0;
 
   const TOUCH_DRIVE_RADIUS = 82;
   const TOUCH_DEAD_ZONE = 0.10;
@@ -238,8 +243,17 @@ let playerMuzzle = null;
   let fireCooldown = 0;
 
   let bullets = [];
-  let impacts = [];
-  let solidRects = [];
+let impacts = [];
+let solidRects = [];
+
+const actors =
+  new Map();
+
+let localPlayerActor =
+  null;
+
+let combatTime =
+  0;
 
 
   const aimWorld =
@@ -4805,6 +4819,396 @@ addFence(
   }
 
 
+/*
+ * =========================================================
+ * COMBAT ACTORS
+ * =========================================================
+ */
+
+function createTankActor({
+  id,
+  team,
+  spawnIndex,
+  object3D
+}) {
+
+  return {
+
+    id,
+    team,
+    spawnIndex,
+    object3D,
+
+    maxHp:
+      TANK_MAX_HP,
+
+    hp:
+      TANK_MAX_HP,
+
+    hitRadius:
+      TANK_HIT_RADIUS,
+
+    alive:
+      true,
+
+    protectedUntil:
+      0,
+
+    respawnAt:
+      0,
+
+    kills:
+      0,
+
+    deaths:
+      0
+
+  };
+
+}
+
+
+function getActorSpawn(
+  actor
+) {
+
+  const spawns =
+
+    actor.team ===
+    "red"
+
+      ? RED_SPAWNS
+      : BLUE_SPAWNS;
+
+
+  const index =
+    THREE.MathUtils
+      .clamp(
+
+        Number(
+          actor.spawnIndex ??
+          0
+        ),
+
+        0,
+        spawns.length - 1
+
+      );
+
+
+  return spawns[
+    index
+  ];
+
+}
+
+
+function spawnActor(
+  actor
+) {
+
+  if (
+    !actor ||
+    !actor.object3D
+  ) {
+
+    return;
+
+  }
+
+
+  const spawn =
+    getActorSpawn(
+      actor
+    );
+
+
+  actor.hp =
+    actor.maxHp;
+
+
+  actor.alive =
+    true;
+
+
+  actor.respawnAt =
+    0;
+
+
+  actor.protectedUntil =
+
+    combatTime +
+    SPAWN_PROTECTION_SECONDS;
+
+
+  actor.object3D.visible =
+    true;
+
+
+  actor.object3D.position.set(
+
+    spawn.x,
+
+    terrainHeight(
+      spawn.x,
+      spawn.z
+    ),
+
+    spawn.z
+
+  );
+
+
+  actor.object3D.rotation.set(
+    0,
+    spawn.yaw,
+    0
+  );
+
+}
+
+
+function actorIsProtected(
+  actor
+) {
+
+  return Boolean(
+
+    actor &&
+    actor.alive &&
+    combatTime <
+    actor.protectedUntil
+
+  );
+
+}
+
+
+function destroyActor(
+  actor,
+  sourceActorId = null
+) {
+
+  if (
+    !actor ||
+    !actor.alive
+  ) {
+
+    return;
+
+  }
+
+
+  actor.hp =
+    0;
+
+
+  actor.alive =
+    false;
+
+
+  actor.deaths +=
+    1;
+
+
+  actor.respawnAt =
+
+    combatTime +
+    RESPAWN_DELAY_SECONDS;
+
+
+  if (
+    actor.object3D
+  ) {
+
+    actor.object3D.visible =
+      false;
+
+  }
+
+
+  const sourceActor =
+    actors.get(
+      sourceActorId
+    );
+
+
+  if (
+    sourceActor &&
+    sourceActor !==
+    actor
+  ) {
+
+    sourceActor.kills +=
+      1;
+
+  }
+
+}
+
+
+function applyDamage(
+  actor,
+  amount,
+  sourceActorId = null
+) {
+
+  if (
+    !actor ||
+    !actor.alive ||
+    actorIsProtected(
+      actor
+    )
+  ) {
+
+    return false;
+
+  }
+
+
+  actor.hp =
+
+    Math.max(
+
+      0,
+
+      actor.hp -
+      Math.max(
+        0,
+        Number(
+          amount
+        ) ||
+        0
+      )
+
+    );
+
+
+  if (
+    actor.hp <=
+    0
+  ) {
+
+    destroyActor(
+      actor,
+      sourceActorId
+    );
+
+  }
+
+
+  return true;
+
+}
+
+
+function updateCombatActors() {
+
+  for (
+    const actor
+    of actors.values()
+  ) {
+
+    if (
+      actor.alive ||
+      combatTime <
+      actor.respawnAt
+    ) {
+
+      continue;
+
+    }
+
+
+    spawnActor(
+      actor
+    );
+
+  }
+
+}
+
+
+function updateCombatStatus() {
+
+  const status =
+    el(
+      "ltStatus"
+    );
+
+
+  if (
+    !status ||
+    !localPlayerActor
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !localPlayerActor.alive
+  ) {
+
+    const remaining =
+      Math.max(
+
+        0,
+
+        localPlayerActor.respawnAt -
+        combatTime
+
+      );
+
+
+    status.textContent =
+
+      "DESTROYED · RESPAWN " +
+      remaining.toFixed(
+        1
+      ) +
+      "s";
+
+
+    return;
+
+  }
+
+
+  const protection =
+    Math.max(
+
+      0,
+
+      localPlayerActor.protectedUntil -
+      combatTime
+
+    );
+
+
+  status.textContent =
+
+    "BLUE · HP " +
+    localPlayerActor.hp +
+    "/" +
+    localPlayerActor.maxHp +
+
+    (
+      protection >
+      0
+
+        ? " · SHIELD " +
+          protection.toFixed(
+            1
+          ) +
+          "s"
+
+        : ""
+    );
+
+}
+
   /*
    * =========================================================
    * PLAYER
@@ -4896,54 +5300,62 @@ addFence(
 
 
     scene.add(
+  player
+);
+
+
+localPlayerActor =
+  createTankActor({
+
+    id:
+      "blue-local-1",
+
+    team:
+      "blue",
+
+    spawnIndex:
+      1,
+
+    object3D:
       player
-    );
+
+  });
 
 
-    resetPlayerToSpawn();
+actors.set(
+  localPlayerActor.id,
+  localPlayerActor
+);
+
+
+resetPlayerToSpawn();
+  }
+
+function resetPlayerToSpawn() {
+
+  if (
+    !localPlayerActor
+  ) {
+
+    return;
 
   }
 
 
-  function resetPlayerToSpawn() {
-
-    const spawn =
-      BLUE_SPAWNS[
-        1
-      ];
+  spawnActor(
+    localPlayerActor
+  );
 
 
-    player.position.set(
-
-      spawn.x,
-
-      terrainHeight(
-        spawn.x,
-        spawn.z
-      ),
-
-      spawn.z
-
-    );
+  aimMarker.rotation.y =
+    0;
 
 
-    player.rotation.set(
-      0,
-      spawn.yaw,
-      0
-    );
+  hasAim =
+    false;
 
-
-    aimMarker.rotation.y =
-      0;
-
-
-    hasAim =
-      false;
-
-  }
-
-
+}
+  
   /*
    * =========================================================
    * GLB TANK
@@ -5463,12 +5875,15 @@ function collidesAt(
     dt
   ) {
 
-    if (!player) {
+    if (
+  !player ||
+  !localPlayerActor ||
+  !localPlayerActor.alive
+) {
 
-      return;
+  return;
 
-    }
-
+}
 
     const digitalForward =
 
@@ -5892,10 +6307,13 @@ function collidesAt(
 
     !player ||
 
-    !playerMuzzle ||
+   !playerMuzzle ||
 
-    fireCooldown >
-    0
+!localPlayerActor ||
+!localPlayerActor.alive ||
+
+fireCooldown >
+0
   ) {
 
     return;
@@ -6015,18 +6433,120 @@ function collidesAt(
     projectile
   );
 
+bullets.push({
 
-  bullets.push({
+  mesh:
+    projectile,
 
-    mesh:
-      projectile,
+  direction,
 
-    direction,
+  ownerId:
+    localPlayerActor.id,
 
-    age:
-      0
+  team:
+    localPlayerActor.team,
 
-  });
+  damage:
+    BULLET_DAMAGE,
+
+  age:
+    0
+
+});
+
+}
+
+  function findBulletActorHit(
+  bullet
+) {
+
+  if (
+    !bullet ||
+    !bullet.mesh
+  ) {
+
+    return null;
+
+  }
+
+
+  const position =
+    bullet.mesh.position;
+
+
+  for (
+    const actor
+    of actors.values()
+  ) {
+
+    if (
+      !actor.alive ||
+      !actor.object3D ||
+      actor.id ===
+      bullet.ownerId ||
+      actor.team ===
+      bullet.team
+    ) {
+
+      continue;
+
+    }
+
+
+    const target =
+      actor.object3D.position;
+
+
+    const dx =
+      position.x -
+      target.x;
+
+
+    const dz =
+      position.z -
+      target.z;
+
+
+    const radius =
+      actor.hitRadius;
+
+
+    if (
+      dx * dx +
+      dz * dz >
+      radius *
+      radius
+    ) {
+
+      continue;
+
+    }
+
+
+    const targetY =
+      target.y +
+      0.85;
+
+
+    if (
+      Math.abs(
+        position.y -
+        targetY
+      ) >
+      1.55
+    ) {
+
+      continue;
+
+    }
+
+
+    return actor;
+
+  }
+
+
+  return null;
 
 }
 
@@ -6227,6 +6747,36 @@ function collidesAt(
 
         );
 
+      const hitActor =
+  findBulletActorHit(
+    bullet
+  );
+
+
+if (
+  hitActor
+) {
+
+  applyDamage(
+    hitActor,
+    bullet.damage,
+    bullet.ownerId
+  );
+
+
+  createImpact(
+    bullet.mesh.position
+  );
+
+
+  removeBullet(
+    index
+  );
+
+
+  continue;
+
+}
 
       if (
         bulletHitsSolid(
@@ -6530,23 +7080,31 @@ if (
 
       );
 
+fireCooldown =
 
-    fireCooldown =
+  Math.max(
 
-      Math.max(
+    0,
 
-        0,
+    fireCooldown -
+    dt
 
-        fireCooldown -
-        dt
-
-      );
+  );
 
 
-    updatePlayer(
-      dt
-    );
+combatTime +=
+  dt;
 
+
+updateCombatActors();
+
+
+updateCombatStatus();
+
+
+updatePlayer(
+  dt
+);
 
     updateAim();
 
@@ -6603,11 +7161,14 @@ if (
     phase =
       "loading";
 
+clearCombatFX();
 
-    clearCombatFX();
+
+combatTime =
+  0;
 
 
-    resetPlayerToSpawn();
+resetPlayerToSpawn();
 
 
     el(
