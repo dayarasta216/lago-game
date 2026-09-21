@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 32;
+  const VERSION = 33;
 
 let overlay = null;
 
