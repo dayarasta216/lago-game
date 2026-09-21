@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 21;
+  const VERSION = 22;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -249,13 +249,19 @@ let solidRects = [];
 const actors =
   new Map();
 
+const botActors =
+  [];
+
+const teamScores = {
+  blue: 0,
+  red: 0
+};
+
 let localPlayerActor =
   null;
 
 let combatTime =
   0;
-
-
   const aimWorld =
     new THREE.Vector3(
       0,
@@ -2321,11 +2327,13 @@ scene.add(
 
     buildMap01();
 
+createPlayerShell();
 
-    createPlayerShell();
+
+createBotActors();
 
 
-    resizeObserver =
+resizeObserver =
       new ResizeObserver(
         resize
       );
@@ -4829,7 +4837,8 @@ function createTankActor({
   id,
   team,
   spawnIndex,
-  object3D
+  object3D,
+  isBot = false
 }) {
 
   return {
@@ -4838,6 +4847,26 @@ function createTankActor({
     team,
     spawnIndex,
     object3D,
+
+    isBot:
+      Boolean(
+        isBot
+      ),
+
+    visual:
+      null,
+
+    turretPivot:
+      null,
+
+    muzzle:
+      null,
+
+    targetId:
+      null,
+
+    nextThinkAt:
+      0,
 
     maxHp:
       TANK_MAX_HP,
@@ -4931,11 +4960,19 @@ function spawnActor(
     true;
 
 
-  actor.respawnAt =
-    0;
+ actor.respawnAt =
+  0;
 
 
-  actor.protectedUntil =
+actor.targetId =
+  null;
+
+
+actor.nextThinkAt =
+  0;
+
+
+actor.protectedUntil =
 
     combatTime +
     SPAWN_PROTECTION_SECONDS;
@@ -5034,16 +5071,30 @@ function destroyActor(
 
 
   if (
-    sourceActor &&
-    sourceActor !==
-    actor
+  sourceActor &&
+  sourceActor !==
+  actor
+) {
+
+  sourceActor.kills +=
+    1;
+
+
+  if (
+    sourceActor.team !==
+    actor.team &&
+    sourceActor.team in
+    teamScores
   ) {
 
-    sourceActor.kills +=
+    teamScores[
+      sourceActor.team
+    ] +=
       1;
 
   }
 
+}
 }
 
 
@@ -5128,7 +5179,6 @@ function updateCombatActors() {
 
 }
 
-
 function updateCombatStatus() {
 
   const status =
@@ -5145,6 +5195,15 @@ function updateCombatStatus() {
     return;
 
   }
+
+
+  const scoreText =
+
+    "BLUE " +
+    teamScores.blue +
+    " · " +
+    teamScores.red +
+    " RED";
 
 
   if (
@@ -5164,7 +5223,8 @@ function updateCombatStatus() {
 
     status.textContent =
 
-      "DESTROYED · RESPAWN " +
+      scoreText +
+      " · DESTROYED · RESPAWN " +
       remaining.toFixed(
         1
       ) +
@@ -5189,7 +5249,8 @@ function updateCombatStatus() {
 
   status.textContent =
 
-    "BLUE · HP " +
+    scoreText +
+    " · HP " +
     localPlayerActor.hp +
     "/" +
     localPlayerActor.maxHp +
@@ -5330,6 +5391,179 @@ actors.set(
 
 resetPlayerToSpawn();
   }
+
+  function createBotActors() {
+
+  if (
+    botActors.length >
+    0
+  ) {
+
+    return;
+
+  }
+
+
+  const definitions = [
+
+    {
+      id: "blue-bot-1",
+      team: "blue",
+      spawnIndex: 0
+    },
+
+    {
+      id: "blue-bot-2",
+      team: "blue",
+      spawnIndex: 2
+    },
+
+    {
+      id: "blue-bot-3",
+      team: "blue",
+      spawnIndex: 3
+    },
+
+    {
+      id: "red-bot-1",
+      team: "red",
+      spawnIndex: 0
+    },
+
+    {
+      id: "red-bot-2",
+      team: "red",
+      spawnIndex: 1
+    },
+
+    {
+      id: "red-bot-3",
+      team: "red",
+      spawnIndex: 2
+    },
+
+    {
+      id: "red-bot-4",
+      team: "red",
+      spawnIndex: 3
+    }
+
+  ];
+
+
+  for (
+    const definition
+    of definitions
+  ) {
+
+    const root =
+      new THREE.Group();
+
+
+    root.rotation.order =
+      "YXZ";
+
+
+    root.visible =
+      false;
+
+
+    const visual =
+      new THREE.Group();
+
+
+    root.add(
+      visual
+    );
+
+
+    scene.add(
+      root
+    );
+
+
+    const actor =
+      createTankActor({
+
+        ...definition,
+
+        object3D:
+          root,
+
+        isBot:
+          true
+
+      });
+
+
+    actor.visual =
+      visual;
+
+
+    actors.set(
+      actor.id,
+      actor
+    );
+
+
+    botActors.push(
+      actor
+    );
+
+  }
+
+}
+
+
+function resetCombatRoster() {
+
+  teamScores.blue =
+    0;
+
+
+  teamScores.red =
+    0;
+
+
+  for (
+    const actor
+    of actors.values()
+  ) {
+
+    actor.kills =
+      0;
+
+
+    actor.deaths =
+      0;
+
+
+    actor.targetId =
+      null;
+
+
+    actor.nextThinkAt =
+      0;
+
+
+    if (
+      actor ===
+      localPlayerActor
+    ) {
+
+      resetPlayerToSpawn();
+
+    } else {
+
+      spawnActor(
+        actor
+      );
+
+    }
+
+  }
+
+}
 
 function resetPlayerToSpawn() {
 
@@ -5671,52 +5905,370 @@ rigTankModel(
 
   }
 
+async function mountPlayerTank() {
 
-  async function mountPlayerTank() {
-
-    playerVisual.clear();
-
-
-    const template =
-
-      await loadTankTemplate(
-        TEAM_BLUE_MODEL
-      );
+  playerVisual.clear();
 
 
-   const model =
-  template.clone(
-    true
+  const template =
+
+    await loadTankTemplate(
+      TEAM_BLUE_MODEL
+    );
+
+
+  const model =
+    template.clone(
+      true
+    );
+
+
+  playerTurretPivot =
+    model.getObjectByName(
+      "TurretPivot"
+    );
+
+
+  playerMuzzle =
+    model.getObjectByName(
+      "Muzzle"
+    );
+
+
+  if (
+    !playerTurretPivot ||
+    !playerMuzzle
+  ) {
+
+    throw new Error(
+      "Player tank rig is incomplete."
+    );
+
+  }
+
+
+  playerVisual.add(
+    model
   );
 
 
-playerTurretPivot =
-  model.getObjectByName(
-    "TurretPivot"
-  );
+  if (
+    localPlayerActor
+  ) {
+
+    localPlayerActor.visual =
+      playerVisual;
 
 
-playerMuzzle =
-  model.getObjectByName(
-    "Muzzle"
-  );
+    localPlayerActor.turretPivot =
+      playerTurretPivot;
 
 
-if (
-  !playerTurretPivot ||
-  !playerMuzzle
+    localPlayerActor.muzzle =
+      playerMuzzle;
+
+  }
+
+}
+
+
+async function mountBotTank(
+  actor
 ) {
 
-  throw new Error(
-    "Tank rig is incomplete."
+  if (
+    !actor ||
+    !actor.visual
+  ) {
+
+    return;
+
+  }
+
+
+  actor.visual.clear();
+
+
+  const modelUrl =
+
+    actor.team ===
+    "red"
+
+      ? TEAM_RED_MODEL
+      : TEAM_BLUE_MODEL;
+
+
+  const template =
+
+    await loadTankTemplate(
+      modelUrl
+    );
+
+
+  const model =
+    template.clone(
+      true
+    );
+
+
+  actor.turretPivot =
+    model.getObjectByName(
+      "TurretPivot"
+    );
+
+
+  actor.muzzle =
+    model.getObjectByName(
+      "Muzzle"
+    );
+
+
+  if (
+    !actor.turretPivot ||
+    !actor.muzzle
+  ) {
+
+    throw new Error(
+      `Bot tank rig is incomplete: ${actor.id}`
+    );
+
+  }
+
+
+  actor.visual.add(
+    model
   );
 
 }
 
 
-playerVisual.add(
-  model
-);
+async function mountBotTanks() {
+
+  await Promise.all(
+
+    botActors
+      .map(
+        actor =>
+          mountBotTank(
+            actor
+          )
+      )
+
+  );
+
+}
+
+
+function findNearestEnemyActor(
+  actor
+) {
+
+  if (
+    !actor ||
+    !actor.alive ||
+    !actor.object3D
+  ) {
+
+    return null;
+
+  }
+
+
+  let best =
+    null;
+
+
+  let bestDistanceSq =
+    Infinity;
+
+
+  for (
+    const candidate
+    of actors.values()
+  ) {
+
+    if (
+      candidate ===
+      actor ||
+      !candidate.alive ||
+      !candidate.object3D ||
+      candidate.team ===
+      actor.team
+    ) {
+
+      continue;
+
+    }
+
+
+    const distanceSq =
+      actor.object3D
+        .position
+        .distanceToSquared(
+          candidate.object3D
+            .position
+        );
+
+
+    if (
+      distanceSq <
+      bestDistanceSq
+    ) {
+
+      best =
+        candidate;
+
+
+      bestDistanceSq =
+        distanceSq;
+
+    }
+
+  }
+
+
+  return best;
+
+}
+
+
+function aimBotTurretAt(
+  actor,
+  target
+) {
+
+  if (
+    !actor ||
+    !actor.turretPivot ||
+    !actor.object3D ||
+    !target ||
+    !target.object3D
+  ) {
+
+    return;
+
+  }
+
+
+  const frame =
+    actor.turretPivot.parent;
+
+
+  if (!frame) {
+
+    return;
+
+  }
+
+
+  actor.object3D
+    .updateMatrixWorld(
+      true
+    );
+
+
+  const worldPoint =
+    target.object3D
+      .position
+      .clone();
+
+
+  worldPoint.y +=
+    0.8;
+
+
+  const localTarget =
+    frame.worldToLocal(
+      worldPoint
+    );
+
+
+  const dx =
+
+    localTarget.x -
+    actor.turretPivot
+      .position.x;
+
+
+  const dz =
+
+    localTarget.z -
+    actor.turretPivot
+      .position.z;
+
+
+  if (
+    Math.hypot(
+      dx,
+      dz
+    ) <
+    0.001
+  ) {
+
+    return;
+
+  }
+
+
+  actor.turretPivot.rotation.y =
+
+    Math.atan2(
+      dz,
+      -dx
+    );
+
+}
+
+
+function updateBotTargets() {
+
+  for (
+    const actor
+    of botActors
+  ) {
+
+    if (
+      !actor.alive ||
+      combatTime <
+      actor.nextThinkAt
+    ) {
+
+      continue;
+
+    }
+
+
+    actor.nextThinkAt =
+
+      combatTime +
+      0.4;
+
+
+    const target =
+      findNearestEnemyActor(
+        actor
+      );
+
+
+    actor.targetId =
+
+      target
+        ?.id ||
+      null;
+
+
+    if (
+      target
+    ) {
+
+      aimBotTurretAt(
+        actor,
+        target
+      );
+
+    }
+
+  }
 
 }
 
@@ -7095,12 +7647,13 @@ fireCooldown =
 combatTime +=
   dt;
 
-
 updateCombatActors();
 
 
-updateCombatStatus();
+updateBotTargets();
 
+
+updateCombatStatus();
 
 updatePlayer(
   dt
@@ -7168,9 +7721,6 @@ combatTime =
   0;
 
 
-resetPlayerToSpawn();
-
-
     el(
       "ltPanelCopy"
     ).textContent =
@@ -7179,8 +7729,17 @@ resetPlayerToSpawn();
 
 
     try {
+      
+await Promise.all([
 
-      await mountPlayerTank();
+  mountPlayerTank(),
+
+  mountBotTanks()
+
+]);
+
+
+resetCombatRoster();
 
 
       el(
