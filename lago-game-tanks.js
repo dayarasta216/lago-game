@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 13;
+  const VERSION = 14;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -4433,10 +4433,6 @@ function buildStylizedArena(
       80,
       180
     );
-
-  buildStylizedArena(
-  scene
-);
   
   const materials =
     makeMaterialSet();
