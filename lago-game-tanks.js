@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 18;
+  const VERSION = 19;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -2181,23 +2181,22 @@ let playerMuzzle = null;
       );
 
 
-    scene.fog =
-      new THREE.Fog(
-        0x9cb6c3,
-        38,
-        82
-      );
+   scene.fog =
+  new THREE.Fog(
+    0x9cb6c3,
+    58,
+    138
+  );
 
 
     camera =
       new THREE
-        .PerspectiveCamera(
-          48,
-          1,
-          0.1,
-          120
-        );
-
+  .PerspectiveCamera(
+    48,
+    1,
+    0.1,
+    180
+  );
 
    const hemiLight =
   new THREE.HemisphereLight(
@@ -2379,77 +2378,341 @@ scene.add(
 
 
   function addRoad(
+  x,
+  z,
+  width,
+  depth
+) {
+
+  const baseY =
+    terrainHeight(
+      x,
+      z
+    );
+
+
+  const shoulder =
+    new THREE.Mesh(
+
+      new THREE
+        .PlaneGeometry(
+          width + 1.6,
+          depth + 1.6
+        ),
+
+      new THREE
+        .MeshStandardMaterial({
+
+          color:
+            0x746b5b,
+
+          roughness:
+            1,
+
+          metalness:
+            0,
+
+          polygonOffset:
+            true,
+
+          polygonOffsetFactor:
+            -1,
+
+          polygonOffsetUnits:
+            -1
+
+        })
+
+    );
+
+
+  shoulder.rotation.x =
+    -Math.PI /
+    2;
+
+
+  shoulder.position.set(
     x,
-    z,
-    width,
-    depth
+    baseY + 0.022,
+    z
+  );
+
+
+  shoulder.receiveShadow =
+    true;
+
+
+  scene.add(
+    shoulder
+  );
+
+
+  const road =
+    new THREE.Mesh(
+
+      new THREE
+        .PlaneGeometry(
+          width,
+          depth
+        ),
+
+      new THREE
+        .MeshStandardMaterial({
+
+          color:
+            0x565852,
+
+          roughness:
+            1,
+
+          metalness:
+            0,
+
+          polygonOffset:
+            true,
+
+          polygonOffsetFactor:
+            -2,
+
+          polygonOffsetUnits:
+            -2
+
+        })
+
+    );
+
+
+  road.rotation.x =
+    -Math.PI /
+    2;
+
+
+  road.position.set(
+    x,
+    baseY + 0.035,
+    z
+  );
+
+
+  road.receiveShadow =
+    true;
+
+
+  scene.add(
+    road
+  );
+
+
+  const horizontal =
+    width >
+    depth;
+
+
+  const roadLength =
+    horizontal
+      ? width
+      : depth;
+
+
+  const dashLength =
+    3.2;
+
+
+  const dashGap =
+    2.6;
+
+
+  const step =
+    dashLength +
+    dashGap;
+
+
+  const dashCount =
+    Math.max(
+      1,
+      Math.floor(
+        roadLength /
+        step
+      )
+    );
+
+
+  const markingMaterial =
+    new THREE
+      .MeshBasicMaterial({
+
+        color:
+          0xc5b98e,
+
+        transparent:
+          true,
+
+        opacity:
+          0.72,
+
+        depthWrite:
+          false
+
+      });
+
+
+  for (
+    let index = 0;
+    index < dashCount;
+    index += 1
   ) {
 
-    const road =
+    const offset =
+
+      -roadLength /
+      2 +
+
+      step *
+      (
+        index +
+        0.5
+      );
+
+
+    const dash =
       new THREE.Mesh(
 
         new THREE
           .PlaneGeometry(
-            width,
-            depth
+
+            horizontal
+              ? dashLength
+              : 0.13,
+
+            horizontal
+              ? 0.13
+              : dashLength
+
           ),
 
-        new THREE
-          .MeshStandardMaterial({
-
-            color:
-              0x5f5c55,
-
-            roughness:
-              1,
-
-            metalness:
-              0,
-
-            polygonOffset:
-              true,
-
-            polygonOffsetFactor:
-              -2,
-
-            polygonOffsetUnits:
-              -2
-
-          })
+        markingMaterial
 
       );
 
 
-    road.rotation.x =
+    dash.rotation.x =
       -Math.PI /
       2;
 
 
-    road.position.set(
+    dash.position.set(
 
-      x,
+      horizontal
+        ? x + offset
+        : x,
 
-      terrainHeight(
-        x,
-        z
-      ) +
-      0.035,
+      baseY + 0.047,
 
-      z
+      horizontal
+        ? z
+        : z + offset
 
     );
 
 
-    road.receiveShadow =
-      true;
-
-
     scene.add(
-      road
+      dash
     );
 
   }
 
+}
+
+
+function addGroundPatch(
+  x,
+  z,
+  width,
+  depth,
+  rotation = 0,
+  color = 0x7e705a
+) {
+
+  const patch =
+    new THREE.Mesh(
+
+      new THREE
+        .CircleGeometry(
+          1,
+          18
+        ),
+
+      new THREE
+        .MeshStandardMaterial({
+
+          color,
+
+          roughness:
+            1,
+
+          metalness:
+            0,
+
+          transparent:
+            true,
+
+          opacity:
+            0.94,
+
+          polygonOffset:
+            true,
+
+          polygonOffsetFactor:
+            -3,
+
+          polygonOffsetUnits:
+            -3
+
+        })
+
+    );
+
+
+  patch.rotation.x =
+    -Math.PI /
+    2;
+
+
+  patch.rotation.z =
+    rotation;
+
+
+  patch.scale.set(
+    width,
+    depth,
+    1
+  );
+
+
+  patch.position.set(
+
+    x,
+
+    terrainHeight(
+      x,
+      z
+    ) +
+    0.026,
+
+    z
+
+  );
+
+
+  patch.receiveShadow =
+    true;
+
+
+  scene.add(
+    patch
+  );
+
+}
 
   /*
    * =========================================================
@@ -3963,6 +4226,86 @@ addRoad(
 
     }
 
+/*
+ * Dirt and worn-ground patches.
+ * Decorative only: no collision.
+ */
+
+addGroundPatch(
+  -21,
+  -8,
+  7.8,
+  4.3,
+  0.18
+);
+
+
+addGroundPatch(
+  -18,
+  9,
+  6.2,
+  3.8,
+  -0.22
+);
+
+
+addGroundPatch(
+  21,
+  -8,
+  7.8,
+  4.3,
+  -0.18
+);
+
+
+addGroundPatch(
+  18,
+  9,
+  6.2,
+  3.8,
+  0.22
+);
+
+
+addGroundPatch(
+  -31,
+  -22,
+  5.0,
+  3.1,
+  0.48,
+  0x776b57
+);
+
+
+addGroundPatch(
+  31,
+  -22,
+  5.0,
+  3.1,
+  -0.48,
+  0x776b57
+);
+
+
+addGroundPatch(
+  -27,
+  24,
+  4.6,
+  2.8,
+  -0.35,
+  0x82735c
+);
+
+
+addGroundPatch(
+  27,
+  24,
+  4.6,
+  2.8,
+  0.35,
+  0x82735c
+);
+    
     /*
  * Low-poly environment pass.
  * Symmetrical 4v4 decoration.
