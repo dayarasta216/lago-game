@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 17;
+  const VERSION = 18;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -2494,189 +2494,599 @@ scene.add(
    */
 
   function addBuilding(
-    x,
-    z,
-    width,
-    depth,
-    height,
-    color
-  ) {
+  x,
+  z,
+  width,
+  depth,
+  height,
+  color
+) {
 
-    const group =
-      new THREE.Group();
-
-
-    const baseY =
-      terrainHeight(
-        x,
-        z
-      );
+  const group =
+    new THREE.Group();
 
 
-    const body =
-      box(
-        width,
-        height,
-        depth,
-        color
-      );
-
-
-    body.position.y =
-      height /
-      2;
-
-
-    group.add(
-      body
+  const baseY =
+    terrainHeight(
+      x,
+      z
     );
 
 
-    const roof =
+  const body =
+    box(
+      width,
+      height,
+      depth,
+      color
+    );
+
+
+  body.position.y =
+    height /
+    2;
+
+
+  group.add(
+    body
+  );
+
+
+  const foundation =
+    box(
+
+      width +
+      0.35,
+
+      0.34,
+
+      depth +
+      0.35,
+
+      0x6b6257
+
+    );
+
+
+  foundation.position.y =
+    0.17;
+
+
+  group.add(
+    foundation
+  );
+
+
+  const roof =
+    new THREE.Mesh(
+
+      new THREE
+        .ConeGeometry(
+
+          Math.max(
+            width,
+            depth
+          ) *
+          0.72,
+
+          Math.max(
+            1.0,
+            height *
+            0.25
+          ),
+
+          4
+
+        ),
+
+      material(
+        0x584638,
+        0.94,
+        0
+      )
+
+    );
+
+
+  roof.rotation.y =
+    Math.PI /
+    4;
+
+
+  roof.position.y =
+    height +
+    0.52;
+
+
+  roof.castShadow =
+    true;
+
+
+  roof.receiveShadow =
+    true;
+
+
+  group.add(
+    roof
+  );
+
+
+  const door =
+    box(
+
+      Math.min(
+        1.3,
+        width *
+        0.25
+      ),
+
+      Math.min(
+        2.25,
+        height *
+        0.68
+      ),
+
+      0.16,
+
+      0x59483b
+
+    );
+
+
+  door.position.set(
+
+    0,
+
+    Math.min(
+      1.12,
+      height *
+      0.34
+    ),
+
+    depth /
+    2 +
+    0.09
+
+  );
+
+
+  group.add(
+    door
+  );
+
+
+  const windowMaterial =
+    material(
+      0x6f8790,
+      0.78,
+      0.02
+    );
+
+
+  const windowWidth =
+    Math.min(
+      1.0,
+      width *
+      0.20
+    );
+
+
+  const windowHeight =
+    Math.min(
+      0.9,
+      height *
+      0.25
+    );
+
+
+  const windowY =
+    Math.min(
+      height *
+      0.62,
+      height -
+      0.7
+    );
+
+
+  for (
+    const side
+    of [
+      -1,
+      1
+    ]
+  ) {
+
+    const frontWindow =
       new THREE.Mesh(
 
         new THREE
-          .ConeGeometry(
-
-            Math.max(
-              width,
-              depth
-            ) *
-            0.72,
-
-            Math.max(
-              0.8,
-              height *
-              0.22
-            ),
-
-            4
-
+          .BoxGeometry(
+            windowWidth,
+            windowHeight,
+            0.12
           ),
 
-        material(
-          0x584638,
-          0.94,
-          0
-        )
+        windowMaterial
 
       );
 
 
-    roof.rotation.y =
-      Math.PI /
-      4;
+    frontWindow.position.set(
 
+      side *
+      width *
+      0.27,
 
-    roof.position.y =
-      height +
-      0.45;
+      windowY,
 
+      depth /
+      2 +
+      0.07
 
-    roof.castShadow =
-      true;
-
-
-    roof.receiveShadow =
-      true;
+    );
 
 
     group.add(
-      roof
+      frontWindow
     );
 
 
-    group.position.set(
-      x,
-      baseY,
-      z
-    );
+    const backWindow =
+      frontWindow.clone();
 
 
-    scene.add(
-      group
-    );
+    backWindow.position.z =
+      -depth /
+      2 -
+      0.07;
 
 
-    addSolidRect(
-
-      x,
-      z,
-
-      width /
-      2 +
-      0.55,
-
-      depth /
-      2 +
-      0.55
-
+    group.add(
+      backWindow
     );
 
   }
 
 
-  function addWarehouse(
-    x,
-    z,
-    width,
-    depth,
-    height
+  for (
+    const side
+    of [
+      -1,
+      1
+    ]
   ) {
 
-    const baseY =
-      terrainHeight(
-        x,
-        z
+    const sideWindow =
+      new THREE.Mesh(
+
+        new THREE
+          .BoxGeometry(
+            0.12,
+            windowHeight,
+            Math.min(
+              1.1,
+              depth *
+              0.24
+            )
+          ),
+
+        windowMaterial
+
       );
 
 
-    const building =
-      box(
+    sideWindow.position.set(
 
-        width,
-        height,
-        depth,
+      side *
+      (
+        width /
+        2 +
+        0.07
+      ),
 
-        0x777a72
+      windowY,
 
-      );
-
-
-    building.position.set(
-
-      x,
-
-      baseY +
-      height /
-      2,
-
-      z
+      0
 
     );
 
 
-    scene.add(
-      building
-    );
-
-
-    addSolidRect(
-
-      x,
-      z,
-
-      width /
-      2 +
-      0.6,
-
-      depth /
-      2 +
-      0.6
-
+    group.add(
+      sideWindow
     );
 
   }
+
+
+  const chimney =
+    box(
+      0.52,
+      1.35,
+      0.52,
+      0x62574d
+    );
+
+
+  chimney.position.set(
+
+    width *
+    0.22,
+
+    height +
+    0.95,
+
+    -depth *
+    0.12
+
+  );
+
+
+  group.add(
+    chimney
+  );
+
+
+  group.position.set(
+    x,
+    baseY,
+    z
+  );
+
+
+  scene.add(
+    group
+  );
+
+
+  addSolidRect(
+
+    x,
+    z,
+
+    width /
+    2 +
+    0.55,
+
+    depth /
+    2 +
+    0.55
+
+  );
+
+}
+
+
+function addWarehouse(
+  x,
+  z,
+  width,
+  depth,
+  height
+) {
+
+  const group =
+    new THREE.Group();
+
+
+  const baseY =
+    terrainHeight(
+      x,
+      z
+    );
+
+
+  const body =
+    box(
+
+      width,
+      height,
+      depth,
+
+      0x777a72
+
+    );
+
+
+  body.position.y =
+    height /
+    2;
+
+
+  group.add(
+    body
+  );
+
+
+  const roof =
+    box(
+
+      width +
+      0.35,
+
+      0.38,
+
+      depth +
+      0.35,
+
+      0x555b58
+
+    );
+
+
+  roof.position.y =
+    height +
+    0.19;
+
+
+  group.add(
+    roof
+  );
+
+
+  const largeDoor =
+    box(
+
+      Math.min(
+        3.4,
+        width *
+        0.44
+      ),
+
+      Math.min(
+        2.55,
+        height *
+        0.78
+      ),
+
+      0.18,
+
+      0x4f5654
+
+    );
+
+
+  largeDoor.position.set(
+
+    0,
+
+    Math.min(
+      1.28,
+      height *
+      0.39
+    ),
+
+    depth /
+    2 +
+    0.10
+
+  );
+
+
+  group.add(
+    largeDoor
+  );
+
+
+  const upperWindowMaterial =
+    material(
+      0x718b91,
+      0.8,
+      0.03
+    );
+
+
+  for (
+    const side
+    of [
+      -1,
+      1
+    ]
+  ) {
+
+    const window =
+      new THREE.Mesh(
+
+        new THREE
+          .BoxGeometry(
+            1.15,
+            0.58,
+            0.12
+          ),
+
+        upperWindowMaterial
+
+      );
+
+
+    window.position.set(
+
+      side *
+      width *
+      0.30,
+
+      height *
+      0.70,
+
+      depth /
+      2 +
+      0.07
+
+    );
+
+
+    group.add(
+      window
+    );
+
+  }
+
+
+  const vent =
+    new THREE.Mesh(
+
+      new THREE
+        .CylinderGeometry(
+          0.34,
+          0.34,
+          0.65,
+          8
+        ),
+
+      material(
+        0x666c69,
+        0.86,
+        0.08
+      )
+
+    );
+
+
+  vent.position.set(
+    width *
+    0.22,
+    height +
+    0.70,
+    0
+  );
+
+
+  vent.castShadow =
+    true;
+
+
+  group.add(
+    vent
+  );
+
+
+  group.position.set(
+    x,
+    baseY,
+    z
+  );
+
+
+  scene.add(
+    group
+  );
+
+
+  addSolidRect(
+
+    x,
+    z,
+
+    width /
+    2 +
+    0.6,
+
+    depth /
+    2 +
+    0.6
+
+  );
+
+}
 
 
   function addWall(
