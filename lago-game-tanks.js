@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 22;
+  const VERSION = 23;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -36,6 +36,15 @@ const TANK_MAX_HP = 100;
 const BULLET_DAMAGE = 34;
 const TANK_HIT_RADIUS = 1.55;
 const RESPAWN_DELAY_SECONDS = 3.0;
+
+const BOT_MOVE_SPEED = 3.8;
+const BOT_TURN_SPEED = 1.75;
+const BOT_FIRE_COOLDOWN = 0.95;
+const BOT_FIRE_RANGE = 32;
+const BOT_STOP_DISTANCE = 8.5;
+
+const MATCH_DURATION_SECONDS = 180;
+const MATCH_SCORE_LIMIT = 10;
 
   const TOUCH_DRIVE_RADIUS = 82;
   const TOUCH_DEAD_ZONE = 0.10;
@@ -262,6 +271,19 @@ let localPlayerActor =
 
 let combatTime =
   0;
+
+const matchState = {
+
+  status:
+    "idle",
+
+  timeRemaining:
+    MATCH_DURATION_SECONDS,
+
+  winner:
+    null
+
+};
   const aimWorld =
     new THREE.Vector3(
       0,
@@ -4868,6 +4890,15 @@ function createTankActor({
     nextThinkAt:
       0,
 
+nextFireAt:
+  0,
+
+avoidUntil:
+  0,
+
+avoidDirection:
+  1,
+    
     maxHp:
       TANK_MAX_HP,
 
@@ -4971,6 +5002,13 @@ actor.targetId =
 actor.nextThinkAt =
   0;
 
+  actor.nextFireAt =
+  combatTime +
+  0.65;
+
+
+actor.avoidUntil =
+  0;
 
 actor.protectedUntil =
 
@@ -5155,6 +5193,15 @@ function applyDamage(
 
 function updateCombatActors() {
 
+if (
+  matchState.status !==
+  "running"
+) {
+
+  return;
+
+}
+  
   for (
     const actor
     of actors.values()
@@ -5179,6 +5226,141 @@ function updateCombatActors() {
 
 }
 
+  function resetMatchState() {
+
+  matchState.status =
+    "running";
+
+
+  matchState.timeRemaining =
+    MATCH_DURATION_SECONDS;
+
+
+  matchState.winner =
+    null;
+
+}
+
+
+function endMatch(
+  winner = null
+) {
+
+  if (
+    matchState.status !==
+    "running"
+  ) {
+
+    return;
+
+  }
+
+
+  matchState.status =
+    "ended";
+
+
+  matchState.winner =
+    winner;
+
+
+  clearCombatFX();
+
+}
+
+
+function updateMatch(
+  dt
+) {
+
+  if (
+    matchState.status !==
+    "running"
+  ) {
+
+    return;
+
+  }
+
+
+  matchState.timeRemaining =
+
+    Math.max(
+
+      0,
+
+      matchState.timeRemaining -
+      dt
+
+    );
+
+
+  if (
+    teamScores.blue >=
+    MATCH_SCORE_LIMIT
+  ) {
+
+    endMatch(
+      "blue"
+    );
+
+    return;
+
+  }
+
+
+  if (
+    teamScores.red >=
+    MATCH_SCORE_LIMIT
+  ) {
+
+    endMatch(
+      "red"
+    );
+
+    return;
+
+  }
+
+
+  if (
+    matchState.timeRemaining >
+    0
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    teamScores.blue >
+    teamScores.red
+  ) {
+
+    endMatch(
+      "blue"
+    );
+
+  } else if (
+    teamScores.red >
+    teamScores.blue
+  ) {
+
+    endMatch(
+      "red"
+    );
+
+  } else {
+
+    endMatch(
+      "draw"
+    );
+
+  }
+
+}
+
 function updateCombatStatus() {
 
   const status =
@@ -5197,6 +5379,34 @@ function updateCombatStatus() {
   }
 
 
+  const minutes =
+    Math.floor(
+      matchState.timeRemaining /
+      60
+    );
+
+
+  const seconds =
+    Math.floor(
+      matchState.timeRemaining %
+      60
+    );
+
+
+  const timeText =
+
+    String(
+      minutes
+    ) +
+    ":" +
+    String(
+      seconds
+    ).padStart(
+      2,
+      "0"
+    );
+
+
   const scoreText =
 
     "BLUE " +
@@ -5204,6 +5414,37 @@ function updateCombatStatus() {
     " · " +
     teamScores.red +
     " RED";
+
+
+  if (
+    matchState.status ===
+    "ended"
+  ) {
+
+    const result =
+
+      matchState.winner ===
+      "draw"
+
+        ? "DRAW"
+
+        : String(
+            matchState.winner ||
+            ""
+          ).toUpperCase() +
+          " WINS";
+
+
+    status.textContent =
+
+      scoreText +
+      " · " +
+      result;
+
+
+    return;
+
+  }
 
 
   if (
@@ -5223,8 +5464,10 @@ function updateCombatStatus() {
 
     status.textContent =
 
+      timeText +
+      " · " +
       scoreText +
-      " · DESTROYED · RESPAWN " +
+      " · RESPAWN " +
       remaining.toFixed(
         1
       ) +
@@ -5249,6 +5492,8 @@ function updateCombatStatus() {
 
   status.textContent =
 
+    timeText +
+    " · " +
     scoreText +
     " · HP " +
     localPlayerActor.hp +
@@ -5545,6 +5790,12 @@ function resetCombatRoster() {
     actor.nextThinkAt =
       0;
 
+    actor.nextFireAt =
+  0;
+
+
+actor.avoidUntil =
+  0;
 
     if (
       actor ===
@@ -6222,6 +6473,15 @@ function aimBotTurretAt(
 
 function updateBotTargets() {
 
+if (
+  matchState.status !==
+  "running"
+) {
+
+  return;
+
+}
+  
   for (
     const actor
     of botActors
@@ -6417,6 +6677,337 @@ function collidesAt(
 
 }
 
+  function actorCollidesAt(
+  actor,
+  x,
+  z
+) {
+
+  if (
+    collidesAt(
+      x,
+      z
+    )
+  ) {
+
+    return true;
+
+  }
+
+
+  for (
+    const other
+    of actors.values()
+  ) {
+
+    if (
+      other ===
+      actor ||
+      !other.alive ||
+      !other.object3D
+    ) {
+
+      continue;
+
+    }
+
+
+    const dx =
+      x -
+      other.object3D.position.x;
+
+
+    const dz =
+      z -
+      other.object3D.position.z;
+
+
+    const minDistance =
+
+      actor.hitRadius +
+      other.hitRadius +
+      0.35;
+
+
+    if (
+      dx * dx +
+      dz * dz <
+      minDistance *
+      minDistance
+    ) {
+
+      return true;
+
+    }
+
+  }
+
+
+  return false;
+
+}
+
+
+function normalizeAngle(
+  angle
+) {
+
+  return Math.atan2(
+    Math.sin(
+      angle
+    ),
+    Math.cos(
+      angle
+    )
+  );
+
+}
+
+
+function updateBotMovement(
+  dt
+) {
+
+  if (
+    matchState.status !==
+    "running"
+  ) {
+
+    return;
+
+  }
+
+
+  for (
+    const actor
+    of botActors
+  ) {
+
+    if (
+      !actor.alive ||
+      !actor.object3D
+    ) {
+
+      continue;
+
+    }
+
+
+    const target =
+      actors.get(
+        actor.targetId
+      );
+
+
+    if (
+      !target ||
+      !target.alive ||
+      !target.object3D
+    ) {
+
+      continue;
+
+    }
+
+
+    const root =
+      actor.object3D;
+
+
+    const dx =
+      target.object3D.position.x -
+      root.position.x;
+
+
+    const dz =
+      target.object3D.position.z -
+      root.position.z;
+
+
+    const distance =
+      Math.hypot(
+        dx,
+        dz
+      );
+
+
+    let desiredYaw =
+      Math.atan2(
+        -dx,
+        -dz
+      );
+
+
+    if (
+      combatTime <
+      actor.avoidUntil
+    ) {
+
+      desiredYaw +=
+
+        actor.avoidDirection *
+        Math.PI *
+        0.42;
+
+    }
+
+
+    const yawDelta =
+      normalizeAngle(
+
+        desiredYaw -
+        root.rotation.y
+
+      );
+
+
+    root.rotation.y +=
+
+      THREE.MathUtils.clamp(
+
+        yawDelta,
+
+        -BOT_TURN_SPEED *
+        dt,
+
+        BOT_TURN_SPEED *
+        dt
+
+      );
+
+
+    if (
+      distance <=
+      BOT_STOP_DISTANCE
+    ) {
+
+      continue;
+
+    }
+
+
+    const direction =
+      new THREE.Vector3(
+        0,
+        0,
+        -1
+      )
+        .applyAxisAngle(
+
+          new THREE.Vector3(
+            0,
+            1,
+            0
+          ),
+
+          root.rotation.y
+
+        );
+
+
+    const moveDistance =
+      BOT_MOVE_SPEED *
+      dt;
+
+
+    const nextX =
+
+      root.position.x +
+      direction.x *
+      moveDistance;
+
+
+    const nextZ =
+
+      root.position.z +
+      direction.z *
+      moveDistance;
+
+
+    if (
+      actorCollidesAt(
+        actor,
+        nextX,
+        nextZ
+      )
+    ) {
+
+      actor.avoidDirection =
+
+        actor.avoidDirection ===
+        1
+
+          ? -1
+          : 1;
+
+
+      actor.avoidUntil =
+
+        combatTime +
+        0.75;
+
+
+      continue;
+
+    }
+
+
+    root.position.x =
+      nextX;
+
+
+    root.position.z =
+      nextZ;
+
+
+    const groundY =
+      terrainHeight(
+        root.position.x,
+        root.position.z
+      );
+
+
+    const slope =
+      terrainSlope(
+        root.position.x,
+        root.position.z
+      );
+
+
+    root.position.y =
+      groundY +
+      0.03;
+
+
+    root.rotation.x =
+
+      THREE.MathUtils.clamp(
+
+        slope.z *
+        0.65,
+
+        -0.24,
+        0.24
+
+      );
+
+
+    root.rotation.z =
+
+      THREE.MathUtils.clamp(
+
+        -slope.x *
+        0.65,
+
+        -0.24,
+        0.24
+
+      );
+
+  }
+
+}
+
   /*
    * =========================================================
    * PLAYER MOVEMENT
@@ -6426,11 +7017,12 @@ function collidesAt(
   function updatePlayer(
     dt
   ) {
-
-    if (
+if (
   !player ||
   !localPlayerActor ||
-  !localPlayerActor.alive
+  !localPlayerActor.alive ||
+  matchState.status !==
+  "running"
 ) {
 
   return;
@@ -6851,11 +7443,219 @@ function collidesAt(
    * =========================================================
    */
 
- function fire() {
+  function fireActorProjectile(
+  actor,
+  target
+) {
 
   if (
-    phase !==
+    !actor ||
+    !actor.alive ||
+    !actor.muzzle ||
+    !actor.object3D ||
+    !target ||
+    !target.alive ||
+    !target.object3D ||
+    matchState.status !==
     "running" ||
+    combatTime <
+    actor.nextFireAt
+  ) {
+
+    return false;
+
+  }
+
+
+  actor.object3D.updateMatrixWorld(
+    true
+  );
+
+
+  const origin =
+    new THREE.Vector3();
+
+
+  actor.muzzle.getWorldPosition(
+    origin
+  );
+
+
+  const targetPoint =
+    target.object3D.position.clone();
+
+
+  targetPoint.y +=
+    0.85;
+
+
+  const direction =
+
+    targetPoint
+      .sub(
+        origin
+      )
+      .normalize();
+
+
+  origin.addScaledVector(
+    direction,
+    0.18
+  );
+
+
+  const projectile =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        0.14,
+        10,
+        7
+      ),
+
+      new THREE.MeshBasicMaterial({
+
+        color:
+
+          actor.team ===
+          "red"
+
+            ? 0xff6a5f
+            : 0x6ca8ff
+
+      })
+
+    );
+
+
+  projectile.position.copy(
+    origin
+  );
+
+
+  scene.add(
+    projectile
+  );
+
+
+  bullets.push({
+
+    mesh:
+      projectile,
+
+    direction,
+
+    ownerId:
+      actor.id,
+
+    team:
+      actor.team,
+
+    damage:
+      BULLET_DAMAGE,
+
+    age:
+      0
+
+  });
+
+
+  actor.nextFireAt =
+
+    combatTime +
+    BOT_FIRE_COOLDOWN;
+
+
+  return true;
+
+}
+
+
+function updateBotCombat() {
+
+  if (
+    matchState.status !==
+    "running"
+  ) {
+
+    return;
+
+  }
+
+
+  for (
+    const actor
+    of botActors
+  ) {
+
+    if (
+      !actor.alive ||
+      actorIsProtected(
+        actor
+      )
+    ) {
+
+      continue;
+
+    }
+
+
+    const target =
+      actors.get(
+        actor.targetId
+      );
+
+
+    if (
+      !target ||
+      !target.alive ||
+      !target.object3D ||
+      target.team ===
+      actor.team
+    ) {
+
+      continue;
+
+    }
+
+
+    const distance =
+      actor.object3D.position.distanceTo(
+        target.object3D.position
+      );
+
+
+    if (
+      distance >
+      BOT_FIRE_RANGE
+    ) {
+
+      continue;
+
+    }
+
+
+    aimBotTurretAt(
+      actor,
+      target
+    );
+
+
+    fireActorProjectile(
+      actor,
+      target
+    );
+
+  }
+
+}
+
+ function fire() {
+if (
+  phase !==
+  "running" ||
+  matchState.status !==
+  "running" ||
 
     !player ||
 
@@ -7643,9 +8443,14 @@ fireCooldown =
 
   );
 
-
 combatTime +=
   dt;
+
+
+updateMatch(
+  dt
+);
+
 
 updateCombatActors();
 
@@ -7653,7 +8458,16 @@ updateCombatActors();
 updateBotTargets();
 
 
+updateBotMovement(
+  dt
+);
+
+
+updateBotCombat();
+
+
 updateCombatStatus();
+
 
 updatePlayer(
   dt
@@ -7741,6 +8555,7 @@ await Promise.all([
 
 resetCombatRoster();
 
+      resetMatchState();
 
       el(
         "ltPanel"
@@ -8004,6 +8819,15 @@ resetCombatRoster();
           maxPlayers:
   8,
 
+          match: {
+
+  durationSeconds:
+    MATCH_DURATION_SECONDS,
+
+  scoreLimit:
+    MATCH_SCORE_LIMIT
+
+},
 
 lanes:
 
