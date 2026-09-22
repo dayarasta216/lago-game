@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 23;
+  const VERSION = 24;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -284,6 +284,19 @@ const matchState = {
     null
 
 };
+
+let localInputSequence =
+  0;
+
+let localFireSequence =
+  0;
+
+let serverAuthorityEnabled =
+  false;
+
+let lastServerSnapshotAt =
+  0;
+  
   const aimWorld =
     new THREE.Vector3(
       0,
@@ -1677,6 +1690,154 @@ const matchState = {
    * INPUT
    * =========================================================
    */
+
+  function readLocalDriveInput() {
+
+  const digitalForward =
+
+    (
+      keys.has(
+        "KeyW"
+      ) ||
+
+      keys.has(
+        "ArrowUp"
+      ) ||
+
+      mobile.forward
+    )
+
+      ? 1
+
+      : (
+          keys.has(
+            "KeyS"
+          ) ||
+
+          keys.has(
+            "ArrowDown"
+          ) ||
+
+          mobile.back
+        )
+
+        ? -1
+        : 0;
+
+
+  const digitalTurn =
+
+    (
+      keys.has(
+        "KeyA"
+      ) ||
+
+      keys.has(
+        "ArrowLeft"
+      ) ||
+
+      mobile.left
+    )
+
+      ? 1
+
+      : (
+          keys.has(
+            "KeyD"
+          ) ||
+
+          keys.has(
+            "ArrowRight"
+          ) ||
+
+          mobile.right
+        )
+
+        ? -1
+        : 0;
+
+
+  return {
+
+    forward:
+
+      Math.abs(
+        touchForward
+      ) >
+      0.001
+
+        ? touchForward
+        : digitalForward,
+
+    turn:
+
+      Math.abs(
+        touchTurn
+      ) >
+      0.001
+
+        ? touchTurn
+        : digitalTurn
+
+  };
+
+}
+
+
+function getLocalInputSnapshot() {
+
+  const drive =
+    readLocalDriveInput();
+
+
+  localInputSequence +=
+    1;
+
+
+  return {
+
+    schemaVersion:
+      1,
+
+    sequence:
+      localInputSequence,
+
+    actorId:
+      localPlayerActor
+        ?.id ||
+      null,
+
+    forward:
+      drive.forward,
+
+    turn:
+      drive.turn,
+
+    aim: {
+
+      x:
+        aimWorld.x,
+
+      y:
+        aimWorld.y,
+
+      z:
+        aimWorld.z,
+
+      active:
+        hasAim
+
+    },
+
+    fireSequence:
+      localFireSequence,
+
+    clientTime:
+      performance.now()
+
+  };
+
+}
 
   function bindControls() {
 
@@ -7014,242 +7175,162 @@ function updateBotMovement(
    * =========================================================
    */
 
-  function updatePlayer(
-    dt
-  ) {
-if (
-  !player ||
-  !localPlayerActor ||
-  !localPlayerActor.alive ||
-  matchState.status !==
-  "running"
+ function updatePlayer(
+  dt
 ) {
 
-  return;
-
-}
-
-    const digitalForward =
-
-      (
-        keys.has(
-          "KeyW"
-        ) ||
-
-        keys.has(
-          "ArrowUp"
-        ) ||
-
-        mobile.forward
-      )
-
-        ? 1
-
-        : (
-            keys.has(
-              "KeyS"
-            ) ||
-
-            keys.has(
-              "ArrowDown"
-            ) ||
-
-            mobile.back
-          )
-
-          ? -1
-          : 0;
-
-
-    const digitalTurn =
-
-      (
-        keys.has(
-          "KeyA"
-        ) ||
-
-        keys.has(
-          "ArrowLeft"
-        ) ||
-
-        mobile.left
-      )
-
-        ? 1
-
-        : (
-            keys.has(
-              "KeyD"
-            ) ||
-
-            keys.has(
-              "ArrowRight"
-            ) ||
-
-            mobile.right
-          )
-
-          ? -1
-          : 0;
-
-
-    const forward =
-
-      Math.abs(
-        touchForward
-      ) >
-      0.001
-
-        ? touchForward
-        : digitalForward;
-
-
-    const turn =
-
-      Math.abs(
-        touchTurn
-      ) >
-      0.001
-
-        ? touchTurn
-        : digitalTurn;
-
-
-    player.rotation.y +=
-
-      turn *
-      TURN_SPEED *
-      dt;
-
-
-    const direction =
-      new THREE.Vector3(
-
-        0,
-        0,
-        -1
-
-      )
-        .applyAxisAngle(
-
-          new THREE.Vector3(
-            0,
-            1,
-            0
-          ),
-
-          player.rotation.y
-
-        );
-
-
-    const speed =
-
-      forward >=
-      0
-
-        ? MOVE_SPEED
-        : REVERSE_SPEED;
-
-
-    const nextX =
-
-      player.position.x +
-
-      direction.x *
-      forward *
-      speed *
-      dt;
-
-
-    const nextZ =
-
-      player.position.z +
-
-      direction.z *
-      forward *
-      speed *
-      dt;
-
-
-    if (
-      !collidesAt(
-        nextX,
-        player.position.z
-      )
-    ) {
-
-      player.position.x =
-        nextX;
-
-    }
-
-
-    if (
-      !collidesAt(
-        player.position.x,
-        nextZ
-      )
-    ) {
-
-      player.position.z =
-        nextZ;
-
-    }
-
-
-    const groundY =
-      terrainHeight(
-
-        player.position.x,
-        player.position.z
-
-      );
-
-
-    const slope =
-      terrainSlope(
-
-        player.position.x,
-        player.position.z
-
-      );
-
-
-    player.position.y =
-      groundY +
-      0.03;
-
-
-    player.rotation.x =
-
-      THREE.MathUtils
-        .clamp(
-
-          slope.z *
-          0.65,
-
-          -0.24,
-          0.24
-
-        );
-
-
-    player.rotation.z =
-
-      THREE.MathUtils
-        .clamp(
-
-          -slope.x *
-          0.65,
-
-          -0.24,
-          0.24
-
-        );
+  if (
+    !player ||
+    !localPlayerActor ||
+    !localPlayerActor.alive ||
+    matchState.status !==
+    "running" ||
+    serverAuthorityEnabled
+  ) {
+
+    return;
 
   }
 
+
+  const input =
+    readLocalDriveInput();
+
+
+  const forward =
+    input.forward;
+
+
+  const turn =
+    input.turn;
+
+
+  player.rotation.y +=
+
+    turn *
+    TURN_SPEED *
+    dt;
+
+
+  const direction =
+    new THREE.Vector3(
+      0,
+      0,
+      -1
+    )
+      .applyAxisAngle(
+
+        new THREE.Vector3(
+          0,
+          1,
+          0
+        ),
+
+        player.rotation.y
+
+      );
+
+
+  const speed =
+
+    forward >=
+    0
+
+      ? MOVE_SPEED
+      : REVERSE_SPEED;
+
+
+  const nextX =
+
+    player.position.x +
+
+    direction.x *
+    forward *
+    speed *
+    dt;
+
+
+  const nextZ =
+
+    player.position.z +
+
+    direction.z *
+    forward *
+    speed *
+    dt;
+
+
+  if (
+    !collidesAt(
+      nextX,
+      player.position.z
+    )
+  ) {
+
+    player.position.x =
+      nextX;
+
+  }
+
+
+  if (
+    !collidesAt(
+      player.position.x,
+      nextZ
+    )
+  ) {
+
+    player.position.z =
+      nextZ;
+
+  }
+
+
+  const groundY =
+    terrainHeight(
+      player.position.x,
+      player.position.z
+    );
+
+
+  const slope =
+    terrainSlope(
+      player.position.x,
+      player.position.z
+    );
+
+
+  player.position.y =
+    groundY +
+    0.03;
+
+
+  player.rotation.x =
+
+    THREE.MathUtils.clamp(
+
+      slope.z *
+      0.65,
+
+      -0.24,
+      0.24
+
+    );
+
+
+  player.rotation.z =
+
+    THREE.MathUtils.clamp(
+
+      -slope.x *
+      0.65,
+
+      -0.24,
+      0.24
+
+    );
+
+}
 
   /*
    * =========================================================
@@ -7672,9 +7753,21 @@ fireCooldown >
 
   }
 
+localFireSequence +=
+  1;
 
-  fireCooldown =
-    FIRE_COOLDOWN;
+
+if (
+  serverAuthorityEnabled
+) {
+
+  return;
+
+}
+
+
+fireCooldown =
+  FIRE_COOLDOWN;
 
 
   /*
@@ -8313,6 +8406,489 @@ if (
 
   }
 
+  /*
+ * =========================================================
+ * MATCH / NETWORK CONTRACT
+ * =========================================================
+ */
+
+function getMatchState() {
+
+  return {
+
+    status:
+      matchState.status,
+
+    timeRemaining:
+      matchState.timeRemaining,
+
+    winner:
+      matchState.winner,
+
+    score: {
+
+      blue:
+        teamScores.blue,
+
+      red:
+        teamScores.red
+
+    },
+
+    scoreLimit:
+      MATCH_SCORE_LIMIT,
+
+    durationSeconds:
+      MATCH_DURATION_SECONDS
+
+  };
+
+}
+
+
+function getNetworkSnapshot() {
+
+  return {
+
+    schemaVersion:
+      1,
+
+    gameId:
+      GAME_ID,
+
+    mapId:
+      "village-01",
+
+    serverTime:
+      combatTime,
+
+    match:
+      getMatchState(),
+
+    actors:
+
+      Array.from(
+        actors.values()
+      )
+        .map(
+          actor => ({
+
+            id:
+              actor.id,
+
+            team:
+              actor.team,
+
+            spawnIndex:
+              actor.spawnIndex,
+
+            hp:
+              actor.hp,
+
+            maxHp:
+              actor.maxHp,
+
+            alive:
+              actor.alive,
+
+            kills:
+              actor.kills,
+
+            deaths:
+              actor.deaths,
+
+            protectedUntil:
+              actor.protectedUntil,
+
+            respawnAt:
+              actor.respawnAt,
+
+            position: {
+
+              x:
+                actor.object3D
+                  ?.position.x ??
+                0,
+
+              y:
+                actor.object3D
+                  ?.position.y ??
+                0,
+
+              z:
+                actor.object3D
+                  ?.position.z ??
+                0
+
+            },
+
+            rotation: {
+
+              x:
+                actor.object3D
+                  ?.rotation.x ??
+                0,
+
+              y:
+                actor.object3D
+                  ?.rotation.y ??
+                0,
+
+              z:
+                actor.object3D
+                  ?.rotation.z ??
+                0
+
+            }
+
+          })
+        )
+
+  };
+
+}
+
+
+function setServerAuthority(
+  enabled
+) {
+
+  serverAuthorityEnabled =
+    Boolean(
+      enabled
+    );
+
+
+  if (
+    serverAuthorityEnabled
+  ) {
+
+    clearCombatFX();
+
+  }
+
+
+  return serverAuthorityEnabled;
+
+}
+
+
+function applyAuthoritativeSnapshot(
+  snapshot
+) {
+
+  if (
+    !snapshot ||
+    typeof snapshot !==
+    "object"
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    Number.isFinite(
+      snapshot.serverTime
+    )
+  ) {
+
+    combatTime =
+      snapshot.serverTime;
+
+  }
+
+
+  const remoteMatch =
+    snapshot.match;
+
+
+  if (
+    remoteMatch &&
+    typeof remoteMatch ===
+    "object"
+  ) {
+
+    if (
+      typeof remoteMatch.status ===
+      "string"
+    ) {
+
+      matchState.status =
+        remoteMatch.status;
+
+    }
+
+
+    if (
+      Number.isFinite(
+        remoteMatch.timeRemaining
+      )
+    ) {
+
+      matchState.timeRemaining =
+        Math.max(
+          0,
+          remoteMatch.timeRemaining
+        );
+
+    }
+
+
+    matchState.winner =
+
+      remoteMatch.winner ??
+      null;
+
+
+    const remoteScore =
+      remoteMatch.score;
+
+
+    if (
+      remoteScore &&
+      typeof remoteScore ===
+      "object"
+    ) {
+
+      if (
+        Number.isFinite(
+          remoteScore.blue
+        )
+      ) {
+
+        teamScores.blue =
+          remoteScore.blue;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remoteScore.red
+        )
+      ) {
+
+        teamScores.red =
+          remoteScore.red;
+
+      }
+
+    }
+
+  }
+
+
+  if (
+    Array.isArray(
+      snapshot.actors
+    )
+  ) {
+
+    for (
+      const remote
+      of snapshot.actors
+    ) {
+
+      const actor =
+        actors.get(
+          remote
+            ?.id
+        );
+
+
+      if (
+        !actor ||
+        !actor.object3D
+      ) {
+
+        continue;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remote.hp
+        )
+      ) {
+
+        actor.hp =
+          THREE.MathUtils.clamp(
+            remote.hp,
+            0,
+            actor.maxHp
+          );
+
+      }
+
+
+      if (
+        typeof remote.alive ===
+        "boolean"
+      ) {
+
+        actor.alive =
+          remote.alive;
+
+
+        actor.object3D.visible =
+          remote.alive;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remote.kills
+        )
+      ) {
+
+        actor.kills =
+          remote.kills;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remote.deaths
+        )
+      ) {
+
+        actor.deaths =
+          remote.deaths;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remote.protectedUntil
+        )
+      ) {
+
+        actor.protectedUntil =
+          remote.protectedUntil;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          remote.respawnAt
+        )
+      ) {
+
+        actor.respawnAt =
+          remote.respawnAt;
+
+      }
+
+
+      const position =
+        remote.position;
+
+
+      if (
+        position &&
+        Number.isFinite(
+          position.x
+        ) &&
+        Number.isFinite(
+          position.y
+        ) &&
+        Number.isFinite(
+          position.z
+        )
+      ) {
+
+        actor.object3D.position.set(
+          position.x,
+          position.y,
+          position.z
+        );
+
+      }
+
+
+      const rotation =
+        remote.rotation;
+
+
+      if (
+        rotation &&
+        Number.isFinite(
+          rotation.x
+        ) &&
+        Number.isFinite(
+          rotation.y
+        ) &&
+        Number.isFinite(
+          rotation.z
+        )
+      ) {
+
+        actor.object3D.rotation.set(
+          rotation.x,
+          rotation.y,
+          rotation.z
+        );
+
+      }
+
+    }
+
+  }
+
+
+  lastServerSnapshotAt =
+    performance.now();
+
+
+  return true;
+
+}
+
+
+function restartMatch() {
+
+  if (
+    phase !==
+    "running" ||
+    serverAuthorityEnabled
+  ) {
+
+    return false;
+
+  }
+
+
+  clearCombatFX();
+
+
+  combatTime =
+    0;
+
+
+  localInputSequence =
+    0;
+
+
+  localFireSequence =
+    0;
+
+
+  resetCombatRoster();
+
+
+  resetMatchState();
+
+
+  return true;
+
+}
 
   /*
    * =========================================================
@@ -8442,28 +9018,33 @@ fireCooldown =
     dt
 
   );
-
 combatTime +=
   dt;
 
 
-updateMatch(
-  dt
-);
+if (
+  !serverAuthorityEnabled
+) {
+
+  updateMatch(
+    dt
+  );
 
 
-updateCombatActors();
+  updateCombatActors();
 
 
-updateBotTargets();
+  updateBotTargets();
 
 
-updateBotMovement(
-  dt
-);
+  updateBotMovement(
+    dt
+  );
 
 
-updateBotCombat();
+  updateBotCombat();
+
+}
 
 
 updateCombatStatus();
@@ -8534,6 +9115,16 @@ clearCombatFX();
 combatTime =
   0;
 
+    localInputSequence =
+  0;
+
+
+localFireSequence =
+  0;
+
+
+lastServerSnapshotAt =
+  0;
 
     el(
       "ltPanelCopy"
@@ -8795,21 +9386,46 @@ resetCombatRoster();
 
   window.LAGO_TANKS =
     Object.freeze({
+version:
+  VERSION,
 
-      version:
-        VERSION,
+show,
 
-      show,
+hide,
 
-      hide,
+restartMatch,
+
+getMatchState,
+
+getNetworkSnapshot,
+
+getLocalInputSnapshot,
+
+setServerAuthority,
+
+applyAuthoritativeSnapshot,
 
 
-      /*
-       * Multiplayer server will use
-       * exactly this map layout later.
-       */
+getNetworkStatus() {
 
-      getMultiplayerLayout() {
+  return {
+
+    serverAuthority:
+      serverAuthorityEnabled,
+
+    lastServerSnapshotAt
+
+  };
+
+},
+
+
+/*
+ * Multiplayer server will use
+ * exactly this map layout later.
+ */
+
+getMultiplayerLayout() {
 
         return {
 
