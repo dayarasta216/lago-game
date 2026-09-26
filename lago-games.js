@@ -1,6 +1,7 @@
 (() => {
   "use strict";
 
+
   const VERSION = 44;
 
 let overlay = null;
@@ -17,54 +18,42 @@ const gameModulePromises =
   new Map();
 
 
-const GAME_MODULES =
-  Object.freeze({
 
-    "lago-tanks":
-      Object.freeze({
-
-        ready() {
-
-          return (
-            typeof window
-              .LAGO_TANKS
-              ?.show ===
-            "function"
-          );
-
-        },
-
-        load() {
-
-          return import(
-            "./lago-game-tanks.js?v=25"
-          );
-
-        }
-
-      })
-
-  });
-
-
- const CATALOG = [
-
-  {
-    id: "tap-lago",
-    name: "TAP LAGO",
-    description:
-      "Core Lago progression.",
-    icon: "snail",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 0
+const ARCADE_MODULE = Object.freeze({
+  ready() {
+    return typeof window.LAGO_ARCADE_FOUNDATION?.show ===
+      "function";
   },
 
+  load() {
+    return import("./lago-arcade-foundation.js?v=1");
+  }
+});
+
+const GAME_MODULES = Object.freeze({
+  "lago-tanks": Object.freeze({
+    ready() {
+      return typeof window.LAGO_TANKS?.show === "function";
+    },
+
+    load() {
+      return import("./lago-game-tanks.js?v=26");
+    }
+  }),
+
+  "lago-moto": ARCADE_MODULE,
+  "cart-chaos": ARCADE_MODULE,
+  "lago-101": ARCADE_MODULE,
+  "lago-fights": ARCADE_MODULE
+});
+
+
+ 
+const CATALOG = [
   {
     id: "lago-tanks",
     name: "LAGO TANKS",
-    description:
-      "3D tank battles. Solo and multiplayer.",
+    description: "3D tank battles. Local 4v4. Multiplayer later.",
     emoji: "💥",
     status: "available",
     dumCost: 0,
@@ -74,47 +63,42 @@ const GAME_MODULES =
   {
     id: "lago-moto",
     name: "LAGO MOTO",
-    description:
-      "Physics motorcycle challenge.",
+    description: "Local motocross prototype.",
     emoji: "🏍️",
-    status: "coming",
-    dumCost: 5,
-    maxRewardSP: 300
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 0
   },
 
   {
     id: "cart-chaos",
     name: "CART CHAOS",
-    description:
-      "Shopping cart racing.",
+    description: "Local cart-racing prototype.",
     emoji: "🛒",
-    status: "coming",
-    dumCost: 5,
-    maxRewardSP: 300
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 0
   },
 
   {
     id: "lago-101",
     name: "101",
-    description:
-      "Four-player multiplayer card game.",
+    description: "Four-seat card game prototype.",
     emoji: "🃏",
-    status: "coming",
-    dumCost: 4,
-    maxRewardSP: 250
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 0
   },
 
   {
-    id: "lago-platformer",
-    name: "LAGO PLATFORMER",
-    description:
-      "Lago platform adventure.",
-    emoji: "🏁",
-    status: "coming",
-    dumCost: 4,
-    maxRewardSP: 250
+    id: "lago-fights",
+    name: "STICK FIGHTS",
+    description: "Stick figure fights with custom backgrounds.",
+    emoji: "🥊",
+    status: "available",
+    dumCost: 0,
+    maxRewardSP: 0
   }
-
 ];
 
   function runtime() {
@@ -220,6 +204,10 @@ const GAME_MODULES =
       "available"
     ) {
 
+      if (game.id !== "lago-tanks") {
+  return "LOCAL PROTOTYPE";
+}
+
       return "COMING SOON";
 
     }
@@ -256,14 +244,9 @@ const GAME_MODULES =
     stats = {}
   ) {
 
-    if (
-      game.id ===
-      "tap-lago"
-    ) {
-
-      return "CORE GAME";
-
-    }
+   if (game.id !== "lago-tanks") {
+  return "LOCAL TEST · ONLINE LATER · 0 DUM";
+}
 
 
     const parts = [];
