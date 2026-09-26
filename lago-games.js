@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 44;
+  const VERSION = 45;
 
 let overlay = null;
 
