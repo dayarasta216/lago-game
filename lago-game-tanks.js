@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 24;
+  const VERSION = 25;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -45,6 +45,14 @@ const BOT_STOP_DISTANCE = 8.5;
 
 const MATCH_DURATION_SECONDS = 180;
 const MATCH_SCORE_LIMIT = 10;
+
+  const NETWORK_INPUT_HZ = 20;
+const NETWORK_INPUT_INTERVAL =
+  1 / NETWORK_INPUT_HZ;
+
+const NETWORK_INTERPOLATION_MS = 100;
+const NETWORK_SNAPSHOT_BUFFER_LIMIT = 20;
+const NETWORK_RECONNECT_MAX_ATTEMPTS = 5;
 
   const TOUCH_DRIVE_RADIUS = 82;
   const TOUCH_DEAD_ZONE = 0.10;
@@ -296,6 +304,49 @@ let serverAuthorityEnabled =
 
 let lastServerSnapshotAt =
   0;
+
+  const networkSession = {
+
+  status:
+    "offline",
+
+  roomId:
+    null,
+
+  playerId:
+    null,
+
+  transport:
+    null,
+
+  unsubscribeMessage:
+    null,
+
+  unsubscribeStatus:
+    null,
+
+  desiredOnline:
+    false,
+
+  reconnectAttempts:
+    0,
+
+  reconnectDelay:
+    0,
+
+  reconnectInFlight:
+    false,
+
+  inputAccumulator:
+    0,
+
+  snapshotBuffer:
+    [],
+
+  lastError:
+    null
+
+};
   
   const aimWorld =
     new THREE.Vector3(
@@ -8408,6 +8459,1495 @@ if (
 
   /*
  * =========================================================
+ * NETWORK TRANSPORT / SESSION
+ * =========================================================
+ */
+
+function createWebSocketTransport(
+  url
+) {
+
+  let socket =
+    null;
+
+
+  const messageListeners =
+    new Set();
+
+
+  const statusListeners =
+    new Set();
+
+
+  function emitStatus(
+    status
+  ) {
+
+    for (
+      const listener
+      of statusListeners
+    ) {
+
+      try {
+
+        listener(
+          status
+        );
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "[LAGO TANKS NETWORK STATUS]",
+          error
+        );
+
+      }
+
+    }
+
+  }
+
+
+  function connect() {
+
+    if (
+      !url ||
+      typeof url !==
+      "string"
+    ) {
+
+      return Promise.reject(
+        new Error(
+          "WebSocket URL is required."
+        )
+      );
+
+    }
+
+
+    if (
+      socket &&
+      socket.readyState ===
+      WebSocket.OPEN
+    ) {
+
+      return Promise.resolve(
+        true
+      );
+
+    }
+
+
+    if (
+      socket &&
+      socket.readyState ===
+      WebSocket.CONNECTING
+    ) {
+
+      return new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          socket.addEventListener(
+            "open",
+            () => resolve(
+              true
+            ),
+            {
+              once:
+                true
+            }
+          );
+
+
+          socket.addEventListener(
+            "error",
+            () => reject(
+              new Error(
+                "WebSocket connection failed."
+              )
+            ),
+            {
+              once:
+                true
+            }
+          );
+
+        }
+      );
+
+    }
+
+
+    emitStatus(
+      "connecting"
+    );
+
+
+    return new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        let settled =
+          false;
+
+
+        socket =
+          new WebSocket(
+            url
+          );
+
+
+        socket.addEventListener(
+          "open",
+          () => {
+
+            settled =
+              true;
+
+
+            emitStatus(
+              "open"
+            );
+
+
+            resolve(
+              true
+            );
+
+          }
+        );
+
+
+        socket.addEventListener(
+          "message",
+          event => {
+
+            let payload =
+              event.data;
+
+
+            if (
+              typeof payload ===
+              "string"
+            ) {
+
+              try {
+
+                payload =
+                  JSON.parse(
+                    payload
+                  );
+
+              } catch (_) {}
+
+            }
+
+
+            for (
+              const listener
+              of messageListeners
+            ) {
+
+              try {
+
+                listener(
+                  payload
+                );
+
+              } catch (
+                error
+              ) {
+
+                console.error(
+                  "[LAGO TANKS NETWORK MESSAGE]",
+                  error
+                );
+
+              }
+
+            }
+
+          }
+        );
+
+
+        socket.addEventListener(
+          "close",
+          () => {
+
+            emitStatus(
+              "closed"
+            );
+
+          }
+        );
+
+
+        socket.addEventListener(
+          "error",
+          () => {
+
+            emitStatus(
+              "error"
+            );
+
+
+            if (
+              !settled
+            ) {
+
+              settled =
+                true;
+
+
+              reject(
+                new Error(
+                  "WebSocket connection failed."
+                )
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+  }
+
+
+  function send(
+    message
+  ) {
+
+    if (
+      !socket ||
+      socket.readyState !==
+      WebSocket.OPEN
+    ) {
+
+      return false;
+
+    }
+
+
+    socket.send(
+
+      typeof message ===
+      "string"
+
+        ? message
+        : JSON.stringify(
+            message
+          )
+
+    );
+
+
+    return true;
+
+  }
+
+
+  function close() {
+
+    if (!socket) {
+
+      return;
+
+    }
+
+
+    try {
+
+      socket.close();
+
+    } catch (_) {}
+
+
+    socket =
+      null;
+
+  }
+
+
+  function subscribe(
+    listener
+  ) {
+
+    messageListeners.add(
+      listener
+    );
+
+
+    return () => {
+
+      messageListeners.delete(
+        listener
+      );
+
+    };
+
+  }
+
+
+  function subscribeStatus(
+    listener
+  ) {
+
+    statusListeners.add(
+      listener
+    );
+
+
+    return () => {
+
+      statusListeners.delete(
+        listener
+      );
+
+    };
+
+  }
+
+
+  return {
+
+    connect,
+    send,
+    close,
+    subscribe,
+    subscribeStatus
+
+  };
+
+}
+
+
+function detachNetworkTransport(
+  closeTransport = false
+) {
+
+  networkSession
+    .unsubscribeMessage
+    ?.();
+
+
+  networkSession
+    .unsubscribeStatus
+    ?.();
+
+
+  networkSession.unsubscribeMessage =
+    null;
+
+
+  networkSession.unsubscribeStatus =
+    null;
+
+
+  if (
+    closeTransport
+  ) {
+
+    networkSession.transport
+      ?.close
+      ?.();
+
+  }
+
+
+  networkSession.transport =
+    null;
+
+}
+
+
+function handleNetworkTransportStatus(
+  status
+) {
+
+  if (
+    status ===
+    "open"
+  ) {
+
+    if (
+      networkSession.status ===
+      "connecting" ||
+      networkSession.status ===
+      "reconnecting"
+    ) {
+
+      networkSession.status =
+        "connected";
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    (
+      status ===
+      "closed" ||
+      status ===
+      "error"
+    ) &&
+    networkSession.desiredOnline
+  ) {
+
+    scheduleNetworkReconnect();
+
+  }
+
+}
+
+
+function attachNetworkTransport(
+  transport
+) {
+
+  if (
+    !transport ||
+    typeof transport.send !==
+    "function" ||
+    typeof transport.subscribe !==
+    "function"
+  ) {
+
+    return false;
+
+  }
+
+
+  detachNetworkTransport(
+    true
+  );
+
+
+  networkSession.transport =
+    transport;
+
+
+  networkSession.unsubscribeMessage =
+    transport.subscribe(
+      receiveNetworkMessage
+    );
+
+
+  if (
+    typeof transport.subscribeStatus ===
+    "function"
+  ) {
+
+    networkSession.unsubscribeStatus =
+      transport.subscribeStatus(
+        handleNetworkTransportStatus
+      );
+
+  }
+
+
+  return true;
+
+}
+
+
+function sendNetworkMessage(
+  type,
+  payload = {}
+) {
+
+  const transport =
+    networkSession.transport;
+
+
+  if (
+    !transport ||
+    typeof transport.send !==
+    "function"
+  ) {
+
+    return false;
+
+  }
+
+
+  const sent =
+    transport.send({
+
+      schemaVersion:
+        1,
+
+      type,
+
+      gameId:
+        GAME_ID,
+
+      roomId:
+        networkSession.roomId,
+
+      playerId:
+        networkSession.playerId,
+
+      ...payload
+
+    });
+
+
+  if (
+    !sent &&
+    networkSession.desiredOnline
+  ) {
+
+    scheduleNetworkReconnect();
+
+  }
+
+
+  return Boolean(
+    sent
+  );
+
+}
+
+
+function sendJoinRequest() {
+
+  return sendNetworkMessage(
+    "join",
+    {
+
+      mapId:
+        "village-01",
+
+      clientVersion:
+        VERSION
+
+    }
+  );
+
+}
+
+
+function scheduleNetworkReconnect() {
+
+  if (
+    !networkSession.desiredOnline ||
+    networkSession.reconnectInFlight
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    networkSession.status ===
+    "reconnecting" &&
+    networkSession.reconnectDelay >
+    0
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    networkSession.reconnectAttempts >=
+    NETWORK_RECONNECT_MAX_ATTEMPTS
+  ) {
+
+    networkSession.status =
+      "failed";
+
+
+    networkSession.lastError =
+      "Reconnect limit reached.";
+
+
+    return;
+
+  }
+
+
+  networkSession.reconnectAttempts +=
+    1;
+
+
+  networkSession.reconnectDelay =
+
+    Math.min(
+
+      8,
+
+      0.75 *
+      Math.pow(
+        2,
+        networkSession.reconnectAttempts -
+        1
+      )
+
+    );
+
+
+  networkSession.status =
+    "reconnecting";
+
+}
+
+
+async function reconnectNetworkRoom() {
+
+  if (
+    !networkSession.desiredOnline ||
+    !networkSession.transport ||
+    networkSession.reconnectInFlight
+  ) {
+
+    return false;
+
+  }
+
+
+  networkSession.reconnectInFlight =
+    true;
+
+
+  networkSession.status =
+    "connecting";
+
+
+  try {
+
+    await networkSession
+      .transport
+      .connect
+      ?.();
+
+
+    const sent =
+      sendJoinRequest();
+
+
+    if (!sent) {
+
+      throw new Error(
+        "Join request could not be sent."
+      );
+
+    }
+
+
+    networkSession.status =
+      "joining";
+
+
+    networkSession.reconnectDelay =
+      0;
+
+
+    return true;
+
+  } catch (
+    error
+  ) {
+
+    networkSession.lastError =
+      error
+        ?.message ||
+      String(
+        error
+      );
+
+
+    return false;
+
+  } finally {
+
+    networkSession.reconnectInFlight =
+      false;
+
+
+    if (
+      networkSession.status !==
+      "joining" &&
+      networkSession.desiredOnline
+    ) {
+
+      scheduleNetworkReconnect();
+
+    }
+
+  }
+
+}
+
+
+async function joinNetworkRoom({
+  roomId,
+  playerId,
+  transport = null
+} = {}) {
+
+  if (
+    transport &&
+    !attachNetworkTransport(
+      transport
+    )
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    !networkSession.transport ||
+    !roomId ||
+    !playerId
+  ) {
+
+    return false;
+
+  }
+
+
+  networkSession.roomId =
+    String(
+      roomId
+    );
+
+
+  networkSession.playerId =
+    String(
+      playerId
+    );
+
+
+  networkSession.desiredOnline =
+    true;
+
+
+  networkSession.status =
+    "connecting";
+
+
+  networkSession.reconnectAttempts =
+    0;
+
+
+  networkSession.reconnectDelay =
+    0;
+
+
+  networkSession.inputAccumulator =
+    0;
+
+
+  networkSession.snapshotBuffer =
+    [];
+
+
+  networkSession.lastError =
+    null;
+
+
+  try {
+
+    await networkSession
+      .transport
+      .connect
+      ?.();
+
+
+    if (
+      !sendJoinRequest()
+    ) {
+
+      throw new Error(
+        "Join request could not be sent."
+      );
+
+    }
+
+
+    networkSession.status =
+      "joining";
+
+
+    return true;
+
+  } catch (
+    error
+  ) {
+
+    networkSession.lastError =
+      error
+        ?.message ||
+      String(
+        error
+      );
+
+
+    scheduleNetworkReconnect();
+
+
+    return false;
+
+  }
+
+}
+
+
+function leaveNetworkRoom({
+  closeTransport = true
+} = {}) {
+
+  if (
+    networkSession.transport &&
+    networkSession.roomId
+  ) {
+
+    sendNetworkMessage(
+      "leave"
+    );
+
+  }
+
+
+  networkSession.desiredOnline =
+    false;
+
+
+  networkSession.status =
+    "offline";
+
+
+  networkSession.roomId =
+    null;
+
+
+  networkSession.playerId =
+    null;
+
+
+  networkSession.reconnectAttempts =
+    0;
+
+
+  networkSession.reconnectDelay =
+    0;
+
+
+  networkSession.reconnectInFlight =
+    false;
+
+
+  networkSession.inputAccumulator =
+    0;
+
+
+  networkSession.snapshotBuffer =
+    [];
+
+
+  setServerAuthority(
+    false
+  );
+
+
+  if (
+    closeTransport
+  ) {
+
+    detachNetworkTransport(
+      true
+    );
+
+  }
+
+
+  return true;
+
+}
+
+
+function queueNetworkSnapshot(
+  snapshot
+) {
+
+  if (
+    !snapshot ||
+    typeof snapshot !==
+    "object"
+  ) {
+
+    return false;
+
+  }
+
+
+  networkSession
+    .snapshotBuffer
+    .push({
+
+      receivedAt:
+        performance.now(),
+
+      snapshot
+
+    });
+
+
+  if (
+    networkSession
+      .snapshotBuffer
+      .length >
+    NETWORK_SNAPSHOT_BUFFER_LIMIT
+  ) {
+
+    networkSession
+      .snapshotBuffer
+      .splice(
+
+        0,
+
+        networkSession
+          .snapshotBuffer
+          .length -
+        NETWORK_SNAPSHOT_BUFFER_LIMIT
+
+      );
+
+  }
+
+
+  return true;
+
+}
+
+
+function receiveNetworkMessage(
+  message
+) {
+
+  let data =
+    message;
+
+
+  if (
+    typeof data ===
+    "string"
+  ) {
+
+    try {
+
+      data =
+        JSON.parse(
+          data
+        );
+
+    } catch (_) {
+
+      return false;
+
+    }
+
+  }
+
+
+  if (
+    !data ||
+    typeof data !==
+    "object"
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    data.gameId &&
+    data.gameId !==
+    GAME_ID
+  ) {
+
+    return false;
+
+  }
+
+
+  switch (
+    data.type
+  ) {
+
+    case "joined":
+
+      networkSession.status =
+        "joined";
+
+
+      networkSession.reconnectAttempts =
+        0;
+
+
+      networkSession.reconnectDelay =
+        0;
+
+
+      networkSession.lastError =
+        null;
+
+
+      setServerAuthority(
+        true
+      );
+
+
+      if (
+        data.snapshot
+      ) {
+
+        queueNetworkSnapshot(
+          data.snapshot
+        );
+
+      }
+
+
+      return true;
+
+
+    case "snapshot":
+
+      return queueNetworkSnapshot(
+
+        data.snapshot ||
+        data.payload
+
+      );
+
+
+    case "left":
+
+      networkSession.status =
+        "offline";
+
+
+      networkSession.desiredOnline =
+        false;
+
+
+      setServerAuthority(
+        false
+      );
+
+
+      return true;
+
+
+    case "error":
+
+      networkSession.lastError =
+
+        data.message ||
+        "Network error";
+
+
+      return true;
+
+
+    case "pong":
+
+      return true;
+
+
+    default:
+
+      return false;
+
+  }
+
+}
+
+
+function interpolateNetworkSnapshots() {
+
+  const buffer =
+    networkSession
+      .snapshotBuffer;
+
+
+  if (
+    buffer.length ===
+    0
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    buffer.length ===
+    1
+  ) {
+
+    applyAuthoritativeSnapshot(
+      buffer[
+        0
+      ].snapshot
+    );
+
+
+    return;
+
+  }
+
+
+  const targetTime =
+
+    performance.now() -
+    NETWORK_INTERPOLATION_MS;
+
+
+  while (
+    buffer.length >=
+    3 &&
+    buffer[
+      1
+    ].receivedAt <=
+    targetTime
+  ) {
+
+    buffer.shift();
+
+  }
+
+
+  const a =
+    buffer[
+      0
+    ];
+
+
+  const b =
+    buffer[
+      1
+    ];
+
+
+  if (!b) {
+
+    applyAuthoritativeSnapshot(
+      a.snapshot
+    );
+
+
+    return;
+
+  }
+
+
+  const span =
+
+    Math.max(
+
+      1,
+
+      b.receivedAt -
+      a.receivedAt
+
+    );
+
+
+  const alpha =
+    THREE.MathUtils.clamp(
+
+      (
+        targetTime -
+        a.receivedAt
+      ) /
+      span,
+
+      0,
+      1
+
+    );
+
+
+  const previousActors =
+    new Map(
+
+      (
+        Array.isArray(
+          a.snapshot
+            ?.actors
+        )
+
+          ? a.snapshot.actors
+          : []
+      )
+        .map(
+          actor => [
+            actor.id,
+            actor
+          ]
+        )
+
+    );
+
+
+  const nextActors =
+
+    (
+      Array.isArray(
+        b.snapshot
+          ?.actors
+      )
+
+        ? b.snapshot.actors
+        : []
+    )
+      .map(
+        nextActor => {
+
+          const previousActor =
+            previousActors.get(
+              nextActor.id
+            );
+
+
+          if (
+            !previousActor ||
+            !previousActor.position ||
+            !nextActor.position ||
+            !previousActor.rotation ||
+            !nextActor.rotation
+          ) {
+
+            return nextActor;
+
+          }
+
+
+          return {
+
+            ...nextActor,
+
+            position: {
+
+              x:
+                THREE.MathUtils.lerp(
+                  previousActor.position.x,
+                  nextActor.position.x,
+                  alpha
+                ),
+
+              y:
+                THREE.MathUtils.lerp(
+                  previousActor.position.y,
+                  nextActor.position.y,
+                  alpha
+                ),
+
+              z:
+                THREE.MathUtils.lerp(
+                  previousActor.position.z,
+                  nextActor.position.z,
+                  alpha
+                )
+
+            },
+
+            rotation: {
+
+              x:
+                THREE.MathUtils.lerp(
+                  previousActor.rotation.x,
+                  nextActor.rotation.x,
+                  alpha
+                ),
+
+              y:
+
+                previousActor.rotation.y +
+                normalizeAngle(
+
+                  nextActor.rotation.y -
+                  previousActor.rotation.y
+
+                ) *
+                alpha,
+
+              z:
+                THREE.MathUtils.lerp(
+                  previousActor.rotation.z,
+                  nextActor.rotation.z,
+                  alpha
+                )
+
+            }
+
+          };
+
+        }
+      );
+
+
+  applyAuthoritativeSnapshot({
+
+    ...b.snapshot,
+
+    serverTime:
+
+      Number.isFinite(
+        a.snapshot
+          ?.serverTime
+      ) &&
+      Number.isFinite(
+        b.snapshot
+          ?.serverTime
+      )
+
+        ? THREE.MathUtils.lerp(
+            a.snapshot.serverTime,
+            b.snapshot.serverTime,
+            alpha
+          )
+        : b.snapshot
+            ?.serverTime,
+
+    actors:
+      nextActors
+
+  });
+
+}
+
+
+function updateNetwork(
+  dt
+) {
+
+  if (
+    networkSession.status ===
+    "reconnecting"
+  ) {
+
+    networkSession.reconnectDelay =
+
+      Math.max(
+
+        0,
+
+        networkSession.reconnectDelay -
+        dt
+
+      );
+
+
+    if (
+      networkSession.reconnectDelay <=
+      0
+    ) {
+
+      void reconnectNetworkRoom();
+
+    }
+
+  }
+
+
+  if (
+    networkSession.status !==
+    "joined"
+  ) {
+
+    return;
+
+  }
+
+
+  networkSession.inputAccumulator +=
+    dt;
+
+
+  if (
+    networkSession.inputAccumulator >=
+    NETWORK_INPUT_INTERVAL
+  ) {
+
+    networkSession.inputAccumulator %=
+      NETWORK_INPUT_INTERVAL;
+
+
+    sendNetworkMessage(
+      "input",
+      {
+
+        input:
+          getLocalInputSnapshot()
+
+      }
+    );
+
+  }
+
+
+  interpolateNetworkSnapshots();
+
+}
+
+
+function getNetworkSessionState() {
+
+  return {
+
+    status:
+      networkSession.status,
+
+    roomId:
+      networkSession.roomId,
+
+    playerId:
+      networkSession.playerId,
+
+    desiredOnline:
+      networkSession.desiredOnline,
+
+    reconnectAttempts:
+      networkSession.reconnectAttempts,
+
+    bufferedSnapshots:
+      networkSession
+        .snapshotBuffer
+        .length,
+
+    lastError:
+      networkSession.lastError
+
+  };
+
+}
+
+  /*
+ * =========================================================
  * MATCH / NETWORK CONTRACT
  * =========================================================
  */
@@ -9018,8 +10558,19 @@ fireCooldown =
     dt
 
   );
-combatTime +=
-  dt;
+if (
+  !serverAuthorityEnabled
+) {
+
+  combatTime +=
+    dt;
+
+}
+
+
+updateNetwork(
+  dt
+);
 
 
 if (
@@ -9275,9 +10826,18 @@ resetCombatRoster();
 
   function hide() {
 
-    if (
-      animationFrame
-    ) {
+  if (
+    networkSession.desiredOnline
+  ) {
+
+    leaveNetworkRoom();
+
+  }
+
+
+  if (
+    animationFrame
+  ) {
 
       cancelAnimationFrame(
         animationFrame
@@ -9393,6 +10953,22 @@ show,
 
 hide,
 
+createWebSocketTransport,
+
+attachNetworkTransport,
+
+detachNetworkTransport,
+
+joinNetworkRoom,
+
+leaveNetworkRoom,
+
+reconnectNetworkRoom,
+
+receiveNetworkMessage,
+
+getNetworkSessionState,
+
 restartMatch,
 
 getMatchState,
@@ -9413,12 +10989,14 @@ getNetworkStatus() {
     serverAuthority:
       serverAuthorityEnabled,
 
-    lastServerSnapshotAt
+    lastServerSnapshotAt,
+
+    session:
+      getNetworkSessionState()
 
   };
 
 },
-
 
 /*
  * Multiplayer server will use
