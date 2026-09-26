@@ -256,6 +256,8 @@ let playerMuzzle = null;
   let context =
     null;
 
+  let tankVoicePanel = null;
+
 
   let fireCooldown = 0;
 
@@ -10770,6 +10772,13 @@ resetCombatRoster();
 
     createRenderer();
 
+    tankVoicePanel?.destroy();
+
+tankVoicePanel = window.LAGO_GAME_VOICE?.createPanel({
+  gameId: GAME_ID,
+  mount: el("ltStage")
+}) || null;
+
 
     context =
 
@@ -10830,6 +10839,9 @@ resetCombatRoster();
     networkSession.desiredOnline
   ) {
 
+tankVoicePanel?.destroy();
+tankVoicePanel = null;
+    
     leaveNetworkRoom();
 
   }
