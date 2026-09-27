@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 45;
+  const VERSION = 46;
 
 let overlay = null;
 
@@ -41,7 +41,17 @@ const GAME_MODULES = Object.freeze({
     }
   }),
 
-  "lago-moto": ARCADE_MODULE,
+  
+"lago-moto": Object.freeze({
+  ready() {
+    return typeof window.LAGO_MOTO?.show === "function";
+  },
+
+  load() {
+    return import("./lago-game-moto.js?v=1");
+  }
+}),
+  
   "cart-chaos": ARCADE_MODULE,
   "lago-101": ARCADE_MODULE,
   "lago-fights": ARCADE_MODULE
@@ -63,7 +73,7 @@ const CATALOG = [
   {
     id: "lago-moto",
     name: "LAGO MOTO",
-    description: "Local motocross prototype.",
+    description: "Side-view motocross. Red Dirt Bike GLB.",
     emoji: "🏍️",
     status: "available",
     dumCost: 0,
