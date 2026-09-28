@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 47;
+  const VERSION = 48;
 
 let overlay = null;
 
@@ -68,7 +68,7 @@ const GAME_MODULES =
       }),
 
 
-    "cart-chaos":
+        "cart-chaos":
       Object.freeze({
 
         ready() {
@@ -86,6 +86,31 @@ const GAME_MODULES =
 
           return import(
             "./lago-game-cart-chaos.js?v=1"
+          );
+
+        }
+
+      }),
+
+
+    "chambeer":
+      Object.freeze({
+
+        ready() {
+
+          return (
+            typeof window
+              .LAGO_CHAMBEER
+              ?.show ===
+            "function"
+          );
+
+        },
+
+        load() {
+
+          return import(
+            "./lago-game-chambeer.js?v=1"
           );
 
         }
@@ -177,13 +202,13 @@ const CATALOG = [
       "ChamBeer",
 
     description:
-      "Survival eater-runner. Development follows Cart Chaos.",
+  "Eat everything, survive hunters, bullets and traps.",
 
     emoji:
       "🐻",
 
     status:
-      "coming",
+  "available",
 
     dumCost:
       0,
