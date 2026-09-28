@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 48;
+  const VERSION = 49;
 
 let overlay = null;
 
@@ -94,30 +94,53 @@ const GAME_MODULES =
 
 
     "chambeer":
-      Object.freeze({
+  Object.freeze({
 
-        ready() {
+    ready() {
 
-          return (
-            typeof window
-              .LAGO_CHAMBEER
-              ?.show ===
-            "function"
-          );
+      return (
+        typeof window
+          .LAGO_CHAMBEER
+          ?.show ===
+        "function"
+      );
 
-        },
+    },
 
-        load() {
+    load() {
 
-          return import(
-            "./lago-game-chambeer.js?v=1"
-          );
+      return import(
+        "./lago-game-chambeer.js?v=1"
+      );
 
-        }
+    }
 
-      })
+  }),
 
-  });
+
+"lago-fights":
+  Object.freeze({
+
+    ready() {
+
+      return (
+        typeof window
+          .LAGO_STICK_FIGHTS
+          ?.show ===
+        "function"
+      );
+
+    },
+
+    load() {
+
+      return import(
+        "./lago-game-stick-fights.js?v=1"
+      );
+
+    }
+
+  })
 
 
 const CATALOG = [
@@ -226,13 +249,13 @@ const CATALOG = [
       "STICK FIGHTS",
 
     description:
-      "Stick figure multiplayer fights. Development follows ChamBeer.",
+      "Black stick-figure 1v1 fights with custom backgrounds.",
 
     emoji:
       "🥊",
 
     status:
-      "coming",
+  "available",
 
     dumCost:
       0,
