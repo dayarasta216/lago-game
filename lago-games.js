@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 46;
+  const VERSION = 47;
 
 let overlay = null;
 
@@ -10,105 +10,212 @@ let overlay = null;
 /*
  * Mini-games are loaded only when
  * the player actually opens them.
- *
- * This prevents a broken/heavy game
- * module from affecting Lago startup.
  */
 const gameModulePromises =
   new Map();
 
 
+const GAME_MODULES =
+  Object.freeze({
 
-const ARCADE_MODULE = Object.freeze({
-  ready() {
-    return typeof window.LAGO_ARCADE_FOUNDATION?.show ===
-      "function";
-  },
+    "lago-tanks":
+      Object.freeze({
 
-  load() {
-    return import("./lago-arcade-foundation.js?v=1");
-  }
-});
+        ready() {
 
-const GAME_MODULES = Object.freeze({
-  "lago-tanks": Object.freeze({
-    ready() {
-      return typeof window.LAGO_TANKS?.show === "function";
-    },
+          return (
+            typeof window
+              .LAGO_TANKS
+              ?.show ===
+            "function"
+          );
 
-    load() {
-      return import("./lago-game-tanks.js?v=26");
-    }
-  }),
+        },
 
-  
-"lago-moto": Object.freeze({
-  ready() {
-    return typeof window.LAGO_MOTO?.show === "function";
-  },
+        load() {
 
-  load() {
-    return import("./lago-game-moto.js?v=1");
-  }
-}),
-  
-  "cart-chaos": ARCADE_MODULE,
-  "lago-101": ARCADE_MODULE,
-  "lago-fights": ARCADE_MODULE
-});
+          return import(
+            "./lago-game-tanks.js?v=26"
+          );
+
+        }
+
+      }),
 
 
- 
+    "lago-moto":
+      Object.freeze({
+
+        ready() {
+
+          return (
+            typeof window
+              .LAGO_MOTO
+              ?.show ===
+            "function"
+          );
+
+        },
+
+        load() {
+
+          return import(
+            "./lago-game-moto.js?v=1"
+          );
+
+        }
+
+      }),
+
+
+    "cart-chaos":
+      Object.freeze({
+
+        ready() {
+
+          return (
+            typeof window
+              .LAGO_CART_CHAOS
+              ?.show ===
+            "function"
+          );
+
+        },
+
+        load() {
+
+          return import(
+            "./lago-game-cart-chaos.js?v=1"
+          );
+
+        }
+
+      })
+
+  });
+
+
 const CATALOG = [
-  {
-    id: "lago-tanks",
-    name: "LAGO TANKS",
-    description: "3D tank battles. Local 4v4. Multiplayer later.",
-    emoji: "💥",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 300
-  },
 
   {
-    id: "lago-moto",
-    name: "LAGO MOTO",
-    description: "Side-view motocross. Red Dirt Bike GLB.",
-    emoji: "🏍️",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 0
+    id:
+      "lago-tanks",
+
+    name:
+      "LAGO TANKS",
+
+    description:
+      "3D tank battles. Local 4v4. Multiplayer later.",
+
+    emoji:
+      "💥",
+
+    status:
+      "available",
+
+    dumCost:
+      0,
+
+    maxRewardSP:
+      300
   },
 
-  {
-    id: "cart-chaos",
-    name: "CART CHAOS",
-    description: "Local cart-racing prototype.",
-    emoji: "🛒",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 0
-  },
 
   {
-    id: "chambeer",
-name: "ChamBeer"
-    description: "Four-seat card game prototype.",
-    emoji: " ",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 0
+    id:
+      "lago-moto",
+
+    name:
+      "LAGO MOTO",
+
+    description:
+      "Side-view motocross. Red Dirt Bike GLB.",
+
+    emoji:
+      "🏍️",
+
+    status:
+      "available",
+
+    dumCost:
+      0,
+
+    maxRewardSP:
+      0
   },
 
+
   {
-    id: "lago-fights",
-    name: "STICK FIGHTS",
-    description: "Stick figure fights with custom backgrounds.",
-    emoji: "🥊",
-    status: "available",
-    dumCost: 0,
-    maxRewardSP: 0
+    id:
+      "cart-chaos",
+
+    name:
+      "CART CHAOS",
+
+    description:
+      "3D chaos race. Choose one of five GLB vehicles.",
+
+    emoji:
+      "🛒",
+
+    status:
+      "available",
+
+    dumCost:
+      0,
+
+    maxRewardSP:
+      0
+  },
+
+
+  {
+    id:
+      "chambeer",
+
+    name:
+      "ChamBeer",
+
+    description:
+      "Survival eater-runner. Development follows Cart Chaos.",
+
+    emoji:
+      "🐻",
+
+    status:
+      "coming",
+
+    dumCost:
+      0,
+
+    maxRewardSP:
+      0
+  },
+
+
+  {
+    id:
+      "lago-fights",
+
+    name:
+      "STICK FIGHTS",
+
+    description:
+      "Stick figure multiplayer fights. Development follows ChamBeer.",
+
+    emoji:
+      "🥊",
+
+    status:
+      "coming",
+
+    dumCost:
+      0,
+
+    maxRewardSP:
+      0
   }
+
 ];
 
   function runtime() {
@@ -205,49 +312,50 @@ name: "ChamBeer"
 
 
   function cardStatus(
-    game,
-    context
+  game,
+  context
+) {
+
+  if (
+    game.status !==
+    "available"
   ) {
 
-    if (
-      game.status !==
-      "available"
-    ) {
-
-      if (game.id !== "lago-tanks") {
-  return "LOCAL PROTOTYPE";
-}
-
-      return "COMING SOON";
-
-    }
-
-
-    if (
-      game.requiredCharacter &&
-      game.requiredCharacter !==
-        context.characterId
-    ) {
-
-      return "CHARACTER LOCKED";
-
-    }
-
-
-    if (
-      game.dumCost >
-      context.dum
-    ) {
-
-      return "NOT ENOUGH DUM";
-
-    }
-
-
-    return "AVAILABLE NOW";
+    return "COMING SOON";
 
   }
 
+
+  if (
+    game.requiredCharacter &&
+    game.requiredCharacter !==
+      context.characterId
+  ) {
+
+    return "CHARACTER LOCKED";
+
+  }
+
+
+  if (
+    game.dumCost >
+    context.dum
+  ) {
+
+    return "NOT ENOUGH DUM";
+
+  }
+
+
+  return (
+    game.id ===
+    "lago-tanks"
+
+      ? "AVAILABLE NOW"
+      : "LOCAL PROTOTYPE"
+  );
+
+}
 
    function gameMeta(
     game,
