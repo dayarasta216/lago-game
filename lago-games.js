@@ -91,10 +91,10 @@ const CATALOG = [
   },
 
   {
-    id: "lago-101",
-    name: "101",
+    id: "chambeer",
+name: "ChamBeer"
     description: "Four-seat card game prototype.",
-    emoji: "🃏",
+    emoji: " ",
     status: "available",
     dumCost: 0,
     maxRewardSP: 0
