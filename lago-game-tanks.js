@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 26;
+  const VERSION = 27;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -1626,11 +1626,12 @@ let lastServerSnapshotAt =
               class="lt-card"
             >
 
-              <div
-                class="lt-card-title"
-              >
-                MAP 01 · VILLAGE
-              </div>
+             <div
+  class="lt-card-title"
+  id="ltPanelTitle"
+>
+  MAP 01 · VILLAGE
+</div>
 
 
               <div
@@ -1703,13 +1704,13 @@ let lastServerSnapshotAt =
       );
 
 
-    el(
-      "ltPrimary"
-    )
-      ?.addEventListener(
-        "click",
-        startGame
-      );
+   el(
+  "ltPrimary"
+)
+  ?.addEventListener(
+    "click",
+    handlePrimaryAction
+  );
 
 
     el(
@@ -5112,8 +5113,11 @@ avoidUntil:
 
 avoidDirection:
   1,
-    
-    maxHp:
+
+blockedFor:
+  0,
+
+maxHp:
       TANK_MAX_HP,
 
     hp:
@@ -5222,6 +5226,9 @@ actor.nextThinkAt =
 
 
 actor.avoidUntil =
+  0;
+
+actor.blockedFor =
   0;
 
 actor.protectedUntil =
@@ -5440,6 +5447,182 @@ if (
 
 }
 
+  function restoreStartPanel() {
+
+  const title =
+    el(
+      "ltPanelTitle"
+    );
+
+  const copy =
+    el(
+      "ltPanelCopy"
+    );
+
+  const primary =
+    el(
+      "ltPrimary"
+    );
+
+
+  if (title) {
+
+    title.textContent =
+      "MAP 01 · VILLAGE";
+
+  }
+
+
+  if (copy) {
+
+    copy.textContent =
+      "4v4 local battle · first to 10 kills or highest score after 3 minutes.";
+
+  }
+
+
+  if (primary) {
+
+    primary.disabled =
+      false;
+
+    primary.textContent =
+      "START LOCAL MATCH";
+
+  }
+
+}
+
+
+function showMatchResultPanel() {
+
+  const panel =
+    el(
+      "ltPanel"
+    );
+
+  const title =
+    el(
+      "ltPanelTitle"
+    );
+
+  const copy =
+    el(
+      "ltPanelCopy"
+    );
+
+  const primary =
+    el(
+      "ltPrimary"
+    );
+
+
+  if (
+    !panel ||
+    !title ||
+    !copy ||
+    !primary
+  ) {
+
+    return;
+
+  }
+
+
+  const result =
+
+    matchState.winner ===
+    "draw"
+
+      ? "DRAW"
+
+      : String(
+          matchState.winner ||
+          ""
+        ).toUpperCase() +
+        " WINS";
+
+
+  title.textContent =
+    result;
+
+
+  copy.textContent =
+
+    "BLUE " +
+    teamScores.blue +
+    " · " +
+    teamScores.red +
+    " RED" +
+
+    (
+      localPlayerActor
+
+        ? " · K " +
+          localPlayerActor.kills +
+          " / D " +
+          localPlayerActor.deaths
+
+        : ""
+    );
+
+
+  primary.textContent =
+
+    serverAuthorityEnabled
+
+      ? "WAIT FOR SERVER"
+      : "REMATCH";
+
+
+  primary.disabled =
+    serverAuthorityEnabled;
+
+
+  panel.hidden =
+    false;
+
+}
+
+
+function handlePrimaryAction() {
+
+  if (
+    phase ===
+      "running" &&
+    matchState.status ===
+      "ended"
+  ) {
+
+    if (
+      restartMatch()
+    ) {
+
+      const panel =
+        el(
+          "ltPanel"
+        );
+
+
+      if (panel) {
+
+        panel.hidden =
+          true;
+
+      }
+
+    }
+
+
+    return;
+
+  }
+
+
+  void startGame();
+
+}
+
   function resetMatchState() {
 
   matchState.status =
@@ -5479,6 +5662,9 @@ function endMatch(
 
 
   clearCombatFX();
+
+
+  showMatchResultPanel();
 
 }
 
@@ -5654,7 +5840,7 @@ function updateCombatStatus() {
       scoreText +
       " · " +
       result;
-
+    showMatchResultPanel();
 
     return;
 
@@ -5713,6 +5899,10 @@ function updateCombatStatus() {
     localPlayerActor.hp +
     "/" +
     localPlayerActor.maxHp +
+    " · K " +
+localPlayerActor.kills +
+" D " +
+localPlayerActor.deaths +
 
     (
       protection >
@@ -7150,24 +7340,68 @@ function updateBotMovement(
 
         actor.avoidDirection ===
         1
+if (
+  actorCollidesAt(
+    actor,
+    nextX,
+    nextZ
+  )
+) {
 
-          ? -1
-          : 1;
+  actor.blockedFor =
+
+    (
+      actor.blockedFor ||
+      0
+    ) +
+    dt;
 
 
-      actor.avoidUntil =
+  root.rotation.y +=
 
-        combatTime +
-        0.75;
-
-
-      continue;
-
-    }
+    actor.avoidDirection *
+    BOT_TURN_SPEED *
+    dt *
+    1.55;
 
 
-    root.position.x =
-      nextX;
+  if (
+    actor.blockedFor >=
+    0.34
+  ) {
+
+    actor.avoidDirection =
+
+      actor.avoidDirection ===
+      1
+
+        ? -1
+        : 1;
+
+
+    actor.avoidUntil =
+
+      combatTime +
+      1.15;
+
+
+    actor.blockedFor =
+      0;
+
+  }
+
+
+  continue;
+
+}
+
+
+actor.blockedFor =
+  0;
+
+
+root.position.x =
+  nextX;
 
 
     root.position.z =
@@ -7953,14 +8187,16 @@ bullets.push({
 });
 
 }
-
-  function findBulletActorHit(
-  bullet
+function findBulletActorHitBetween(
+  bullet,
+  from,
+  to
 ) {
 
   if (
     !bullet ||
-    !bullet.mesh
+    !from ||
+    !to
   ) {
 
     return null;
@@ -7968,8 +8204,29 @@ bullets.push({
   }
 
 
-  const position =
-    bullet.mesh.position;
+  const segment =
+    to.clone()
+      .sub(
+        from
+      );
+
+
+  const lengthSq =
+    segment.lengthSq();
+
+
+  if (
+    lengthSq <=
+    0
+  ) {
+
+    return null;
+
+  }
+
+
+  let best =
+    null;
 
 
   for (
@@ -7981,9 +8238,9 @@ bullets.push({
       !actor.alive ||
       !actor.object3D ||
       actor.id ===
-      bullet.ownerId ||
+        bullet.ownerId ||
       actor.team ===
-      bullet.team
+        bullet.team
     ) {
 
       continue;
@@ -7992,28 +8249,60 @@ bullets.push({
 
 
     const target =
-      actor.object3D.position;
+      actor.object3D
+        .position
+        .clone();
+
+
+    target.y +=
+      0.85;
+
+
+    const offset =
+      target.clone()
+        .sub(
+          from
+        );
+
+
+    const t =
+      THREE.MathUtils
+        .clamp(
+
+          offset.dot(
+            segment
+          ) /
+          lengthSq,
+
+          0,
+          1
+
+        );
+
+
+    const point =
+      from.clone()
+        .addScaledVector(
+          segment,
+          t
+        );
 
 
     const dx =
-      position.x -
+      point.x -
       target.x;
 
 
     const dz =
-      position.z -
+      point.z -
       target.z;
-
-
-    const radius =
-      actor.hitRadius;
 
 
     if (
       dx * dx +
       dz * dz >
-      radius *
-      radius
+      actor.hitRadius *
+      actor.hitRadius
     ) {
 
       continue;
@@ -8021,15 +8310,10 @@ bullets.push({
     }
 
 
-    const targetY =
-      target.y +
-      0.85;
-
-
     if (
       Math.abs(
-        position.y -
-        targetY
+        point.y -
+        target.y
       ) >
       1.55
     ) {
@@ -8039,12 +8323,24 @@ bullets.push({
     }
 
 
-    return actor;
+    if (
+      !best ||
+      t <
+      best.t
+    ) {
+
+      best = {
+        actor,
+        t,
+        point
+      };
+
+    }
 
   }
 
 
-  return null;
+  return best;
 
 }
 
@@ -8110,6 +8406,68 @@ bullets.push({
 
   }
 
+  function findBulletSolidHitBetween(
+  from,
+  to
+) {
+
+  const distance =
+    from.distanceTo(
+      to
+    );
+
+
+  const steps =
+    Math.max(
+
+      1,
+
+      Math.ceil(
+        distance /
+        0.28
+      )
+
+    );
+
+
+  for (
+    let step = 1;
+    step <= steps;
+    step += 1
+  ) {
+
+    const t =
+      step /
+      steps;
+
+
+    const point =
+      from.clone()
+        .lerp(
+          to,
+          t
+        );
+
+
+    if (
+      bulletHitsSolid(
+        point
+      )
+    ) {
+
+      return {
+        t,
+        point
+      };
+
+    }
+
+  }
+
+
+  return null;
+
+}
 
   function createImpact(
     position
@@ -8207,35 +8565,40 @@ bullets.push({
 
   }
 
+function updateBullets(
+  dt
+) {
 
-  function updateBullets(
-    dt
+  for (
+
+    let index =
+      bullets.length -
+      1;
+
+    index >= 0;
+
+    index -= 1
+
   ) {
 
-    for (
-
-      let index =
-        bullets.length -
-        1;
-
-      index >= 0;
-
-      index -= 1
-
-    ) {
-
-      const bullet =
-        bullets[
-          index
-        ];
+    const bullet =
+      bullets[
+        index
+      ];
 
 
-      bullet.age +=
-        dt;
+    bullet.age +=
+      dt;
 
 
+    const from =
       bullet.mesh
         .position
+        .clone();
+
+
+    const to =
+      from.clone()
         .addScaledVector(
 
           bullet.direction,
@@ -8245,72 +8608,112 @@ bullets.push({
 
         );
 
-      const hitActor =
-  findBulletActorHit(
-    bullet
-  );
+
+    const actorHit =
+      findBulletActorHitBetween(
+        bullet,
+        from,
+        to
+      );
 
 
-if (
-  hitActor
-) {
-
-  applyDamage(
-    hitActor,
-    bullet.damage,
-    bullet.ownerId
-  );
+    const solidHit =
+      findBulletSolidHitBetween(
+        from,
+        to
+      );
 
 
-  createImpact(
-    bullet.mesh.position
-  );
+    const actorFirst =
+
+      actorHit &&
+      (
+        !solidHit ||
+        actorHit.t <=
+        solidHit.t
+      );
 
 
-  removeBullet(
-    index
-  );
+    if (
+      actorFirst
+    ) {
 
-
-  continue;
-
-}
-
-      if (
-        bulletHitsSolid(
-          bullet.mesh.position
-        )
-      ) {
-
-        createImpact(
-          bullet.mesh.position
+      bullet.mesh
+        .position
+        .copy(
+          actorHit.point
         );
 
 
-        removeBullet(
-          index
+      applyDamage(
+        actorHit.actor,
+        bullet.damage,
+        bullet.ownerId
+      );
+
+
+      createImpact(
+        actorHit.point
+      );
+
+
+      removeBullet(
+        index
+      );
+
+
+      continue;
+
+    }
+
+
+    if (
+      solidHit
+    ) {
+
+      bullet.mesh
+        .position
+        .copy(
+          solidHit.point
         );
 
 
-        continue;
+      createImpact(
+        solidHit.point
+      );
 
-      }
+
+      removeBullet(
+        index
+      );
 
 
-      if (
-        bullet.age >=
-        BULLET_LIFE
-      ) {
+      continue;
 
-        removeBullet(
-          index
-        );
+    }
 
-      }
+
+    bullet.mesh
+      .position
+      .copy(
+        to
+      );
+
+
+    if (
+      bullet.age >=
+      BULLET_LIFE
+    ) {
+
+      removeBullet(
+        index
+      );
 
     }
 
   }
+
+}
 
 
   function updateImpacts(
@@ -10428,6 +10831,23 @@ function restartMatch() {
   resetMatchState();
 
 
+  restoreStartPanel();
+
+
+  const panel =
+    el(
+      "ltPanel"
+    );
+
+
+  if (panel) {
+
+    panel.hidden =
+      true;
+
+  }
+
+
   return true;
 
 }
@@ -10814,12 +11234,8 @@ tankVoicePanel = window.LAGO_GAME_VOICE?.createPanel({
     ).hidden =
       false;
 
+restoreStartPanel();
 
-    el(
-      "ltPanelCopy"
-    ).textContent =
-
-      "Map 01 is sized for 8 players: 4 Blue vs 4 Red. This checkpoint tests the new GLB tank and battlefield; networking comes after the map is stable.";
 
 
     resize();
@@ -10832,16 +11248,18 @@ tankVoicePanel = window.LAGO_GAME_VOICE?.createPanel({
 
   }
 
+function hide() {
 
-  function hide() {
+  tankVoicePanel?.destroy();
+
+  tankVoicePanel =
+    null;
+
 
   if (
     networkSession.desiredOnline
   ) {
 
-tankVoicePanel?.destroy();
-tankVoicePanel = null;
-    
     leaveNetworkRoom();
 
   }
