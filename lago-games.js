@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 49;
+  const VERSION = 50;
 
 let overlay = null;
 
@@ -141,6 +141,8 @@ const GAME_MODULES =
     }
 
   })
+
+});
 
 
 const CATALOG = [
