@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 30;
+  const VERSION = 31;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -134,17 +134,46 @@ const MAP_LANES =
 
     Object.freeze({
       id: "west",
-      x: -24
+      x: -43,
+      waypoints: Object.freeze([
+        Object.freeze({ x: -18, z: 31 }),
+        Object.freeze({ x: -42, z: 31 }),
+        Object.freeze({ x: -43, z: 18 }),
+        Object.freeze({ x: -43, z: 0 }),
+        Object.freeze({ x: -43, z: -18 }),
+        Object.freeze({ x: -42, z: -31 }),
+        Object.freeze({ x: -18, z: -31 })
+      ])
     }),
 
     Object.freeze({
       id: "center",
-      x: 0
+      x: 0,
+      waypoints: Object.freeze([
+        Object.freeze({ x: 0, z: 26 }),
+        Object.freeze({ x: 0, z: 18 }),
+        Object.freeze({ x: 0, z: 11 }),
+        Object.freeze({ x: 12, z: 8 }),
+        Object.freeze({ x: 12, z: 0 }),
+        Object.freeze({ x: 12, z: -8 }),
+        Object.freeze({ x: 0, z: -11 }),
+        Object.freeze({ x: 0, z: -18 }),
+        Object.freeze({ x: 0, z: -26 })
+      ])
     }),
 
     Object.freeze({
       id: "east",
-      x: 24
+      x: 43,
+      waypoints: Object.freeze([
+        Object.freeze({ x: 18, z: 31 }),
+        Object.freeze({ x: 42, z: 31 }),
+        Object.freeze({ x: 43, z: 18 }),
+        Object.freeze({ x: 43, z: 0 }),
+        Object.freeze({ x: 43, z: -18 }),
+        Object.freeze({ x: 42, z: -31 }),
+        Object.freeze({ x: 18, z: -31 })
+      ])
     })
 
   ]);
@@ -5324,7 +5353,8 @@ function createTankActor({
   team,
   spawnIndex,
   object3D,
-  isBot = false
+  isBot = false,
+  laneIndex = 1
 }) {
 
   return {
@@ -5354,19 +5384,34 @@ function createTankActor({
     nextThinkAt:
       0,
 
-nextFireAt:
-  0,
+    nextFireAt:
+      0,
 
-avoidUntil:
-  0,
+    avoidUntil:
+      0,
 
-avoidDirection:
-  1,
+    avoidDirection:
+      1,
 
-blockedFor:
-  0,
+    blockedFor:
+      0,
 
-maxHp:
+    laneIndex:
+      THREE.MathUtils.clamp(
+        Number(
+          laneIndex
+        ) || 0,
+        0,
+        MAP_LANES.length - 1
+      ),
+
+    navWaypointIndex:
+      0,
+
+    navReadyAt:
+      0,
+
+    maxHp:
       TANK_MAX_HP,
 
     hp:
@@ -5458,29 +5503,62 @@ function spawnActor(
     true;
 
 
- actor.respawnAt =
-  0;
+  actor.respawnAt =
+    0;
 
 
-actor.targetId =
-  null;
+  actor.targetId =
+    null;
 
 
-actor.nextThinkAt =
-  0;
+  actor.nextThinkAt =
+    0;
+
 
   actor.nextFireAt =
-  combatTime +
-  0.65;
+
+    combatTime +
+    0.65;
 
 
-actor.avoidUntil =
-  0;
+  actor.avoidUntil =
+    0;
 
-actor.blockedFor =
-  0;
 
-actor.protectedUntil =
+  actor.avoidDirection =
+
+    actor.spawnIndex %
+    2 ===
+    0
+
+      ? 1
+      : -1;
+
+
+  actor.blockedFor =
+    0;
+
+
+  actor.navWaypointIndex =
+    0;
+
+
+  actor.navReadyAt =
+
+    combatTime +
+
+    (
+      actor.isBot
+
+        ? 0.18 +
+          actor.spawnIndex *
+          0.16
+
+        : 0
+    );
+
+
+  actor.protectedUntil =
 
     combatTime +
     SPAWN_PROTECTION_SECONDS;
@@ -5511,7 +5589,6 @@ actor.protectedUntil =
   );
 
 }
-
 
 function actorIsProtected(
   actor
@@ -6302,48 +6379,55 @@ resetPlayerToSpawn();
   }
 
 
-  const definitions = [
+    const definitions = [
 
     {
       id: "blue-bot-1",
       team: "blue",
-      spawnIndex: 0
+      spawnIndex: 0,
+      laneIndex: 0
     },
 
     {
       id: "blue-bot-2",
       team: "blue",
-      spawnIndex: 2
+      spawnIndex: 2,
+      laneIndex: 1
     },
 
     {
       id: "blue-bot-3",
       team: "blue",
-      spawnIndex: 3
+      spawnIndex: 3,
+      laneIndex: 2
     },
 
     {
       id: "red-bot-1",
       team: "red",
-      spawnIndex: 0
+      spawnIndex: 0,
+      laneIndex: 0
     },
 
     {
       id: "red-bot-2",
       team: "red",
-      spawnIndex: 1
+      spawnIndex: 1,
+      laneIndex: 1
     },
 
     {
       id: "red-bot-3",
       team: "red",
-      spawnIndex: 2
+      spawnIndex: 2,
+      laneIndex: 1
     },
 
     {
       id: "red-bot-4",
       team: "red",
-      spawnIndex: 3
+      spawnIndex: 3,
+      laneIndex: 2
     }
 
   ];
@@ -7417,6 +7501,170 @@ function normalizeAngle(
 }
 
 
+function getBotLane(
+  actor
+) {
+
+  const laneIndex =
+    THREE.MathUtils.clamp(
+      Number(
+        actor?.laneIndex
+      ) || 0,
+      0,
+      MAP_LANES.length - 1
+    );
+
+
+  return MAP_LANES[
+    laneIndex
+  ];
+
+}
+
+
+function getBotNavigationPoint(
+  actor,
+  target
+) {
+
+  if (
+    !actor ||
+    !actor.object3D
+  ) {
+
+    return null;
+
+  }
+
+
+  const lane =
+    getBotLane(
+      actor
+    );
+
+
+  const waypoints =
+    lane?.waypoints ||
+    [];
+
+
+  const root =
+    actor.object3D;
+
+
+  const enemyDistance =
+
+    target
+      ?.object3D
+
+      ? root.position.distanceTo(
+          target.object3D.position
+        )
+
+      : Infinity;
+
+
+  if (
+    enemyDistance <
+    12
+  ) {
+
+    return target
+      .object3D
+      .position
+      .clone();
+
+  }
+
+
+  while (
+    actor.navWaypointIndex <
+    waypoints.length
+  ) {
+
+    const routeIndex =
+
+      actor.team ===
+      "red"
+
+        ? waypoints.length -
+          1 -
+          actor.navWaypointIndex
+
+        : actor.navWaypointIndex;
+
+
+    const waypoint =
+      waypoints[
+        routeIndex
+      ];
+
+
+    const distance =
+      Math.hypot(
+
+        waypoint.x -
+        root.position.x,
+
+        waypoint.z -
+        root.position.z
+
+      );
+
+
+    if (
+      distance >
+      3.2
+    ) {
+
+      return new THREE.Vector3(
+        waypoint.x,
+        0,
+        waypoint.z
+      );
+
+    }
+
+
+    actor.navWaypointIndex +=
+      1;
+
+  }
+
+
+  return target
+    ?.object3D
+    ?.position
+    ?.clone?.() ||
+    null;
+
+}
+
+
+function getBotDirection(
+  yaw
+) {
+
+  return new THREE.Vector3(
+    0,
+    0,
+    -1
+  )
+    .applyAxisAngle(
+
+      new THREE.Vector3(
+        0,
+        1,
+        0
+      ),
+
+      yaw
+
+    );
+
+}
+
+
 function updateBotMovement(
   dt
 ) {
@@ -7438,7 +7686,9 @@ function updateBotMovement(
 
     if (
       !actor.alive ||
-      !actor.object3D
+      !actor.object3D ||
+      combatTime <
+      actor.navReadyAt
     ) {
 
       continue;
@@ -7467,17 +7717,39 @@ function updateBotMovement(
       actor.object3D;
 
 
+    const navigationPoint =
+      getBotNavigationPoint(
+        actor,
+        target
+      );
+
+
+    if (
+      !navigationPoint
+    ) {
+
+      continue;
+
+    }
+
+
+    const enemyDistance =
+      root.position.distanceTo(
+        target.object3D.position
+      );
+
+
     const dx =
-      target.object3D.position.x -
+      navigationPoint.x -
       root.position.x;
 
 
     const dz =
-      target.object3D.position.z -
+      navigationPoint.z -
       root.position.z;
 
 
-    const distance =
+    const navigationDistance =
       Math.hypot(
         dx,
         dz
@@ -7499,7 +7771,7 @@ function updateBotMovement(
       desiredYaw +=
 
         actor.avoidDirection *
-        0.72;
+        0.84;
 
     }
 
@@ -7529,8 +7801,10 @@ function updateBotMovement(
 
 
     if (
-      distance <=
-      BOT_STOP_DISTANCE
+      enemyDistance <=
+      BOT_STOP_DISTANCE &&
+      navigationDistance <=
+      13
     ) {
 
       actor.blockedFor =
@@ -7542,26 +7816,30 @@ function updateBotMovement(
 
 
     const forward =
-      new THREE.Vector3(
-        0,
-        0,
-        -1
-      )
-        .applyAxisAngle(
+      getBotDirection(
+        root.rotation.y
+      );
 
-          new THREE.Vector3(
-            0,
-            1,
-            0
-          ),
 
-          root.rotation.y
+    const turnScale =
+      THREE.MathUtils.clamp(
 
-        );
+        1 -
+        Math.abs(
+          yawDelta
+        ) /
+        1.8,
+
+        0.34,
+        1
+
+      );
 
 
     const moveDistance =
+
       BOT_MOVE_SPEED *
+      turnScale *
       dt;
 
 
@@ -7597,55 +7875,21 @@ function updateBotMovement(
 
 
       const probeDistance =
-        2.7;
-
-
-      const leftYaw =
-        root.rotation.y +
-        0.82;
-
-
-      const rightYaw =
-        root.rotation.y -
-        0.82;
+        3.4;
 
 
       const leftDirection =
-        new THREE.Vector3(
-          0,
-          0,
-          -1
-        )
-          .applyAxisAngle(
-
-            new THREE.Vector3(
-              0,
-              1,
-              0
-            ),
-
-            leftYaw
-
-          );
+        getBotDirection(
+          root.rotation.y +
+          0.92
+        );
 
 
       const rightDirection =
-        new THREE.Vector3(
-          0,
-          0,
-          -1
-        )
-          .applyAxisAngle(
-
-            new THREE.Vector3(
-              0,
-              1,
-              0
-            ),
-
-            rightYaw
-
-          );
+        getBotDirection(
+          root.rotation.y -
+          0.92
+        );
 
 
       const leftBlocked =
@@ -7693,7 +7937,7 @@ function updateBotMovement(
 
       } else if (
         actor.blockedFor >
-        0.42
+        0.45
       ) {
 
         actor.avoidDirection =
@@ -7710,7 +7954,14 @@ function updateBotMovement(
       actor.avoidUntil =
 
         combatTime +
-        0.95;
+
+        (
+          actor.blockedFor >
+          0.9
+
+            ? 1.35
+            : 0.9
+        );
 
 
       root.rotation.y +=
@@ -7718,7 +7969,47 @@ function updateBotMovement(
         actor.avoidDirection *
         BOT_TURN_SPEED *
         dt *
-        1.65;
+        1.9;
+
+
+      if (
+        actor.blockedFor >
+        0.9
+      ) {
+
+        const reverseX =
+
+          root.position.x -
+          forward.x *
+          moveDistance *
+          1.7;
+
+
+        const reverseZ =
+
+          root.position.z -
+          forward.z *
+          moveDistance *
+          1.7;
+
+
+        if (
+          !actorCollidesAt(
+            actor,
+            reverseX,
+            reverseZ
+          )
+        ) {
+
+          root.position.x =
+            reverseX;
+
+          root.position.z =
+            reverseZ;
+
+        }
+
+      }
 
 
       continue;
