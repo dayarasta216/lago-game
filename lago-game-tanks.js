@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 29;
+  const VERSION = 30;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -981,6 +981,60 @@ let lastServerSnapshotAt =
 
       }
 
+.lt-stage >
+.lago-voice-panel {
+
+  top:
+    46px;
+
+  right:
+    10px;
+
+  width:
+    auto;
+
+  max-width:
+    245px;
+
+  padding:
+    5px;
+
+  gap:
+    4px;
+
+  transform:
+    scale(.86);
+
+  transform-origin:
+    top right;
+
+}
+
+
+.lt-stage >
+.lago-voice-panel
+.lago-voice-status {
+
+  display:
+    none;
+
+}
+
+
+.lt-stage >
+.lago-voice-panel
+button {
+
+  min-height:
+    31px;
+
+  padding:
+    6px 8px;
+
+  font-size:
+    10px;
+
+}
 
       .lt-mobile {
 
@@ -7212,11 +7266,11 @@ if (
 
     camera.fov =
 
-      width <
-      760
+  width <
+  760
 
-        ? 58
-        : 48;
+    ? 50
+    : 43;
 
 
     camera
@@ -7445,8 +7499,7 @@ function updateBotMovement(
       desiredYaw +=
 
         actor.avoidDirection *
-        Math.PI *
-        0.42;
+        0.72;
 
     }
 
@@ -7480,12 +7533,15 @@ function updateBotMovement(
       BOT_STOP_DISTANCE
     ) {
 
+      actor.blockedFor =
+        0;
+
       continue;
 
     }
 
 
-    const direction =
+    const forward =
       new THREE.Vector3(
         0,
         0,
@@ -7512,14 +7568,14 @@ function updateBotMovement(
     const nextX =
 
       root.position.x +
-      direction.x *
+      forward.x *
       moveDistance;
 
 
     const nextZ =
 
       root.position.z +
-      direction.z *
+      forward.z *
       moveDistance;
 
 
@@ -7531,72 +7587,151 @@ function updateBotMovement(
       )
     ) {
 
-      actor.avoidDirection =
+      actor.blockedFor =
 
-        actor.avoidDirection ===
-        1
-if (
-  actorCollidesAt(
-    actor,
-    nextX,
-    nextZ
-  )
-) {
-
-  actor.blockedFor =
-
-    (
-      actor.blockedFor ||
-      0
-    ) +
-    dt;
+        (
+          actor.blockedFor ||
+          0
+        ) +
+        dt;
 
 
-  root.rotation.y +=
-
-    actor.avoidDirection *
-    BOT_TURN_SPEED *
-    dt *
-    1.55;
+      const probeDistance =
+        2.7;
 
 
-  if (
-    actor.blockedFor >=
-    0.34
-  ) {
-
-    actor.avoidDirection =
-
-      actor.avoidDirection ===
-      1
-
-        ? -1
-        : 1;
+      const leftYaw =
+        root.rotation.y +
+        0.82;
 
 
-    actor.avoidUntil =
+      const rightYaw =
+        root.rotation.y -
+        0.82;
 
-      combatTime +
-      1.15;
+
+      const leftDirection =
+        new THREE.Vector3(
+          0,
+          0,
+          -1
+        )
+          .applyAxisAngle(
+
+            new THREE.Vector3(
+              0,
+              1,
+              0
+            ),
+
+            leftYaw
+
+          );
+
+
+      const rightDirection =
+        new THREE.Vector3(
+          0,
+          0,
+          -1
+        )
+          .applyAxisAngle(
+
+            new THREE.Vector3(
+              0,
+              1,
+              0
+            ),
+
+            rightYaw
+
+          );
+
+
+      const leftBlocked =
+        actorCollidesAt(
+
+          actor,
+
+          root.position.x +
+          leftDirection.x *
+          probeDistance,
+
+          root.position.z +
+          leftDirection.z *
+          probeDistance
+
+        );
+
+
+      const rightBlocked =
+        actorCollidesAt(
+
+          actor,
+
+          root.position.x +
+          rightDirection.x *
+          probeDistance,
+
+          root.position.z +
+          rightDirection.z *
+          probeDistance
+
+        );
+
+
+      if (
+        leftBlocked !==
+        rightBlocked
+      ) {
+
+        actor.avoidDirection =
+
+          leftBlocked
+            ? -1
+            : 1;
+
+      } else if (
+        actor.blockedFor >
+        0.42
+      ) {
+
+        actor.avoidDirection =
+
+          actor.avoidDirection ===
+          1
+
+            ? -1
+            : 1;
+
+      }
+
+
+      actor.avoidUntil =
+
+        combatTime +
+        0.95;
+
+
+      root.rotation.y +=
+
+        actor.avoidDirection *
+        BOT_TURN_SPEED *
+        dt *
+        1.65;
+
+
+      continue;
+
+    }
 
 
     actor.blockedFor =
       0;
 
-  }
 
-
-  continue;
-
-}
-
-
-actor.blockedFor =
-  0;
-
-
-root.position.x =
-  nextX;
+    root.position.x =
+      nextX;
 
 
     root.position.z =
@@ -7650,7 +7785,6 @@ root.position.x =
   }
 
 }
-
   /*
    * =========================================================
    * PLAYER MOVEMENT
@@ -8753,12 +8887,10 @@ function findBulletActorHitBetween(
       ?.();
 
 
-    bullets.splice(
+   bullets.splice(
   index,
   1
 );
-
-}
 
 }
 
@@ -11055,87 +11187,115 @@ function restartMatch() {
    * =========================================================
    */
 
-  function updateCamera() {
+  function setOverviewCamera() {
 
-    if (
-      !player ||
-      !camera
-    ) {
+  if (
+    !camera
+  ) {
 
-      return;
+    return;
 
-    }
-
-
-    const compact =
-
-      window.innerWidth <
-      760;
+  }
 
 
-    const desired =
-      new THREE.Vector3(
-
-        player.position.x,
-
-        player.position.y +
-
-        (
-          compact
-  ? 22.5
-  : 19.5
-        ),
-
-        player.position.z +
-
-        (compact
-  ? 12.0
-  : 10.5
-        )
-
-      );
+  camera.position.set(
+    0,
+    67,
+    52
+  );
 
 
-   const cameraDistance =
-  camera.position
-    .distanceTo(
-      desired
-    );
-
-
-if (
-  cameraDistance >
-  22
-) {
-
-  camera.position
-    .copy(
-      desired
-    );
-
-} else {
-
-  camera.position
-    .lerp(
-      desired,
-      0.075
-    );
+  camera.lookAt(
+    0,
+    0,
+    0
+  );
 
 }
 
 
-    camera.lookAt(
+function updateCamera(
+  immediate = false
+) {
+
+  if (
+    !player ||
+    !camera
+  ) {
+
+    return;
+
+  }
+
+
+  const compact =
+
+    window.innerWidth <
+    760;
+
+
+  /*
+   * High tactical camera.
+   * Камера значительно выше и
+   * почти сверху, как в референсе.
+   */
+
+  const desired =
+    new THREE.Vector3(
 
       player.position.x,
 
       player.position.y +
-      0.2,
 
-      player.position.z
+      (
+        compact
+          ? 31
+          : 27
+      ),
+
+      player.position.z +
+
+      (
+        compact
+          ? 10
+          : 8.5
+      )
 
     );
 
+
+  if (
+    immediate
+  ) {
+
+    camera.position
+      .copy(
+        desired
+      );
+
+  } else {
+
+    camera.position
+      .lerp(
+        desired,
+        0.12
+      );
+
   }
+
+
+  camera.lookAt(
+
+    player.position.x,
+
+    player.position.y,
+
+    player.position.z -
+    1.5
+
+  );
+
+}
 
 
   /*
@@ -11315,12 +11475,29 @@ await Promise.all([
 
 resetCombatRoster();
 
-      resetMatchState();
+resetMatchState();
 
-      el(
-        "ltPanel"
-      ).hidden =
-        true;
+
+/*
+ * Ставим игровую камеру сразу.
+ * Не показываем ни одного кадра
+ * из дефолтной позиции Three.js.
+ */
+updateCamera(
+  true
+);
+
+
+renderer.render(
+  scene,
+  camera
+);
+
+
+el(
+  "ltPanel"
+).hidden =
+  true;
 
 
       el(
@@ -11433,14 +11610,16 @@ tankVoicePanel = window.LAGO_GAME_VOICE?.createPanel({
 restoreStartPanel();
 
 
+resize();
 
-    resize();
+
+setOverviewCamera();
 
 
-    renderer.render(
-      scene,
-      camera
-    );
+renderer.render(
+  scene,
+  camera
+);
 
   }
 
