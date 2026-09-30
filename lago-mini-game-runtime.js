@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 5;
+  const VERSION = 6;
 
   const VALID_STATUSES =
     new Set([
@@ -274,7 +274,7 @@
               "Lago",
 
            model3d:
-  "./assets/model/roster/lago.glb?v=2"
+ "./assets/model/game/characters/lago.glb?v=1"
           };
     
     const dum =
