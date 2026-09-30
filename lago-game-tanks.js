@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 27;
+  const VERSION = 28;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -14,7 +14,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 const TEAM_RED_MODEL =
   "./assets/model/game/tanks/team-red.glb?v=1";
 
- const MAP_WIDTH = 104;
+ const MAP_WIDTH = 116;
 const MAP_DEPTH = 78;
 
   const MAP_HALF_X =
@@ -68,27 +68,27 @@ const NETWORK_RECONNECT_MAX_ATTEMPTS = 5;
   Object.freeze([
 
     Object.freeze({
-      x: -42,
-      z: -12,
-      yaw: -Math.PI / 2
+      x: -7.2,
+      z: 32.5,
+      yaw: 0
     }),
 
     Object.freeze({
-      x: -42,
-      z: -4,
-      yaw: -Math.PI / 2
+      x: -2.4,
+      z: 32.5,
+      yaw: 0
     }),
 
     Object.freeze({
-      x: -42,
-      z: 4,
-      yaw: -Math.PI / 2
+      x: 2.4,
+      z: 32.5,
+      yaw: 0
     }),
 
     Object.freeze({
-      x: -42,
-      z: 12,
-      yaw: -Math.PI / 2
+      x: 7.2,
+      z: 32.5,
+      yaw: 0
     })
 
   ]);
@@ -98,27 +98,27 @@ const NETWORK_RECONNECT_MAX_ATTEMPTS = 5;
   Object.freeze([
 
     Object.freeze({
-      x: 42,
-      z: -12,
-      yaw: Math.PI / 2
+      x: -7.2,
+      z: -32.5,
+      yaw: Math.PI
     }),
 
     Object.freeze({
-      x: 42,
-      z: -4,
-      yaw: Math.PI / 2
+      x: -2.4,
+      z: -32.5,
+      yaw: Math.PI
     }),
 
     Object.freeze({
-      x: 42,
-      z: 4,
-      yaw: Math.PI / 2
+      x: 2.4,
+      z: -32.5,
+      yaw: Math.PI
     }),
 
     Object.freeze({
-      x: 42,
-      z: 12,
-      yaw: Math.PI / 2
+      x: 7.2,
+      z: -32.5,
+      yaw: Math.PI
     })
 
   ]);
@@ -179,8 +179,8 @@ const TEAM_BASES =
    * =========================================================
    */
 
-  const HILLS =
-    Object.freeze([
+ const HILLS =
+  Object.freeze([]);
 
       Object.freeze({
         x: -18,
@@ -2481,17 +2481,17 @@ function getLocalInputSnapshot() {
       new THREE.Scene();
 
 
-    scene.background =
-      new THREE.Color(
-        0x9cb6c3
-      );
+   scene.background =
+  new THREE.Color(
+    0x8f9886
+  );
 
 
-   scene.fog =
+  scene.fog =
   new THREE.Fog(
-    0x9cb6c3,
-    58,
-    138
+    0x8f9886,
+    62,
+    142
   );
 
 
@@ -2660,11 +2660,11 @@ resizeObserver =
 
         geometry,
 
-        material(
-          0x66785a,
-          0.98,
-          0
-        )
+       material(
+  0x73854f,
+  0.98,
+  0
+)
 
       );
 
@@ -2712,7 +2712,7 @@ resizeObserver =
         .MeshStandardMaterial({
 
           color:
-            0x746b5b,
+  0x9a7d5f,
 
           roughness:
             1,
@@ -2768,7 +2768,7 @@ resizeObserver =
         .MeshStandardMaterial({
 
           color:
-            0x565852,
+  0x4b4e4c,
 
           roughness:
             1,
@@ -2850,7 +2850,7 @@ resizeObserver =
       .MeshBasicMaterial({
 
         color:
-          0xc5b98e,
+  0xd8d5c6,
 
         transparent:
           true,
@@ -4258,302 +4258,311 @@ function addFence(
    * =========================================================
    */
 
-  function buildMap01() {
+ function buildMap01() {
 
-    solidRects =
-      [];
-
-
-    createTerrain();
+  solidRects =
+    [];
 
 
-    /*
-     * Main crossing roads.
-     */
+  createTerrain();
 
-    addRoad(
-  0,
-  0,
-  96,
-  7.0
-);
-
-
-addRoad(
-  0,
-  0,
-  7.0,
-  70
-);
 
   /*
- * Three combat lanes.
- */
-
-addRoad(
-  0,
-  -22,
-  88,
-  5.5
-);
+   * =======================================================
+   * REFERENCE MAP LAYOUT
+   * =======================================================
+   */
 
 
-addRoad(
-  0,
-  22,
-  88,
-  5.5
-);
+  function addFlatPatch(
+    x,
+    z,
+    width,
+    depth,
+    color
+  ) {
 
+    const patch =
+      new THREE.Mesh(
 
-/*
- * Rotation routes between lanes.
- */
+        new THREE
+          .PlaneGeometry(
+            width,
+            depth
+          ),
 
-addRoad(
-  -28,
-  0,
-  5.0,
-  48
-);
+        new THREE
+          .MeshStandardMaterial({
 
+            color,
 
-addRoad(
-  28,
-  0,
-  5.0,
-  48
-);
+            roughness:
+              1,
 
-    /*
-     * Team bases.
-     */
+            metalness:
+              0,
 
-    for (
-      const spawn
-      of BLUE_SPAWNS
-    ) {
+            polygonOffset:
+              true,
 
-      addSpawnPad(
-        spawn,
-        0x4f88ff
+            polygonOffsetFactor:
+              -3,
+
+            polygonOffsetUnits:
+              -3
+
+          })
+
       );
 
-    }
+
+    patch.rotation.x =
+      -Math.PI /
+      2;
 
 
-    for (
-      const spawn
-      of RED_SPAWNS
-    ) {
+    patch.position.set(
+      x,
+      0.028,
+      z
+    );
 
-      addSpawnPad(
-        spawn,
-        0xff5d58
+
+    patch.receiveShadow =
+      true;
+
+
+    scene.add(
+      patch
+    );
+
+  }
+
+
+  function addPine(
+    x,
+    z,
+    scale = 1
+  ) {
+
+    const group =
+      new THREE.Group();
+
+
+    const trunk =
+      new THREE.Mesh(
+
+        new THREE
+          .CylinderGeometry(
+            0.22 * scale,
+            0.32 * scale,
+            1.65 * scale,
+            6
+          ),
+
+        material(
+          0x684b35,
+          1,
+          0
+        )
+
       );
 
-    }
+
+    trunk.position.y =
+      0.82 * scale;
 
 
-    /*
-     * Blue-side village.
-     */
-
-    addBuilding(
-      -18,
-      -8,
-      5.0,
-      4.2,
-      3.4,
-      0xa28e72
+    group.add(
+      trunk
     );
 
 
-    addBuilding(
-      -17,
-      7,
-      4.6,
-      4.6,
-      3.1,
-      0x9b8266
-    );
+    const dark =
+      material(
+        0x35553d,
+        1,
+        0
+      );
 
 
-    addBuilding(
-      -8,
-      -13,
-      4.4,
-      5.2,
-      3.2,
-      0x8f7c66
-    );
+    const light =
+      material(
+        0x496b43,
+        1,
+        0
+      );
 
-
-    addBuilding(
-      -7,
-      11,
-      4.6,
-      4.2,
-      3.0,
-      0x9f8a72
-    );
-
-
-    /*
-     * Red-side village.
-     */
-
-    addBuilding(
-      18,
-      -8,
-      5.0,
-      4.2,
-      3.4,
-      0xa28e72
-    );
-
-
-    addBuilding(
-      17,
-      7,
-      4.6,
-      4.6,
-      3.1,
-      0x9b8266
-    );
-
-
-    addBuilding(
-      8,
-      -13,
-      4.4,
-      5.2,
-      3.2,
-      0x8f7c66
-    );
-
-
-    addBuilding(
-      7,
-      11,
-      4.6,
-      4.2,
-      3.0,
-      0x9f8a72
-    );
-
-
-    /*
-     * Central warehouses.
-     */
-
-    addWarehouse(
-      -1,
-      -15,
-      8.5,
-      4.8,
-      3.2
-    );
-
-
-    addWarehouse(
-      1,
-      15,
-      8.5,
-      4.8,
-      3.2
-    );
-
-
-    /*
-     * Defensive walls.
-     */
-
-    addWall(
-      -12,
-      0,
-      6.0,
-      0.65,
-      0
-    );
-
-
-    addWall(
-      12,
-      0,
-      6.0,
-      0.65,
-      0
-    );
-
-
-    addWall(
-      0,
-      -8,
-      5.5,
-      0.65,
-      Math.PI /
-      2
-    );
-
-
-    addWall(
-      0,
-      8,
-      5.5,
-      0.65,
-      Math.PI /
-      2
-    );
-
-
-    /*
-     * Crates / cover.
-     */
 
     for (
       const [
-        x,
-        z
+        y,
+        radius,
+        height,
+        mat
       ]
-
       of [
 
-        [-23, -17],
-        [-23, 17],
-
-        [23, -17],
-        [23, 17],
-
-        [-3, -4],
-        [3, 4],
-
-        [-4, 4],
-        [4, -4]
+        [1.65, 1.15, 2.4, dark],
+        [2.55, 0.9, 2.15, light],
+        [3.35, 0.62, 1.75, dark]
 
       ]
+    ) {
+
+      const crown =
+        new THREE.Mesh(
+
+          new THREE
+            .ConeGeometry(
+              radius * scale,
+              height * scale,
+              7
+            ),
+
+          mat
+
+        );
+
+
+      crown.position.y =
+        y * scale;
+
+
+      crown.castShadow =
+        true;
+
+
+      group.add(
+        crown
+      );
+
+    }
+
+
+    group.position.set(
+      x,
+      0,
+      z
+    );
+
+
+    scene.add(
+      group
+    );
+
+
+    addSolidRect(
+      x,
+      z,
+      0.42 * scale,
+      0.42 * scale
+    );
+
+  }
+
+
+  function addBoundaryRock(
+    x,
+    z,
+    scale = 1,
+    rotation = 0
+  ) {
+
+    const rock =
+      new THREE.Mesh(
+
+        new THREE
+          .DodecahedronGeometry(
+            1.8,
+            0
+          ),
+
+        material(
+          0x666b61,
+          1,
+          0
+        )
+
+      );
+
+
+    rock.scale.set(
+      1.45 * scale,
+      1.8 * scale,
+      1.25 * scale
+    );
+
+
+    rock.rotation.y =
+      rotation;
+
+
+    rock.position.set(
+      x,
+      1.65 * scale,
+      z
+    );
+
+
+    rock.castShadow =
+      true;
+
+
+    rock.receiveShadow =
+      true;
+
+
+    scene.add(
+      rock
+    );
+
+  }
+
+
+  function addCrateStack(
+    x,
+    z,
+    count = 2
+  ) {
+
+    for (
+      let index = 0;
+      index < count;
+      index += 1
     ) {
 
       const crate =
         box(
-          1.9,
-          1.5,
-          1.9,
-          0x7d684a
+          1.15,
+          1.05,
+          1.15,
+          0x846448
         );
 
 
       crate.position.set(
 
-        x,
-
-        terrainHeight(
-          x,
-          z
-        ) +
+        x +
+        (
+          index %
+          2
+        ) *
         0.75,
 
-        z
+        0.53 +
+        Math.floor(
+          index /
+          2
+        ) *
+        1.02,
+
+        z +
+        (
+          index %
+          2
+        ) *
+        0.3
 
       );
 
@@ -4562,506 +4571,731 @@ addRoad(
         crate
       );
 
+    }
+
+
+    addSolidRect(
+      x + 0.35,
+      z + 0.15,
+      1.2,
+      1.0
+    );
+
+  }
+
+
+  function addGate(
+    z,
+    facing = 1
+  ) {
+
+    const postColor =
+      0x8c8b80;
+
+
+    for (
+      const x
+      of [
+        -5.7,
+        5.7
+      ]
+    ) {
+
+      const pillar =
+        box(
+          1.25,
+          5.4,
+          1.6,
+          postColor
+        );
+
+
+      pillar.position.set(
+        x,
+        2.7,
+        z
+      );
+
+
+      scene.add(
+        pillar
+      );
+
 
       addSolidRect(
         x,
         z,
-        1.25,
-        1.25
+        0.9,
+        1.15
       );
 
     }
 
-/*
- * 4v4 route cover.
- *
- * Mirrored around X=0 so both teams
- * have equivalent battlefield cover.
- */
 
-
-/*
- * Spawn approach shields.
- */
-
-addWall(
-  -35,
-  -12,
-  5.0,
-  0.72,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  -35,
-  12,
-  5.0,
-  0.72,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  35,
-  -12,
-  5.0,
-  0.72,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  35,
-  12,
-  5.0,
-  0.72,
-  Math.PI /
-  2
-);
-
-
-/*
- * North lane cover.
- */
-
-addWall(
-  -15,
-  -22,
-  4.6,
-  0.70,
-  0
-);
-
-
-addWall(
-  15,
-  -22,
-  4.6,
-  0.70,
-  0
-);
-
-
-addRock(
-  -5.5,
-  -25,
-  0.72,
-  0.3
-);
-
-
-addRock(
-  5.5,
-  -25,
-  0.72,
-  -0.3
-);
-
-
-/*
- * South lane cover.
- */
-
-addWall(
-  -15,
-  22,
-  4.6,
-  0.70,
-  0
-);
-
-
-addWall(
-  15,
-  22,
-  4.6,
-  0.70,
-  0
-);
-
-
-addRock(
-  -5.5,
-  25,
-  0.72,
-  -0.3
-);
-
-
-addRock(
-  5.5,
-  25,
-  0.72,
-  0.3
-);
-
-
-/*
- * Rotation-route cover.
- */
-
-addWall(
-  -28,
-  -5,
-  4.0,
-  0.68,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  -28,
-  5,
-  4.0,
-  0.68,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  28,
-  -5,
-  4.0,
-  0.68,
-  Math.PI /
-  2
-);
-
-
-addWall(
-  28,
-  5,
-  4.0,
-  0.68,
-  Math.PI /
-  2
-);
-    
-/*
- * Dirt and worn-ground patches.
- * Decorative only: no collision.
- */
-
-addGroundPatch(
-  -21,
-  -8,
-  7.8,
-  4.3,
-  0.18
-);
-
-
-addGroundPatch(
-  -18,
-  9,
-  6.2,
-  3.8,
-  -0.22
-);
-
-
-addGroundPatch(
-  21,
-  -8,
-  7.8,
-  4.3,
-  -0.18
-);
-
-
-addGroundPatch(
-  18,
-  9,
-  6.2,
-  3.8,
-  0.22
-);
-
-
-addGroundPatch(
-  -31,
-  -22,
-  5.0,
-  3.1,
-  0.48,
-  0x776b57
-);
-
-
-addGroundPatch(
-  31,
-  -22,
-  5.0,
-  3.1,
-  -0.48,
-  0x776b57
-);
-
-
-addGroundPatch(
-  -27,
-  24,
-  4.6,
-  2.8,
-  -0.35,
-  0x82735c
-);
-
-
-addGroundPatch(
-  27,
-  24,
-  4.6,
-  2.8,
-  0.35,
-  0x82735c
-);
-    
-    /*
- * Low-poly environment pass.
- * Symmetrical 4v4 decoration.
- */
-
-for (
-  const [
-    x,
-    z,
-    scale
-  ]
-
-  of [
-
-    [-35, -27, 1.05],
-    [-30, 27, 0.95],
-    [-24, 31, 1.10],
-    [-34, 22, 0.90],
-
-    [35, -27, 1.05],
-    [30, 27, 0.95],
-    [24, 31, 1.10],
-    [34, 22, 0.90],
-
-    [-12, -30, 0.88],
-    [12, -30, 0.88],
-    [-12, 30, 0.88],
-    [12, 30, 0.88]
-
-  ]
-) {
-
-  addTree(
-    x,
-    z,
-    scale
-  );
-
-}
-
-
-for (
-  const [
-    x,
-    z,
-    scale,
-    rotation
-  ]
-
-  of [
-
-    [-31, -19, 1.0, 0.25],
-    [-28, 17, 0.8, -0.35],
-    [-20, -26, 0.9, 0.6],
-
-    [31, -19, 1.0, -0.25],
-    [28, 17, 0.8, 0.35],
-    [20, -26, 0.9, -0.6],
-
-    [-7, 24, 0.72, 0.2],
-    [7, 24, 0.72, -0.2]
-
-  ]
-) {
-
-  addRock(
-    x,
-    z,
-    scale,
-    rotation
-  );
-
-}
-
-
-for (
-  const [
-    x,
-    z,
-    scale
-  ]
-
-  of [
-
-    [-37, -18, 0.9],
-    [-33, 16, 0.8],
-    [-26, -23, 0.75],
-    [-20, 25, 0.85],
-
-    [37, -18, 0.9],
-    [33, 16, 0.8],
-    [26, -23, 0.75],
-    [20, 25, 0.85],
-
-    [-10, 20, 0.72],
-    [10, 20, 0.72]
-
-  ]
-) {
-
-  addBush(
-    x,
-    z,
-    scale
-  );
-
-}
-
-
-addFence(
-  -31,
-  -8,
-  8,
-  0
-);
-
-
-addFence(
-  -31,
-  8,
-  8,
-  0
-);
-
-
-addFence(
-  31,
-  -8,
-  8,
-  0
-);
-
-
-addFence(
-  31,
-  8,
-  8,
-  0
-);
-
-    /*
-     * Outer map walls.
-     */
-
-    const boundaryMaterial =
-      material(
-        0x6d746d,
-        0.95,
-        0
+    const beam =
+      box(
+        10.2,
+        0.72,
+        0.9,
+        0x35383a
       );
 
 
-    const boundaries = [
+    beam.position.set(
+      0,
+      4.65,
+      z
+    );
 
-      [
-        0,
-        0.75,
-        -MAP_DEPTH / 2,
-        MAP_WIDTH,
-        1.5,
-        0.65
-      ],
 
-      [
-        0,
-        0.75,
-        MAP_DEPTH / 2,
-        MAP_WIDTH,
-        1.5,
-        0.65
-      ],
-
-      [
-        -MAP_WIDTH / 2,
-        0.75,
-        0,
-        0.65,
-        1.5,
-        MAP_DEPTH
-      ],
-
-      [
-        MAP_WIDTH / 2,
-        0.75,
-        0,
-        0.65,
-        1.5,
-        MAP_DEPTH
-      ]
-
-    ];
+    scene.add(
+      beam
+    );
 
 
     for (
-      const values
-      of boundaries
+      let i = 0;
+      i < 10;
+      i += 1
     ) {
 
-      const wall =
-        new THREE.Mesh(
-
-          new THREE
-            .BoxGeometry(
-
-              values[3],
-              values[4],
-              values[5]
-
-            ),
-
-          boundaryMaterial
-
+      const stripe =
+        box(
+          0.78,
+          0.18,
+          0.94,
+          i % 2
+            ? 0x222426
+            : 0xe0b932
         );
 
 
-      wall.position.set(
-
-        values[0],
-        values[1],
-        values[2]
-
+      stripe.position.set(
+        -4.05 +
+        i *
+        0.9,
+        4.67,
+        z -
+        0.02 *
+        facing
       );
 
 
-      wall.castShadow =
-        true;
-
-
-      wall.receiveShadow =
-        true;
+      stripe.rotation.z =
+        -0.55;
 
 
       scene.add(
-        wall
+        stripe
       );
 
     }
 
   }
+
+
+  function addMonument() {
+
+    addFlatPatch(
+      0,
+      0,
+      11.5,
+      10.5,
+      0x718850
+    );
+
+
+    const base1 =
+      box(
+        6.2,
+        0.75,
+        5.8,
+        0x77796f
+      );
+
+
+    base1.position.set(
+      0,
+      0.38,
+      0
+    );
+
+
+    scene.add(
+      base1
+    );
+
+
+    const base2 =
+      box(
+        4.4,
+        0.8,
+        4.0,
+        0x8a8b82
+      );
+
+
+    base2.position.set(
+      0,
+      1.08,
+      0
+    );
+
+
+    scene.add(
+      base2
+    );
+
+
+    const pedestal =
+      box(
+        2.35,
+        3.4,
+        2.1,
+        0x6c706c
+      );
+
+
+    pedestal.position.set(
+      0,
+      3.05,
+      0
+    );
+
+
+    scene.add(
+      pedestal
+    );
+
+
+    const cap =
+      box(
+        1.5,
+        0.72,
+        1.5,
+        0x84867f
+      );
+
+
+    cap.position.set(
+      0,
+      5.05,
+      0
+    );
+
+
+    scene.add(
+      cap
+    );
+
+
+    addSolidRect(
+      0,
+      0,
+      3.6,
+      3.4
+    );
+
+  }
+
+
+  /*
+   * MAIN ROAD NETWORK
+   */
+
+  addRoad(
+    0,
+    0,
+    7.2,
+    75
+  );
+
+
+  addRoad(
+    0,
+    -18,
+    90,
+    7.2
+  );
+
+
+  addRoad(
+    0,
+    18,
+    90,
+    7.2
+  );
+
+
+  addRoad(
+    -43,
+    0,
+    7.2,
+    57
+  );
+
+
+  addRoad(
+    43,
+    0,
+    7.2,
+    57
+  );
+
+
+  addRoad(
+    -27,
+    -31,
+    31,
+    6.4
+  );
+
+
+  addRoad(
+    27,
+    -31,
+    31,
+    6.4
+  );
+
+
+  addRoad(
+    -27,
+    31,
+    31,
+    6.4
+  );
+
+
+  addRoad(
+    27,
+    31,
+    31,
+    6.4
+  );
+
+
+  addRoad(
+    -12,
+    0,
+    18,
+    6.2
+  );
+
+
+  addRoad(
+    12,
+    0,
+    18,
+    6.2
+  );
+
+
+  /*
+   * SEVEN HOUSES
+   */
+
+  addBuilding(
+    -37,
+    -27,
+    9.2,
+    7.1,
+    4.4,
+    0x8e7559
+  );
+
+
+  addBuilding(
+    -18,
+    -26,
+    6.0,
+    5.8,
+    3.8,
+    0x8b7257
+  );
+
+
+  addBuilding(
+    34,
+    -27,
+    9.6,
+    7.0,
+    4.5,
+    0x887154
+  );
+
+
+  addBuilding(
+    31,
+    -8,
+    9.6,
+    7.0,
+    4.45,
+    0x8b7357
+  );
+
+
+  addBuilding(
+    -36,
+    26,
+    10.0,
+    7.4,
+    4.6,
+    0x8f765a
+  );
+
+
+  addBuilding(
+    13,
+    26,
+    7.0,
+    6.2,
+    4.0,
+    0x8a7156
+  );
+
+
+  addBuilding(
+    37,
+    26,
+    9.8,
+    7.2,
+    4.6,
+    0x897055
+  );
+
+
+  /*
+   * CONCRETE WALLS
+   */
+
+  for (
+    const wall
+    of [
+
+      [-28, -16, 10, .7, 0],
+      [-19, -23, 7, .7, Math.PI / 2],
+
+      [18, -25, 8, .7, 0],
+      [22, -22, 7, .7, Math.PI / 2],
+
+      [-30, -3, 8, .7, Math.PI / 2],
+      [-25, 9, 10, .7, 0],
+      [-14, 7, 7, .7, Math.PI / 2],
+
+      [19, -8, 8, .7, Math.PI / 2],
+      [30, 10, 10, .7, 0],
+
+      [-13, 26, 8, .7, Math.PI / 2],
+      [21, 27, 8, .7, Math.PI / 2],
+
+      [-7, -5, 5, .7, 0],
+      [7, 5, 5, .7, 0],
+
+      [-7, 5, 5, .7, Math.PI / 2],
+      [7, -5, 5, .7, Math.PI / 2]
+
+    ]
+  ) {
+
+    addWall(
+      wall[0],
+      wall[1],
+      wall[2],
+      wall[3],
+      wall[4]
+    );
+
+  }
+
+
+  /*
+   * CENTRAL MONUMENT
+   */
+
+  addMonument();
+
+
+  /*
+   * CRATES
+   */
+
+  for (
+    const [
+      x,
+      z,
+      count
+    ]
+    of [
+
+      [-31, -23, 3],
+      [-14, -22, 2],
+      [29, -22, 3],
+      [37, -12, 2],
+
+      [-30, 18, 2],
+      [10, 22, 3],
+      [31, 21, 2],
+
+      [-23, 7, 2],
+      [24, 8, 2]
+
+    ]
+  ) {
+
+    addCrateStack(
+      x,
+      z,
+      count
+    );
+
+  }
+
+
+  /*
+   * WOODEN FENCES
+   */
+
+  for (
+    const fence
+    of [
+
+      [-36, -34, 19, 0],
+      [-47, -25, 14, Math.PI / 2],
+
+      [34, -34, 22, 0],
+      [47, -25, 14, Math.PI / 2],
+
+      [-35, 34, 20, 0],
+      [-48, 25, 15, Math.PI / 2],
+
+      [36, 34, 22, 0],
+      [49, 25, 15, Math.PI / 2],
+
+      [-26, -11, 11, 0],
+      [-25, 13, 11, 0],
+
+      [31, -1, 12, 0],
+      [30, 14, 10, 0],
+
+      [-28, 22, 10, 0],
+      [20, 20, 10, 0]
+
+    ]
+  ) {
+
+    addFence(
+      fence[0],
+      fence[1],
+      fence[2],
+      fence[3]
+    );
+
+  }
+
+
+  /*
+   * PINE TREES
+   */
+
+  for (
+    const [
+      x,
+      z,
+      scale
+    ]
+    of [
+
+      [-50, -30, .85],
+      [-44, -17, .75],
+      [-33, -14, .8],
+      [-24, -31, .72],
+      [-10, -31, .8],
+
+      [13, -30, .75],
+      [26, -13, .8],
+      [43, -14, .9],
+      [49, -27, .82],
+
+      [-49, 12, .9],
+      [-42, 19, .8],
+      [-23, 16, .75],
+      [-15, 30, .8],
+
+      [7, 18, .72],
+      [24, 20, .86],
+      [47, 17, .8],
+      [50, 31, .92],
+
+      [-6, -8, .62],
+      [6, 8, .62]
+
+    ]
+  ) {
+
+    addPine(
+      x,
+      z,
+      scale
+    );
+
+  }
+
+
+  /*
+   * ROCK GROUPS
+   */
+
+  for (
+    const [
+      x,
+      z,
+      scale,
+      rotation
+    ]
+    of [
+
+      [-49, -8, 1.15, .2],
+      [-25, -7, .85, .6],
+      [-10, -23, .72, -.3],
+
+      [26, -21, .85, .4],
+      [49, -8, 1.05, -.4],
+
+      [-24, 22, .8, -.3],
+      [-9, 28, .74, .3],
+
+      [21, 24, 1.05, .5],
+      [48, 8, .9, -.2]
+
+    ]
+  ) {
+
+    addRock(
+      x,
+      z,
+      scale,
+      rotation
+    );
+
+  }
+
+
+  /*
+   * NORTH / SOUTH GATES
+   */
+
+  addGate(
+    -36.2,
+    1
+  );
+
+
+  addGate(
+    36.2,
+    -1
+  );
+
+
+  /*
+   * OUTSIDE CLIFF WALL
+   */
+
+  for (
+    let x = -55;
+    x <= 55;
+    x += 8
+  ) {
+
+    if (
+      Math.abs(
+        x
+      ) >
+      8
+    ) {
+
+      addBoundaryRock(
+        x,
+        -38.3,
+        1.25,
+        x * .07
+      );
+
+
+      addBoundaryRock(
+        x,
+        38.3,
+        1.25,
+        -x * .05
+      );
+
+    }
+
+  }
+
+
+  for (
+    let z = -31;
+    z <= 31;
+    z += 7.5
+  ) {
+
+    addBoundaryRock(
+      -56.2,
+      z,
+      1.3,
+      z * .08
+    );
+
+
+    addBoundaryRock(
+      56.2,
+      z,
+      1.3,
+      -z * .08
+    );
+
+  }
+
+
+  /*
+   * SMALL VEGETATION
+   */
+
+  for (
+    const [
+      x,
+      z,
+      scale
+    ]
+    of [
+
+      [-41, -13, .7],
+      [-33, -11, .55],
+      [-12, -15, .65],
+      [12, -14, .55],
+      [40, -16, .6],
+
+      [-42, 12, .6],
+      [-18, 12, .62],
+      [15, 13, .56],
+      [41, 12, .68],
+
+      [-6, 6, .45],
+      [6, -6, .45]
+
+    ]
+  ) {
+
+    addBush(
+      x,
+      z,
+      scale
+    );
+
+  }
+
+}
 
 
 /*
@@ -8559,11 +8793,13 @@ function findBulletActorHitBetween(
 
 
     bullets.splice(
-      index,
-      1
-    );
+  index,
+  1
+);
 
-  }
+}
+
+}
 
 function updateBullets(
   dt
@@ -10885,16 +11121,15 @@ function restartMatch() {
 
         (
           compact
-            ? 17.5
-            : 15.5
+  ? 22.5
+  : 19.5
         ),
 
         player.position.z +
 
-        (
-          compact
-            ? 14.0
-            : 12.5
+        (compact
+  ? 12.0
+  : 10.5
         )
 
       );
