@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 15;
+  const VERSION = 16;
 
 
   const LAGO_CHARACTER =
@@ -13,7 +13,7 @@
         "Lago",
 
      model3d:
-  "./assets/model/roster/lago.glb?v=2",
+  "./assets/model/game/characters/lago.glb?v=1"
 
       rarity:
         "ORIGINAL"
