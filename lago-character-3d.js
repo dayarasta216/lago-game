@@ -4,8 +4,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 32;
-  const BASE_LAGO_MODEL = "./assets/model/roster/lago.glb?v=2";
+  const VERSION = 33;
+ const BASE_LAGO_MODEL = "./assets/model/game/characters/lago.glb?v=1";
   const BASE_IDS = new Set(["default", "lago"]);
   const TARGET_SIZE = 2.35;
   const PREVIEW_SIZE = 256;
