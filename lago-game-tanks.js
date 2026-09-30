@@ -5,7 +5,7 @@ import { rigTankModel } from "./lago-tank-rig.js?v=2";
 (() => {
   "use strict";
 
-  const VERSION = 28;
+  const VERSION = 29;
   const GAME_ID = "lago-tanks";
 
   const TEAM_BLUE_MODEL =
@@ -133,22 +133,21 @@ const MAP_LANES =
   Object.freeze([
 
     Object.freeze({
-      id: "north",
-      z: -22
+      id: "west",
+      x: -24
     }),
 
     Object.freeze({
       id: "center",
-      z: 0
+      x: 0
     }),
 
     Object.freeze({
-      id: "south",
-      z: 22
+      id: "east",
+      x: 24
     })
 
   ]);
-
 
 const SPAWN_PROTECTION_SECONDS =
   3.0;
@@ -159,16 +158,16 @@ const TEAM_BASES =
 
     blue:
       Object.freeze({
-        x: -42,
-        z: 0,
-        radius: 14
+        x: 0,
+        z: 32.5,
+        radius: 11
       }),
 
     red:
       Object.freeze({
-        x: 42,
-        z: 0,
-        radius: 14
+        x: 0,
+        z: -32.5,
+        radius: 11
       })
 
   });
@@ -181,44 +180,6 @@ const TEAM_BASES =
 
  const HILLS =
   Object.freeze([]);
-
-      Object.freeze({
-        x: -18,
-        z: -16,
-        radius: 8.0,
-        height: 2.5
-      }),
-
-      Object.freeze({
-        x: -9,
-        z: 15,
-        radius: 7.0,
-        height: 1.8
-      }),
-
-      Object.freeze({
-        x: 15,
-        z: -15,
-        radius: 8.5,
-        height: 2.3
-      }),
-
-      Object.freeze({
-        x: 22,
-        z: 13,
-        radius: 7.0,
-        height: 1.9
-      }),
-
-      Object.freeze({
-        x: 1,
-        z: 20,
-        radius: 6.5,
-        height: 1.3
-      })
-
-    ]);
-
 
   const loader =
     new GLTFLoader();
