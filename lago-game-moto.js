@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 4;
+  const VERSION = 5;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -428,13 +428,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
    let bikeRoot = null;
   let riderRoot = null;
 
-  let bikeWheelShaders = [];
+    let wheelVisuals = [];
 
   let wheelSpin =
     0;
-
-  let wheelRadiusLocal =
-    .28;
 
   let wheelRadiusWorld =
     .48;
@@ -2618,263 +2615,511 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
-    function installWheelShader(
-    model,
-    localBounds
+     function clearWheelVisuals() {
+
+    for (
+      const wheel
+      of wheelVisuals
+    ) {
+
+      wheel.parent
+        ?.remove(
+          wheel
+        );
+
+
+      wheel.traverse(
+
+        child => {
+
+          child.geometry
+            ?.dispose
+            ?.();
+
+
+          const materials =
+
+            Array.isArray(
+              child.material
+            )
+
+              ? child.material
+
+              : [
+                  child.material
+                ];
+
+
+          materials.forEach(
+
+            material =>
+              material
+                ?.dispose
+                ?.()
+
+          );
+
+        }
+
+      );
+
+    }
+
+
+    wheelVisuals =
+      [];
+
+  }
+
+
+  function createWheelVisual(
+    x,
+    y,
+    z,
+    radius
   ) {
 
-    bikeWheelShaders =
+    const wheel =
+      new THREE.Group();
+
+
+    wheel.position.set(
+      x,
+      y,
+      z
+    );
+
+
+    const veilMaterial =
+      new THREE.MeshBasicMaterial({
+
+        color:
+          0x1d2224,
+
+        transparent:
+          true,
+
+        opacity:
+          0,
+
+        depthTest:
+          false,
+
+        depthWrite:
+          false
+
+      });
+
+
+    const veil =
+      new THREE.Mesh(
+
+        new THREE.CircleGeometry(
+          radius *
+          .72,
+          28
+        ),
+
+        veilMaterial
+
+      );
+
+
+    veil.position.z =
+      .001;
+
+
+    veil.renderOrder =
+      70;
+
+
+    wheel.add(
+      veil
+    );
+
+
+    const positions =
       [];
 
 
+    const spokeCount =
+      8;
+
+
+    for (
+      let index = 0;
+      index < spokeCount;
+      index += 1
+    ) {
+
+      const angle =
+
+        index /
+        spokeCount *
+        Math.PI *
+        2;
+
+
+      const inner =
+        radius *
+        .12;
+
+
+      const outer =
+        radius *
+        .68;
+
+
+      positions.push(
+
+        Math.cos(
+          angle
+        ) *
+        inner,
+
+        Math.sin(
+          angle
+        ) *
+        inner,
+
+        .012,
+
+
+        Math.cos(
+          angle
+        ) *
+        outer,
+
+        Math.sin(
+          angle
+        ) *
+        outer,
+
+        .012
+
+      );
+
+    }
+
+
+    const spokeGeometry =
+      new THREE.BufferGeometry();
+
+
+    spokeGeometry.setAttribute(
+
+      "position",
+
+      new THREE.Float32BufferAttribute(
+        positions,
+        3
+      )
+
+    );
+
+
+    const spokeMaterial =
+      new THREE.LineBasicMaterial({
+
+        color:
+          0xb5bec0,
+
+        transparent:
+          true,
+
+        opacity:
+          0,
+
+        depthTest:
+          false,
+
+        depthWrite:
+          false
+
+      });
+
+
+    const spokes =
+      new THREE.LineSegments(
+
+        spokeGeometry,
+
+        spokeMaterial
+
+      );
+
+
+    spokes.renderOrder =
+      72;
+
+
+    wheel.add(
+      spokes
+    );
+
+
+    const hubMaterial =
+      new THREE.MeshBasicMaterial({
+
+        color:
+          0x737c7e,
+
+        transparent:
+          true,
+
+        opacity:
+          0,
+
+        depthTest:
+          false,
+
+        depthWrite:
+          false
+
+      });
+
+
+    const hub =
+      new THREE.Mesh(
+
+        new THREE.CircleGeometry(
+          radius *
+          .105,
+          14
+        ),
+
+        hubMaterial
+
+      );
+
+
+    hub.position.z =
+      .016;
+
+
+    hub.renderOrder =
+      73;
+
+
+    wheel.add(
+      hub
+    );
+
+
+    const markerMaterial =
+      new THREE.MeshBasicMaterial({
+
+        color:
+          0xe7eceb,
+
+        transparent:
+          true,
+
+        opacity:
+          0,
+
+        depthTest:
+          false,
+
+        depthWrite:
+          false
+
+      });
+
+
+    for (
+      let index = 0;
+      index < 3;
+      index += 1
+    ) {
+
+      const angle =
+
+        index /
+        3 *
+        Math.PI *
+        2;
+
+
+      const marker =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+
+            radius *
+            .22,
+
+            Math.max(
+              .025,
+              radius *
+              .045
+            ),
+
+            .01
+
+          ),
+
+          markerMaterial
+
+        );
+
+
+      marker.position.set(
+
+        Math.cos(
+          angle
+        ) *
+        radius *
+        .72,
+
+        Math.sin(
+          angle
+        ) *
+        radius *
+        .72,
+
+        .02
+
+      );
+
+
+      marker.rotation.z =
+        angle;
+
+
+      marker.renderOrder =
+        74;
+
+
+      wheel.add(
+        marker
+      );
+
+    }
+
+
+    wheel.userData
+      .veilMaterial =
+      veilMaterial;
+
+
+    wheel.userData
+      .spokeMaterial =
+      spokeMaterial;
+
+
+    wheel.userData
+      .hubMaterial =
+      hubMaterial;
+
+
+    wheel.userData
+      .markerMaterial =
+      markerMaterial;
+
+
+    bikeRoot.add(
+      wheel
+    );
+
+
+    wheelVisuals.push(
+      wheel
+    );
+
+  }
+
+
+  function createWheelVisuals(
+    fittedBounds
+  ) {
+
+    clearWheelVisuals();
+
+
     const size =
-      localBounds.getSize(
+      fittedBounds.getSize(
         new THREE.Vector3()
       );
 
 
-    const rearCenter =
-      new THREE.Vector2(
-
-        localBounds.min.x +
-        size.x *
-        .17,
-
-        localBounds.min.y +
-        size.y *
-        .23
-
+    const center =
+      fittedBounds.getCenter(
+        new THREE.Vector3()
       );
 
 
-    const frontCenter =
-      new THREE.Vector2(
-
-        localBounds.max.x -
-        size.x *
-        .17,
-
-        localBounds.min.y +
-        size.y *
-        .23
-
-      );
-
-
-    wheelRadiusLocal =
+    const radius =
 
       Math.max(
 
-        .08,
+        .34,
 
         Math.min(
+
           size.x *
-          .17,
+          .15,
 
           size.y *
-          .27
+          .245
+
         )
 
       );
 
 
-    model.traverse(
-
-      child => {
-
-        if (
-          !child.isMesh ||
-          !child.material
-        ) {
-
-          return;
-
-        }
+    wheelRadiusWorld =
+      radius;
 
 
-        const materials =
+    const wheelY =
 
-          Array.isArray(
-            child.material
-          )
+      fittedBounds.min.y +
 
-            ? child.material
-
-            : [
-                child.material
-              ];
+      size.y *
+      .235;
 
 
-        materials.forEach(
+    const xOffset =
 
-          material => {
-
-            if (
-              !material
-            ) {
-
-              return;
-
-            }
+      size.x *
+      .335;
 
 
-            const previous =
-              material
-                .onBeforeCompile;
+    const wheelZ =
+
+      fittedBounds.max.z +
+      .025;
 
 
-            material.onBeforeCompile =
+    createWheelVisual(
 
-              shader => {
+      center.x -
+      xOffset,
 
-                previous
-                  ?.(
-                    shader
-                  );
+      wheelY,
 
+      wheelZ,
 
-                shader.uniforms
-                  .uLagoWheelSpin = {
-                    value:
-                      wheelSpin
-                  };
+      radius
 
-
-                shader.uniforms
-                  .uLagoRearWheel = {
-                    value:
-                      rearCenter
-                        .clone()
-                  };
-
-
-                shader.uniforms
-                  .uLagoFrontWheel = {
-                    value:
-                      frontCenter
-                        .clone()
-                  };
-
-
-                shader.uniforms
-                  .uLagoWheelRadius = {
-                    value:
-                      wheelRadiusLocal
-                  };
-
-
-                shader.vertexShader =
-                  shader.vertexShader
-                    .replace(
-
-                      "#include <common>",
-
-                      `#include <common>
-uniform float uLagoWheelSpin;
-uniform vec2 uLagoRearWheel;
-uniform vec2 uLagoFrontWheel;
-uniform float uLagoWheelRadius;`
-
-                    )
-                    .replace(
-
-                      "#include <begin_vertex>",
-
-                      `#include <begin_vertex>
-
-vec2 lagoWheelPoint =
-  transformed.xy;
-
-float lagoRearDistance =
-  distance(
-    lagoWheelPoint,
-    uLagoRearWheel
-  );
-
-float lagoFrontDistance =
-  distance(
-    lagoWheelPoint,
-    uLagoFrontWheel
-  );
-
-float lagoWheelDistance =
-  min(
-    lagoRearDistance,
-    lagoFrontDistance
-  );
-
-if (
-  lagoWheelDistance <
-  uLagoWheelRadius
-) {
-
-  vec2 lagoWheelCenter =
-
-    lagoRearDistance <
-    lagoFrontDistance
-
-      ? uLagoRearWheel
-      : uLagoFrontWheel;
-
-  vec2 lagoWheelLocal =
-    lagoWheelPoint -
-    lagoWheelCenter;
-
-  float lagoWheelCos =
-    cos(
-      uLagoWheelSpin
     );
 
-  float lagoWheelSin =
-    sin(
-      uLagoWheelSpin
-    );
 
-  lagoWheelLocal =
-    mat2(
-      lagoWheelCos,
-      -lagoWheelSin,
-      lagoWheelSin,
-      lagoWheelCos
-    ) *
-    lagoWheelLocal;
+    createWheelVisual(
 
-  transformed.xy =
-    lagoWheelCenter +
-    lagoWheelLocal;
+      center.x +
+      xOffset,
 
-}`
+      wheelY,
 
-                    );
+      wheelZ,
 
-
-                bikeWheelShaders.push(
-                  shader
-                );
-
-              };
-
-
-            material
-              .customProgramCacheKey =
-
-              () =>
-                "lago-moto-wheel-v1";
-
-
-            material.needsUpdate =
-              true;
-
-          }
-
-        );
-
-      }
+      radius
 
     );
 
   }
-
   function loadBike() {
 
     if (
@@ -2901,22 +3146,8 @@ if (
 
 
             gltf => {
-              const model =
+                const model =
                 gltf.scene;
-
-
-              const localBounds =
-                new THREE
-                  .Box3()
-                  .setFromObject(
-                    model
-                  );
-
-
-              installWheelShader(
-                model,
-                localBounds
-              );
 
 
               model.rotation.y =
@@ -2978,17 +3209,7 @@ if (
                 );
 
 
-              wheelRadiusWorld =
-
-                Math.max(
-                  .32,
-
-                  wheelRadiusLocal *
-                  scale
-                );
-
-
-              model.position.set(
+                            model.position.set(
 
                 -center.x *
                 scale,
@@ -3006,6 +3227,22 @@ if (
                 model
               );
 
+                            model.updateMatrixWorld(
+                true
+              );
+
+
+              const fittedBounds =
+                new THREE
+                  .Box3()
+                  .setFromObject(
+                    model
+                  );
+
+
+              createWheelVisuals(
+                fittedBounds
+              );
 
               modelReady =
                 true;
@@ -4592,7 +4829,7 @@ if (
 
   }
 
-  function updateBikeVisual(
+    function updateBikeVisual(
     dt,
     now
   ) {
@@ -4627,7 +4864,7 @@ if (
       );
 
 
-    wheelSpin +=
+    wheelSpin -=
 
       state.vx *
       dt /
@@ -4638,21 +4875,90 @@ if (
       );
 
 
+    const wheelOpacity =
+
+      state.playing
+
+        ? THREE.MathUtils.clamp(
+
+            (
+              speedRatio -
+              .04
+            ) *
+            1.35,
+
+            0,
+            .92
+
+          )
+
+        : 0;
+
+
     for (
-      const shader
-      of bikeWheelShaders
+      const wheel
+      of wheelVisuals
     ) {
 
+      wheel.rotation.z =
+        wheelSpin;
+
+
       if (
-        shader
-          ?.uniforms
-          ?.uLagoWheelSpin
+        wheel.userData
+          .veilMaterial
       ) {
 
-        shader.uniforms
-          .uLagoWheelSpin
-          .value =
-          wheelSpin;
+        wheel.userData
+          .veilMaterial
+          .opacity =
+
+          wheelOpacity *
+          .42;
+
+      }
+
+
+      if (
+        wheel.userData
+          .spokeMaterial
+      ) {
+
+        wheel.userData
+          .spokeMaterial
+          .opacity =
+
+          wheelOpacity *
+          .9;
+
+      }
+
+
+      if (
+        wheel.userData
+          .hubMaterial
+      ) {
+
+        wheel.userData
+          .hubMaterial
+          .opacity =
+
+          wheelOpacity *
+          .72;
+
+      }
+
+
+      if (
+        wheel.userData
+          .markerMaterial
+      ) {
+
+        wheel.userData
+          .markerMaterial
+          .opacity =
+
+          wheelOpacity;
 
       }
 
