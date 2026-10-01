@@ -5,14 +5,30 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
     "./assets/model/game/moto/red-dirt-bike.glb?v=1";
 
-  const PREVIEW_URL =
+ const PREVIEW_URL =
     "./assets/model/game/moto/red-dirt-bike.png?v=1";
+
+  const DEFAULT_RIDER_MODEL =
+    "./assets/model/game/characters/lago.glb?v=1";
+
+  const OPTIMIZED_CHARACTER_NAMES = new Set([
+    "lago",
+    "narek",
+    "sola",
+    "doc",
+    "marvin",
+    "farid",
+    "miki",
+    "oleg",
+    "bozz",
+    "taya"
+  ]);
 
   const FINISH_X = 340;
   const CHECKPOINTS = [85, 170, 255];
@@ -22,13 +38,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let stage;
   let canvas;
   let renderer;
-  let scene;
+ let scene;
   let camera;
   let bikeRoot;
+  let riderRoot;
 
   let voicePanel = null;
   let modelPromise = null;
   let modelReady = false;
+
+  let riderModelUrl = "";
+  let riderRequestId = 0;
 
   let animationFrame = 0;
   let controlsAbort = null;
@@ -332,14 +352,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
-      alpha: false
+      antialias:
+        window.innerWidth > 760,
+
+      alpha: false,
+
+      powerPreference:
+        "high-performance"
     });
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, 1.5)
-    );
-
+    
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     scene = new THREE.Scene();
@@ -480,6 +501,35 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     bikeRoot = new THREE.Group();
     scene.add(bikeRoot);
 
+
+    /*
+     * Selected Tap-Tap character.
+     *
+     * Rider is a child of bikeRoot,
+     * therefore jumps / slopes / crashes
+     * automatically move the character
+     * together with the motorcycle.
+     */
+    riderRoot = new THREE.Group();
+
+    riderRoot.position.set(
+      -.15,
+      1.42,
+      .18
+    );
+
+    riderRoot.rotation.y =
+      Math.PI / 2;
+
+    riderRoot.scale.setScalar(
+      .62
+    );
+
+    bikeRoot.add(
+      riderRoot
+    );
+
+
     resize();
   }
 
@@ -498,6 +548,22 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         gltf => {
           const model = gltf.scene;
+
+
+          /*
+           * Source GLB faces left.
+           *
+           * Gameplay travels toward +X,
+           * therefore the motorcycle
+           * must face right.
+           */
+          model.rotation.y =
+            Math.PI;
+
+          model.updateMatrixWorld(
+            true
+          );
+
 
           const bounds = new THREE.Box3()
             .setFromObject(model);
@@ -560,9 +626,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
                 })
               );
 
-              preview.position.y = 1.3;
+             preview.position.y =
+                1.3;
 
-              bikeRoot.add(preview);
+              preview.scale.x =
+                -1;
+
+              bikeRoot.add(
+                preview
+              );
 
               modelReady = true;
               resolve(true);
@@ -579,6 +651,460 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     return modelPromise;
   }
 
+/*
+   * RIDER / SELECTED MAIN CHARACTER
+   */
+
+  function optimizeKnownCharacterUrl(
+    value
+  ) {
+
+    const url =
+      String(
+        value || ""
+      ).trim();
+
+
+    if (!url) {
+      return "";
+    }
+
+
+    /*
+     * Compatibility with an old account/cache
+     * which may still contain the old roster URL.
+     */
+    const match =
+      url.match(
+        /assets\/model\/roster\/([^/?]+)\.glb/i
+      );
+
+
+    if (!match) {
+      return url;
+    }
+
+
+    const name =
+      String(
+        match[1] || ""
+      ).toLowerCase();
+
+
+    if (
+      !OPTIMIZED_CHARACTER_NAMES
+        .has(name)
+    ) {
+
+      return url;
+
+    }
+
+
+    return (
+      `./assets/model/game/characters/${name}.glb?v=1`
+    );
+
+  }
+
+
+  function resolveRiderModelUrl(
+    context = null
+  ) {
+
+    /*
+     * Primary source:
+     * mini-game runtime.
+     *
+     * This is the same selected character
+     * that the account / Tap-Tap screen uses.
+     */
+    const fromContext =
+      context
+        ?.characterModel3d;
+
+
+    /*
+     * Secondary source:
+     * exact model currently installed
+     * in the main 3D Tap-Tap renderer.
+     */
+    const fromMainCharacter =
+
+      window
+        .LAGO_CHARACTER_3D
+        ?.getStatus
+        ?.()
+        ?.modelUrl;
+
+
+    const selectedSkin =
+      String(
+
+        window
+          .LAGO_ACCOUNT
+          ?.getState
+          ?.()
+          ?.selectedSkin ||
+
+        "default"
+
+      );
+
+
+    const registryCharacter =
+
+      window
+        .LAGO_CHARACTERS
+        ?.getById
+        ?.(selectedSkin) ||
+
+      null;
+
+
+    return optimizeKnownCharacterUrl(
+
+      fromContext ||
+
+      fromMainCharacter ||
+
+      registryCharacter
+        ?.model3d ||
+
+      DEFAULT_RIDER_MODEL
+
+    );
+
+  }
+
+
+  function clearRider() {
+
+    if (!riderRoot) {
+      return;
+    }
+
+
+    for (
+      const child
+      of [...riderRoot.children]
+    ) {
+
+      riderRoot.remove(
+        child
+      );
+
+
+      /*
+       * cloneModel() gives Moto its own
+       * material clones.
+       *
+       * Geometry remains shared with the
+       * cached main character model.
+       */
+      child.traverse?.(
+        node => {
+
+          if (
+            !node.isMesh ||
+            !node.material
+          ) {
+
+            return;
+
+          }
+
+
+          const materials =
+
+            Array.isArray(
+              node.material
+            )
+
+              ? node.material
+
+              : [
+                  node.material
+                ];
+
+
+          materials.forEach(
+            material => {
+
+              material
+                ?.dispose
+                ?.();
+
+            }
+          );
+
+        }
+      );
+
+    }
+
+
+    riderModelUrl =
+      "";
+
+  }
+
+
+  function normalizeFallbackRider(
+    model
+  ) {
+
+    model.position.set(
+      0,
+      0,
+      0
+    );
+
+    model.rotation.set(
+      0,
+      0,
+      0
+    );
+
+    model.scale.set(
+      1,
+      1,
+      1
+    );
+
+
+    model.updateMatrixWorld(
+      true
+    );
+
+
+    const firstBox =
+      new THREE.Box3()
+        .setFromObject(
+          model
+        );
+
+
+    const size =
+      firstBox.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const largest =
+      Math.max(
+
+        size.x,
+        size.y,
+        size.z,
+
+        .001
+
+      );
+
+
+    model.scale.setScalar(
+      2.35 /
+      largest
+    );
+
+
+    model.updateMatrixWorld(
+      true
+    );
+
+
+    const box =
+      new THREE.Box3()
+        .setFromObject(
+          model
+        );
+
+
+    const center =
+      box.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    model.position.x -=
+      center.x;
+
+    model.position.y -=
+      center.y;
+
+    model.position.z -=
+      center.z;
+
+
+    model.updateMatrixWorld(
+      true
+    );
+
+  }
+
+
+  async function loadRider(
+    context = null
+  ) {
+
+    if (!riderRoot) {
+      return false;
+    }
+
+
+    const modelUrl =
+      resolveRiderModelUrl(
+        context
+      );
+
+
+    if (!modelUrl) {
+      return false;
+    }
+
+
+    /*
+     * Same selected character is already
+     * mounted. Do not clone/load again.
+     */
+    if (
+      riderModelUrl ===
+        modelUrl &&
+
+      riderRoot.children.length >
+        0
+    ) {
+
+      return true;
+
+    }
+
+
+    const requestId =
+      ++riderRequestId;
+
+
+    try {
+
+      let model =
+        null;
+
+
+      const character3d =
+        window
+          .LAGO_CHARACTER_3D;
+
+
+      /*
+       * Preferred path.
+       *
+       * The main Tap-Tap renderer already
+       * maintains a GLB template cache.
+       *
+       * Therefore opening Moto normally
+       * does NOT download the character
+       * model a second time.
+       */
+      if (
+        character3d &&
+        typeof character3d
+          .cloneModel ===
+          "function"
+      ) {
+
+        model =
+          await character3d
+            .cloneModel(
+              modelUrl
+            );
+
+      } else {
+
+        /*
+         * Defensive fallback if Moto is
+         * opened before the global
+         * character renderer is ready.
+         */
+        const loader =
+          new GLTFLoader();
+
+
+        const gltf =
+          await loader
+            .loadAsync(
+              modelUrl
+            );
+
+
+        model =
+          gltf.scene;
+
+
+        normalizeFallbackRider(
+          model
+        );
+
+      }
+
+
+      /*
+       * User may have closed/reopened
+       * the game while GLB was loading.
+       */
+      if (
+        requestId !==
+          riderRequestId ||
+
+        !model
+      ) {
+
+        return false;
+
+      }
+
+
+      clearRider();
+
+
+      riderModelUrl =
+        modelUrl;
+
+
+      riderRoot.add(
+        model
+      );
+
+
+      return true;
+
+    } catch (
+      error
+    ) {
+
+      if (
+        requestId ===
+        riderRequestId
+      ) {
+
+        clearRider();
+
+      }
+
+
+      console.error(
+        "[LAGO MOTO] Rider model failed:",
+        modelUrl,
+        error
+      );
+
+
+      return false;
+
+    }
+
+  }
+  
   /*
    * CAMERA
    */
@@ -591,12 +1117,40 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       stage.clientWidth
     );
 
-    const height = Math.max(
+   const height = Math.max(
       1,
       stage.clientHeight
     );
 
-    renderer.setSize(width, height, false);
+
+    /*
+     * High-DPI phones can report DPR 3-4.
+     *
+     * Rendering Moto at that resolution
+     * wastes a huge amount of GPU power
+     * for almost no visible benefit.
+     */
+    renderer.setPixelRatio(
+
+      Math.min(
+
+        window.devicePixelRatio ||
+        1,
+
+        width <= 760
+          ? 1
+          : 1.35
+
+      )
+
+    );
+
+
+    renderer.setSize(
+      width,
+      height,
+      false
+    );
 
     const aspect = width / height;
 
@@ -998,7 +1552,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
    * OPEN / CLOSE
    */
 
-  async function show() {
+  async function show(
+    context = null
+  ) {
     makeUI();
     makeScene();
 
@@ -1025,9 +1581,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     animationFrame =
       requestAnimationFrame(draw);
 
-    const ok = await loadBike();
+    const [ok] =
+      await Promise.all([
 
-    if (!active) return;
+        loadBike(),
+
+        loadRider(
+          context
+        )
+
+      ]);
+
+
+    if (!active) {
+      return;
+    }
 
     const button =
       overlay.querySelector("#lmRestart");
@@ -1075,8 +1643,19 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   document.addEventListener(
     "lago:mini-game-open",
     event => {
-      if (event.detail?.game?.id === GAME_ID) {
-        void show();
+      if (
+        event.detail
+          ?.game
+          ?.id ===
+        GAME_ID
+      ) {
+
+        void show(
+          event.detail
+            ?.context ||
+          null
+        );
+
       }
     }
   );
