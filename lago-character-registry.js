@@ -3,7 +3,7 @@
 
 
   const VERSION =
-    11;
+    12;
 
 
   /*
@@ -58,7 +58,7 @@
 
     
        model3d:
-  "./assets/model/game/characters/narek.glb?v=1"
+  "./assets/model/game/characters/narek.glb?v=1",
 
         shop:
           Object.freeze({
@@ -116,7 +116,7 @@
 
         
        model3d:
-  "./assets/model/game/characters/sola.glb?v=1"
+  "./assets/model/game/characters/sola.glb?v=1",
 
         shop:
           Object.freeze({
@@ -173,7 +173,7 @@
           "EPIC",
 
        model3d:
- "./assets/model/game/characters/doc.glb?v=1"
+ "./assets/model/game/characters/doc.glb?v=1",
 
         shop:
           Object.freeze({
@@ -231,7 +231,7 @@
 
 
 model3d:
- "./assets/model/game/characters/marvin.glb?v=1"
+ "./assets/model/game/characters/marvin.glb?v=1",
 
         shop:
           Object.freeze({
@@ -288,7 +288,7 @@ model3d:
           "LEGENDARY",
 
         model3d:
- "./assets/model/game/characters/farid.glb?v=1"
+ "./assets/model/game/characters/farid.glb?v=1",
           
         shop:
           Object.freeze({
@@ -345,7 +345,7 @@ model3d:
           "EPIC",
 
         model3d:
-  "./assets/model/game/characters/miki.glb?v=1"
+  "./assets/model/game/characters/miki.glb?v=1",
 
         shop:
           Object.freeze({
@@ -406,7 +406,7 @@ model3d:
           "LEGENDARY",
 
         model3d:
-  "./assets/model/game/characters/oleg.glb?v=1"
+  "./assets/model/game/characters/oleg.glb?v=1",
 
         shop:
           Object.freeze({
@@ -464,7 +464,7 @@ model3d:
           "EPIC",
 
         model3d:
-         "./assets/model/game/characters/bozz.glb?v=1"
+         "./assets/model/game/characters/bozz.glb?v=1",
 
        shop:
   Object.freeze({
@@ -515,7 +515,7 @@ model3d:
           "EPIC",
 
         model3d:
-         "./assets/model/game/characters/taya.glb?v=1"
+         "./assets/model/game/characters/taya.glb?v=1",
 
         shop:
   Object.freeze({
