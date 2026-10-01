@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 59;
+  const VERSION = 60;
 
 let overlay = null;
 
@@ -60,7 +60,7 @@ const GAME_MODULES =
         load() {
 
           return import(
-            "./lago-game-moto.js?v=5"
+            "./lago-game-moto.js?v=6"
           );
 
         }
