@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 3;
+  const VERSION = 4;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -345,10 +345,65 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         270
       ]
     })
-  ]);
+   ]);
+
+  const TRACK_LENGTH_SCALE =
+    1.65;
+
+  const RUNTIME_LEVELS =
+    Object.freeze(
+      LEVELS.map(
+        config =>
+          Object.freeze({
+            ...config,
+
+            length:
+              Math.round(
+                config.length *
+                TRACK_LENGTH_SCALE
+              ),
+
+            gaps:
+              Object.freeze(
+                config.gaps.map(
+                  ([start, end]) =>
+                    Object.freeze([
+                      start *
+                      TRACK_LENGTH_SCALE,
+
+                      end *
+                      TRACK_LENGTH_SCALE
+                    ])
+                )
+              ),
+
+            obstacles:
+              Object.freeze(
+                config.obstacles.map(
+                  obstacle =>
+                    Object.freeze({
+                      ...obstacle,
+
+                      x:
+                        obstacle.x *
+                        TRACK_LENGTH_SCALE
+                    })
+                )
+              ),
+
+            checkpoints:
+              Object.freeze(
+                config.checkpoints.map(
+                  x =>
+                    x *
+                    TRACK_LENGTH_SCALE
+                )
+              )
+          })
+      )
+    );
 
   const START_X = 5;
-
   const BIKE_HALF_LENGTH =
     1.02;
 
@@ -370,8 +425,22 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let obstacleRoot = null;
   let markerRoot = null;
 
-  let bikeRoot = null;
+   let bikeRoot = null;
   let riderRoot = null;
+
+  let bikeWheelShaders = [];
+
+  let wheelSpin =
+    0;
+
+  let wheelRadiusLocal =
+    .28;
+
+  let wheelRadiusWorld =
+    .48;
+
+  let motionOffset =
+    0;
 
   let voicePanel = null;
 
@@ -433,17 +502,16 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     crashReason: ""
   };
 
-  function level() {
+    function level() {
 
     return (
-      LEVELS[
+      RUNTIME_LEVELS[
         state.levelIndex
       ] ||
-      LEVELS[0]
+      RUNTIME_LEVELS[0]
     );
 
   }
-
 
   function smoothStep(
     a,
@@ -1067,7 +1135,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       }
 
 
-      #lmCanvas {
+           #lmCanvas {
 
         display:
           block;
@@ -1080,6 +1148,61 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         touch-action:
           none;
+
+      }
+
+
+      #lmSpeedFx {
+
+        position:
+          absolute;
+
+        inset:
+          54% 0 0;
+
+        pointer-events:
+          none;
+
+        opacity:
+          0;
+
+        background:
+          repeating-linear-gradient(
+            96deg,
+            transparent 0 34px,
+            rgba(
+              255,
+              255,
+              255,
+              .18
+            ) 35px 37px,
+            transparent 38px 72px
+          );
+
+        -webkit-mask-image:
+          linear-gradient(
+            to bottom,
+            transparent,
+            #000 35%,
+            #000 78%,
+            transparent
+          );
+
+        mask-image:
+          linear-gradient(
+            to bottom,
+            transparent,
+            #000 35%,
+            #000 78%,
+            transparent
+          );
+
+        will-change:
+          background-position,
+          opacity;
+
+        mix-blend-mode:
+          screen;
 
       }
 
@@ -1436,9 +1559,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         id="lmStage"
       >
 
-        <canvas
+               <canvas
           id="lmCanvas"
         ></canvas>
+
+
+        <div
+          id="lmSpeedFx"
+        ></div>
 
 
         <div
@@ -2490,6 +2618,262 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
+    function installWheelShader(
+    model,
+    localBounds
+  ) {
+
+    bikeWheelShaders =
+      [];
+
+
+    const size =
+      localBounds.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const rearCenter =
+      new THREE.Vector2(
+
+        localBounds.min.x +
+        size.x *
+        .17,
+
+        localBounds.min.y +
+        size.y *
+        .23
+
+      );
+
+
+    const frontCenter =
+      new THREE.Vector2(
+
+        localBounds.max.x -
+        size.x *
+        .17,
+
+        localBounds.min.y +
+        size.y *
+        .23
+
+      );
+
+
+    wheelRadiusLocal =
+
+      Math.max(
+
+        .08,
+
+        Math.min(
+          size.x *
+          .17,
+
+          size.y *
+          .27
+        )
+
+      );
+
+
+    model.traverse(
+
+      child => {
+
+        if (
+          !child.isMesh ||
+          !child.material
+        ) {
+
+          return;
+
+        }
+
+
+        const materials =
+
+          Array.isArray(
+            child.material
+          )
+
+            ? child.material
+
+            : [
+                child.material
+              ];
+
+
+        materials.forEach(
+
+          material => {
+
+            if (
+              !material
+            ) {
+
+              return;
+
+            }
+
+
+            const previous =
+              material
+                .onBeforeCompile;
+
+
+            material.onBeforeCompile =
+
+              shader => {
+
+                previous
+                  ?.(
+                    shader
+                  );
+
+
+                shader.uniforms
+                  .uLagoWheelSpin = {
+                    value:
+                      wheelSpin
+                  };
+
+
+                shader.uniforms
+                  .uLagoRearWheel = {
+                    value:
+                      rearCenter
+                        .clone()
+                  };
+
+
+                shader.uniforms
+                  .uLagoFrontWheel = {
+                    value:
+                      frontCenter
+                        .clone()
+                  };
+
+
+                shader.uniforms
+                  .uLagoWheelRadius = {
+                    value:
+                      wheelRadiusLocal
+                  };
+
+
+                shader.vertexShader =
+                  shader.vertexShader
+                    .replace(
+
+                      "#include <common>",
+
+                      `#include <common>
+uniform float uLagoWheelSpin;
+uniform vec2 uLagoRearWheel;
+uniform vec2 uLagoFrontWheel;
+uniform float uLagoWheelRadius;`
+
+                    )
+                    .replace(
+
+                      "#include <begin_vertex>",
+
+                      `#include <begin_vertex>
+
+vec2 lagoWheelPoint =
+  transformed.xy;
+
+float lagoRearDistance =
+  distance(
+    lagoWheelPoint,
+    uLagoRearWheel
+  );
+
+float lagoFrontDistance =
+  distance(
+    lagoWheelPoint,
+    uLagoFrontWheel
+  );
+
+float lagoWheelDistance =
+  min(
+    lagoRearDistance,
+    lagoFrontDistance
+  );
+
+if (
+  lagoWheelDistance <
+  uLagoWheelRadius
+) {
+
+  vec2 lagoWheelCenter =
+
+    lagoRearDistance <
+    lagoFrontDistance
+
+      ? uLagoRearWheel
+      : uLagoFrontWheel;
+
+  vec2 lagoWheelLocal =
+    lagoWheelPoint -
+    lagoWheelCenter;
+
+  float lagoWheelCos =
+    cos(
+      uLagoWheelSpin
+    );
+
+  float lagoWheelSin =
+    sin(
+      uLagoWheelSpin
+    );
+
+  lagoWheelLocal =
+    mat2(
+      lagoWheelCos,
+      -lagoWheelSin,
+      lagoWheelSin,
+      lagoWheelCos
+    ) *
+    lagoWheelLocal;
+
+  transformed.xy =
+    lagoWheelCenter +
+    lagoWheelLocal;
+
+}`
+
+                    );
+
+
+                bikeWheelShaders.push(
+                  shader
+                );
+
+              };
+
+
+            material
+              .customProgramCacheKey =
+
+              () =>
+                "lago-moto-wheel-v1";
+
+
+            material.needsUpdate =
+              true;
+
+          }
+
+        );
+
+      }
+
+    );
+
+  }
 
   function loadBike() {
 
@@ -2517,9 +2901,22 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
             gltf => {
-
               const model =
                 gltf.scene;
+
+
+              const localBounds =
+                new THREE
+                  .Box3()
+                  .setFromObject(
+                    model
+                  );
+
+
+              installWheelShader(
+                model,
+                localBounds
+              );
 
 
               model.rotation.y =
@@ -2575,8 +2972,18 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
                 size.x;
 
 
-              model.scale
+                           model.scale
                 .setScalar(
+                  scale
+                );
+
+
+              wheelRadiusWorld =
+
+                Math.max(
+                  .32,
+
+                  wheelRadiusLocal *
                   scale
                 );
 
@@ -4185,8 +4592,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
-
-  function updateBikeVisual() {
+  function updateBikeVisual(
+    dt,
+    now
+  ) {
 
     if (
       !bikeRoot
@@ -4197,15 +4606,147 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
 
+    const speed =
+      Math.abs(
+        state.vx
+      );
+
+
+    const speedRatio =
+      THREE.MathUtils.clamp(
+
+        speed /
+        Math.max(
+          1,
+          level().maxSpeed
+        ),
+
+        0,
+        1
+
+      );
+
+
+    wheelSpin +=
+
+      state.vx *
+      dt /
+
+      Math.max(
+        .2,
+        wheelRadiusWorld
+      );
+
+
+    for (
+      const shader
+      of bikeWheelShaders
+    ) {
+
+      if (
+        shader
+          ?.uniforms
+          ?.uLagoWheelSpin
+      ) {
+
+        shader.uniforms
+          .uLagoWheelSpin
+          .value =
+          wheelSpin;
+
+      }
+
+    }
+
+
+    const vibration =
+
+      state.playing &&
+      state.grounded
+
+        ? Math.sin(
+            now *
+            .034
+          ) *
+          .018 *
+          speedRatio
+
+        : 0;
+
+
     bikeRoot.position.set(
+
       state.x,
-      state.y,
+
+      state.y +
+      vibration,
+
       0
+
     );
 
 
     bikeRoot.rotation.z =
-      state.pitch;
+
+      state.pitch +
+
+      (
+        state.playing &&
+        state.grounded
+
+          ? Math.sin(
+              now *
+              .027
+            ) *
+            .008 *
+            speedRatio
+
+          : 0
+      );
+
+
+    const speedFx =
+      overlay
+        ?.querySelector(
+          "#lmSpeedFx"
+        );
+
+
+    if (
+      speedFx
+    ) {
+
+      motionOffset +=
+
+        state.vx *
+        dt *
+        24;
+
+
+      speedFx.style
+        .backgroundPosition =
+
+        `${-motionOffset}px 0`;
+
+
+      speedFx.style.opacity =
+
+        String(
+          state.playing
+
+            ? Math.max(
+                0,
+                (
+                  speedRatio -
+                  .18
+                ) *
+                .72
+              )
+
+            : 0
+        );
+
+    }
 
   }
 
@@ -4215,6 +4756,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     const ground =
       nearestGround(
         state.x
+      );
+
+    const speedLookAhead =
+
+      THREE.MathUtils.clamp(
+
+        Math.abs(
+          state.vx
+        ) *
+        .16,
+
+        0,
+        2.4
+
       );
 
 
@@ -4228,7 +4783,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
           ? 2.8
           : 4.2
-      );
+      ) +
+
+      speedLookAhead;
 
 
     const speedLift =
@@ -4290,11 +4847,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     if (
       backgroundRoot
     ) {
-
       backgroundRoot.position.x =
 
         camera.position.x *
-        .12;
+        .68;
 
     }
 
@@ -4456,8 +5012,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     }
 
-
-    updateBikeVisual();
+    updateBikeVisual(
+      dt,
+      now
+    );
 
     updateCamera();
 
