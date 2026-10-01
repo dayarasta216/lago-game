@@ -1,17 +1,16 @@
-
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 (() => {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
     "./assets/model/game/moto/red-dirt-bike.glb?v=1";
 
- const PREVIEW_URL =
+  const PREVIEW_URL =
     "./assets/model/game/moto/red-dirt-bike.png?v=1";
 
   const DEFAULT_RIDER_MODEL =
@@ -30,33 +29,377 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     "taya"
   ]);
 
-  const FINISH_X = 340;
-  const CHECKPOINTS = [85, 170, 255];
-  const ROCKS = [44, 112, 153, 205, 243, 292];
+  const LEVELS = Object.freeze([
+    Object.freeze({
+      id: 1,
+      name: "РАЗМИНКА",
+      difficulty: "ЛЕГКО",
 
-  let overlay;
-  let stage;
-  let canvas;
-  let renderer;
- let scene;
-  let camera;
-  let bikeRoot;
-  let riderRoot;
+      length: 180,
+      maxSpeed: 14,
+      acceleration: 10.5,
+
+      gravity: 22,
+      jumpPower: 8.6,
+      landingLimit: 1.28,
+
+      groundColor: 0x78664b,
+      lineColor: 0xcbb083,
+
+      skyColor: 0xa8d8e8,
+      mountainColor: 0x7899a0,
+      farMountainColor: 0x91b3b8,
+
+      gaps: [
+        [61, 67],
+        [128, 135]
+      ],
+
+      obstacles: [
+        {
+          x: 33,
+          type: "rock",
+          size: .75
+        },
+        {
+          x: 95,
+          type: "log",
+          size: .8
+        },
+        {
+          x: 154,
+          type: "rock",
+          size: .85
+        }
+      ],
+
+      checkpoints: [
+        60,
+        120
+      ]
+    }),
+
+    Object.freeze({
+      id: 2,
+      name: "ХОЛМЫ",
+      difficulty: "НОРМАЛЬНО",
+
+      length: 230,
+      maxSpeed: 15.5,
+      acceleration: 11,
+
+      gravity: 23,
+      jumpPower: 9,
+      landingLimit: 1.16,
+
+      groundColor: 0x725c40,
+      lineColor: 0xd0a96f,
+
+      skyColor: 0x93c9df,
+      mountainColor: 0x718f8d,
+      farMountainColor: 0x86a9a9,
+
+      gaps: [
+        [54, 62],
+        [118, 128],
+        [184, 193]
+      ],
+
+      obstacles: [
+        {
+          x: 38,
+          type: "rock",
+          size: .8
+        },
+        {
+          x: 82,
+          type: "barrier",
+          size: .85
+        },
+        {
+          x: 102,
+          type: "log",
+          size: .9
+        },
+        {
+          x: 151,
+          type: "rock",
+          size: .95
+        },
+        {
+          x: 211,
+          type: "log",
+          size: .9
+        }
+      ],
+
+      checkpoints: [
+        75,
+        150
+      ]
+    }),
+
+    Object.freeze({
+      id: 3,
+      name: "КАНЬОН",
+      difficulty: "СЛОЖНО",
+
+      length: 285,
+      maxSpeed: 16.5,
+      acceleration: 11.4,
+
+      gravity: 24,
+      jumpPower: 9.3,
+      landingLimit: 1.04,
+
+      groundColor: 0x694c37,
+      lineColor: 0xc78c58,
+
+      skyColor: 0x88bdd4,
+      mountainColor: 0x806b66,
+      farMountainColor: 0x9b8580,
+
+      gaps: [
+        [48, 58],
+        [96, 108],
+        [159, 171],
+        [231, 245]
+      ],
+
+      obstacles: [
+        {
+          x: 30,
+          type: "barrier",
+          size: .8
+        },
+        {
+          x: 78,
+          type: "rock",
+          size: .9
+        },
+        {
+          x: 132,
+          type: "log",
+          size: 1
+        },
+        {
+          x: 145,
+          type: "rock",
+          size: .95
+        },
+        {
+          x: 205,
+          type: "barrier",
+          size: .9
+        },
+        {
+          x: 264,
+          type: "rock",
+          size: 1.05
+        }
+      ],
+
+      checkpoints: [
+        90,
+        190
+      ]
+    }),
+
+    Object.freeze({
+      id: 4,
+      name: "ГОРЫ",
+      difficulty: "ОЧЕНЬ СЛОЖНО",
+
+      length: 340,
+      maxSpeed: 17,
+      acceleration: 11.8,
+
+      gravity: 25,
+      jumpPower: 9.5,
+      landingLimit: .95,
+
+      groundColor: 0x5e5143,
+      lineColor: 0xb8a078,
+
+      skyColor: 0x7eaec3,
+      mountainColor: 0x66767a,
+      farMountainColor: 0x83969a,
+
+      gaps: [
+        [66, 78],
+        [121, 136],
+        [186, 201],
+        [255, 272],
+        [311, 322]
+      ],
+
+      obstacles: [
+        {
+          x: 36,
+          type: "rock",
+          size: .9
+        },
+        {
+          x: 53,
+          type: "log",
+          size: .9
+        },
+        {
+          x: 101,
+          type: "barrier",
+          size: .95
+        },
+        {
+          x: 161,
+          type: "rock",
+          size: 1.05
+        },
+        {
+          x: 224,
+          type: "log",
+          size: 1
+        },
+        {
+          x: 292,
+          type: "barrier",
+          size: 1.05
+        }
+      ],
+
+      checkpoints: [
+        110,
+        220
+      ]
+    }),
+
+    Object.freeze({
+      id: 5,
+      name: "БЕЗУМИЕ",
+      difficulty: "ЭКСТРИМ",
+
+      length: 410,
+      maxSpeed: 18.5,
+      acceleration: 12.3,
+
+      gravity: 26,
+      jumpPower: 9.8,
+      landingLimit: .86,
+
+      groundColor: 0x554338,
+      lineColor: 0xc78863,
+
+      skyColor: 0x6e93a8,
+      mountainColor: 0x5b6067,
+      farMountainColor: 0x777c82,
+
+      gaps: [
+        [55, 68],
+        [103, 119],
+        [154, 171],
+        [214, 232],
+        [269, 289],
+        [327, 346],
+        [382, 395]
+      ],
+
+      obstacles: [
+        {
+          x: 31,
+          type: "barrier",
+          size: .95
+        },
+        {
+          x: 84,
+          type: "rock",
+          size: 1.05
+        },
+        {
+          x: 135,
+          type: "log",
+          size: 1.05
+        },
+        {
+          x: 192,
+          type: "barrier",
+          size: 1.05
+        },
+        {
+          x: 248,
+          type: "rock",
+          size: 1.15
+        },
+        {
+          x: 307,
+          type: "log",
+          size: 1.15
+        },
+        {
+          x: 365,
+          type: "barrier",
+          size: 1.1
+        }
+      ],
+
+      checkpoints: [
+        135,
+        270
+      ]
+    })
+  ]);
+
+  const START_X = 5;
+
+  const BIKE_HALF_LENGTH =
+    1.02;
+
+  const FALL_LIMIT_Y =
+    -11;
+
+  let overlay = null;
+  let stage = null;
+  let canvas = null;
+
+  let renderer = null;
+  let scene = null;
+  let camera = null;
+
+  let worldRoot = null;
+
+  let trackRoot = null;
+  let backgroundRoot = null;
+  let obstacleRoot = null;
+  let markerRoot = null;
+
+  let bikeRoot = null;
+  let riderRoot = null;
 
   let voicePanel = null;
+
   let modelPromise = null;
   let modelReady = false;
 
   let riderModelUrl = "";
-  let riderRequestId = 0;
 
-  let animationFrame = 0;
-  let controlsAbort = null;
-  let lastTime = 0;
-  let accumulator = 0;
-  let active = false;
+  let riderRequestId =
+    0;
 
-  const keys = new Set();
+  let animationFrame =
+    0;
+
+  let controlsAbort =
+    null;
+
+  let lastTime =
+    0;
+
+  let accumulator =
+    0;
+
+  let active =
+    false;
+
+  const keys =
+    new Set();
 
   const touch = {
     gas: false,
@@ -66,193 +409,1015 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   };
 
   const state = {
-    x: 4,
+    levelIndex: 0,
+
+    x: START_X,
     y: 0,
+
     vx: 0,
     vy: 0,
+
     pitch: 0,
+
     grounded: true,
+
     playing: false,
     crashed: false,
     finished: false,
+
     elapsed: 0,
-    checkpoint: 4
+
+    bestCheckpoint:
+      START_X,
+
+    crashReason: ""
   };
 
-  /*
-   * TERRAIN
-   */
+  function level() {
 
-  function terrain(x) {
     return (
-      0.48 * Math.sin(x * 0.11) +
-      0.83 * Math.sin(x * 0.042) +
-      0.25 * Math.sin(x * 0.24)
+      LEVELS[
+        state.levelIndex
+      ] ||
+      LEVELS[0]
     );
+
   }
 
-  function terrainAngle(x) {
+
+  function smoothStep(
+    a,
+    b,
+    value
+  ) {
+
+    if (
+      a ===
+      b
+    ) {
+
+      return (
+        value <
+        a
+
+          ? 0
+          : 1
+      );
+
+    }
+
+    const t =
+      THREE.MathUtils.clamp(
+
+        (
+          value -
+          a
+        ) /
+        (
+          b -
+          a
+        ),
+
+        0,
+        1
+
+      );
+
+    return (
+      t *
+      t *
+      (
+        3 -
+        2 *
+        t
+      )
+    );
+
+  }
+
+
+  function isGap(
+    x,
+    config = level()
+  ) {
+
+    return config.gaps.some(
+
+      (
+        [
+          start,
+          end
+        ]
+      ) =>
+
+        x >
+        start &&
+
+        x <
+        end
+
+    );
+
+  }
+
+
+  function baseTerrain(
+    x,
+    config = level()
+  ) {
+
+    const i =
+      config.id;
+
+    const wave =
+
+      Math.sin(
+        x *
+        (
+          .056 +
+          i *
+          .003
+        )
+      ) *
+      (
+        .42 +
+        i *
+        .09
+      ) +
+
+      Math.sin(
+        x *
+        (
+          .125 +
+          i *
+          .004
+        )
+      ) *
+      (
+        .25 +
+        i *
+        .05
+      ) +
+
+      Math.sin(
+        x *
+        .026 +
+        i *
+        .8
+      ) *
+      (
+        .55 +
+        i *
+        .12
+      );
+
+
+    const mountains =
+
+      Math.pow(
+
+        Math.max(
+          0,
+
+          Math.sin(
+
+            x *
+            (
+              .021 +
+              i *
+              .0015
+            ) -
+            .6
+
+          )
+
+        ),
+
+        2.4
+
+      ) *
+
+      Math.max(
+        0,
+        i - 1
+      ) *
+
+      1.05;
+
+
+    return (
+      wave +
+      mountains
+    );
+
+  }
+
+
+  function rampBoost(
+    x,
+    config = level()
+  ) {
+
+    let boost =
+      0;
+
+
+    for (
+      const [
+        start,
+        end
+      ]
+      of config.gaps
+    ) {
+
+      const approach =
+
+        start -
+
+        (
+          7 +
+          config.id *
+          .7
+        );
+
+
+      const crest =
+        start -
+        3.7;
+
+
+      if (
+        x >= approach &&
+        x <= start
+      ) {
+
+        const up =
+          smoothStep(
+            approach,
+            crest,
+            x
+          );
+
+
+        const down =
+
+          1 -
+
+          smoothStep(
+            crest,
+            start,
+            x
+          );
+
+
+        boost +=
+
+          Math.min(
+            up,
+            down
+          ) *
+
+          (
+            1.45 +
+            config.id *
+            .2
+          );
+
+      }
+
+
+      const landingEnd =
+
+        end +
+        6 +
+        config.id *
+        .4;
+
+
+      if (
+        x >= end &&
+        x <= landingEnd
+      ) {
+
+        boost -=
+
+          (
+            1 -
+
+            smoothStep(
+              end,
+              landingEnd,
+              x
+            )
+          ) *
+
+          (
+            .35 +
+            config.id *
+            .06
+          );
+
+      }
+
+    }
+
+
+    return boost;
+
+  }
+
+
+  function terrain(
+    x,
+    config = level()
+  ) {
+
+    if (
+      isGap(
+        x,
+        config
+      )
+    ) {
+
+      return null;
+
+    }
+
+
+    return (
+
+      baseTerrain(
+        x,
+        config
+      ) +
+
+      rampBoost(
+        x,
+        config
+      )
+
+    );
+
+  }
+
+
+  function nearestGround(
+    x,
+    config = level()
+  ) {
+
+    const direct =
+      terrain(
+        x,
+        config
+      );
+
+
+    if (
+      direct !==
+      null
+    ) {
+
+      return direct;
+
+    }
+
+
+    for (
+      let distance = .25;
+      distance <= 4;
+      distance += .25
+    ) {
+
+      const left =
+        terrain(
+          x -
+          distance,
+          config
+        );
+
+
+      const right =
+        terrain(
+          x +
+          distance,
+          config
+        );
+
+
+      if (
+        left !==
+        null
+      ) {
+
+        return left;
+
+      }
+
+
+      if (
+        right !==
+        null
+      ) {
+
+        return right;
+
+      }
+
+    }
+
+
+    return 0;
+
+  }
+
+
+  function terrainAngle(
+    x,
+    config = level()
+  ) {
+
+    const left =
+      terrain(
+        x -
+        .55,
+        config
+      );
+
+
+    const right =
+      terrain(
+        x +
+        .55,
+        config
+      );
+
+
+    if (
+      left ===
+        null ||
+
+      right ===
+        null
+    ) {
+
+      return 0;
+
+    }
+
+
     return Math.atan2(
-      terrain(x + 1) - terrain(x - 1),
-      2
+
+      right -
+      left,
+
+      1.1
+
     );
+
   }
 
-  /*
-   * INTERFACE
-   */
 
   function makeUI() {
-    if (overlay) return;
 
-    const style = document.createElement("style");
+    if (
+      overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const style =
+      document.createElement(
+        "style"
+      );
+
 
     style.textContent = `
+
       #lagoMoto {
-        position: fixed;
-        inset: 0;
-        z-index: 23000;
-        display: none;
+
+        position:
+          fixed;
+
+        inset:
+          0;
+
+        z-index:
+          23000;
+
+        display:
+          none;
+
         padding:
-          calc(10px + env(safe-area-inset-top))
-          10px
-          calc(10px + env(safe-area-inset-bottom));
-        background: #101722;
-        color: #fff;
-        font: 700 13px system-ui, sans-serif;
+          calc(
+            8px +
+            env(safe-area-inset-top)
+          )
+          8px
+          calc(
+            8px +
+            env(safe-area-inset-bottom)
+          );
+
+        background:
+          #0d1620;
+
+        color:
+          #fff;
+
+        font:
+          800 13px
+          system-ui,
+          sans-serif;
+
+        overscroll-behavior:
+          none;
+
       }
+
 
       #lagoMoto.active {
-        display: flex;
-        flex-direction: column;
-        gap: 9px;
+
+        display:
+          flex;
+
+        flex-direction:
+          column;
+
+        gap:
+          8px;
+
       }
+
 
       .lm-head {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 9px;
+
+        display:
+          flex;
+
+        align-items:
+          center;
+
+        justify-content:
+          space-between;
+
+        gap:
+          8px;
+
+        min-height:
+          46px;
+
       }
+
+
+      .lm-title-wrap {
+
+        min-width:
+          0;
+
+        display:
+          flex;
+
+        align-items:
+          baseline;
+
+        gap:
+          8px;
+
+      }
+
 
       .lm-head h2 {
-        margin: 0;
-        font-size: clamp(23px, 5vw, 38px);
+
+        margin:
+          0;
+
+        font-size:
+          clamp(
+            24px,
+            4vw,
+            34px
+          );
+
+        line-height:
+          1;
+
+        white-space:
+          nowrap;
+
       }
 
-      .lm-tools {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
+
+      #lmLevelLabel {
+
+        opacity:
+          .62;
+
+        font-size:
+          10px;
+
+        white-space:
+          nowrap;
+
       }
+
+
+      .lm-tools,
+      .lm-group {
+
+        display:
+          flex;
+
+        align-items:
+          center;
+
+        gap:
+          7px;
+
+      }
+
 
       #lmStage {
-        flex: 1;
-        min-height: 0;
-        position: relative;
-        border: 1px solid #ffffff24;
-        border-radius: 14px;
-        overflow: hidden;
-        background: #a4cad8;
+
+        flex:
+          1;
+
+        min-height:
+          0;
+
+        position:
+          relative;
+
+        border:
+          1px solid
+          #ffffff24;
+
+        border-radius:
+          14px;
+
+        overflow:
+          hidden;
+
+        background:
+          #99c9dc;
+
       }
+
 
       #lmCanvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        touch-action: none;
+
+        display:
+          block;
+
+        width:
+          100%;
+
+        height:
+          100%;
+
+        touch-action:
+          none;
+
       }
+
+
+      #lmHud,
+      #lmLevelBadge {
+
+        position:
+          absolute;
+
+        top:
+          9px;
+
+        padding:
+          7px
+          10px;
+
+        border-radius:
+          8px;
+
+        pointer-events:
+          none;
+
+        white-space:
+          nowrap;
+
+      }
+
 
       #lmHud {
-        position: absolute;
-        top: 9px;
-        left: 10px;
-        padding: 7px 10px;
-        background: #101a25d9;
-        border-radius: 8px;
-        pointer-events: none;
-        font-size: 12px;
+
+        left:
+          10px;
+
+        max-width:
+          calc(
+            100% -
+            20px
+          );
+
+        background:
+          #101a25dc;
+
+        font-size:
+          12px;
+
       }
+
+
+      #lmLevelBadge {
+
+        right:
+          10px;
+
+        background:
+          #ffffffd8;
+
+        color:
+          #17212a;
+
+        font-size:
+          10px;
+
+      }
+
 
       .lm-controls {
-        display: flex;
-        justify-content: space-between;
-        gap: 8px;
+
+        display:
+          flex;
+
+        justify-content:
+          space-between;
+
+        gap:
+          8px;
+
       }
 
-      .lm-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
-      }
 
       .lm-button {
-        border: 1px solid #ffffff45;
-        border-radius: 10px;
-        background: #30475c;
-        color: white;
-        min-height: 43px;
-        padding: 9px 13px;
-        font: 800 12px system-ui;
-        cursor: pointer;
-        touch-action: none;
-        user-select: none;
+
+        border:
+          1px solid
+          #ffffff3a;
+
+        border-radius:
+          10px;
+
+        min-height:
+          46px;
+
+        padding:
+          9px 13px;
+
+        background:
+          #30475c;
+
+        color:
+          #fff;
+
+        font:
+          900 12px
+          system-ui;
+
+        cursor:
+          pointer;
+
+        touch-action:
+          none;
+
+        user-select:
+          none;
+
       }
+
 
       .lm-button:disabled {
-        opacity: .45;
-        cursor: default;
+
+        opacity:
+          .42;
+
+        cursor:
+          default;
+
       }
+
 
       .lm-main {
-        background: #c8ec42;
-        color: #182015;
+
+        background:
+          #c8ec42;
+
+        color:
+          #182015;
+
       }
+
 
       .lm-help {
-        font-size: 11px;
-        opacity: .7;
-        text-align: center;
+
+        min-height:
+          14px;
+
+        text-align:
+          center;
+
+        opacity:
+          .68;
+
+        font-size:
+          10px;
+
       }
+
 
       #lmVoice {
-        position: relative;
+
+        position:
+          relative;
+
       }
 
-      @media (max-width: 600px) {
-        .lm-button {
-          padding: 9px;
-          min-width: 49px;
+
+      @media (
+        max-width:
+        760px
+      ) {
+
+        #lagoMoto {
+
+          padding:
+            calc(
+              5px +
+              env(
+                safe-area-inset-top
+              )
+            )
+            5px
+            calc(
+              5px +
+              env(
+                safe-area-inset-bottom
+              )
+            );
+
+          gap:
+            5px;
+
         }
+
+
+        .lm-head {
+
+          min-height:
+            40px;
+
+        }
+
+
+        .lm-head h2 {
+
+          font-size:
+            20px;
+
+        }
+
+
+        #lmLevelLabel {
+
+          display:
+            none;
+
+        }
+
+
+        .lm-button {
+
+          min-height:
+            44px;
+
+          padding:
+            7px 9px;
+
+          font-size:
+            11px;
+
+        }
+
+
+        .lm-controls,
+        .lm-group {
+
+          gap:
+            5px;
+
+        }
+
 
         .lm-help {
-          display: none;
+
+          display:
+            none;
+
         }
 
-        #lmVoice .lago-voice-panel {
-          max-width: 205px;
+
+        #lmVoice
+        .lago-voice-panel {
+
+          max-width:
+            180px;
+
         }
+
       }
+
+
+      @media (
+        max-width:
+        520px
+      ) {
+
+        .lm-tools
+        #lmVoice {
+
+          display:
+            none;
+
+        }
+
+
+        .lm-button {
+
+          padding:
+            7px 8px;
+
+        }
+
+
+        #lmHud {
+
+          font-size:
+            10px;
+
+        }
+
+
+        #lmLevelBadge {
+
+          font-size:
+            9px;
+
+        }
+
+      }
+
     `;
 
-    document.head.appendChild(style);
 
-    overlay = document.createElement("section");
-    overlay.id = "lagoMoto";
+    document.head.appendChild(
+      style
+    );
+
+
+    overlay =
+      document.createElement(
+        "section"
+      );
+
+
+    overlay.id =
+      "lagoMoto";
+
 
     overlay.innerHTML = `
+
       <header class="lm-head">
-        <h2>
-          LAGO MOTO
-          <small style="font-size:11px;opacity:.65">
-            2D · RED DIRT BIKE
-          </small>
-        </h2>
+
+        <div class="lm-title-wrap">
+
+          <h2>
+            LAGO MOTO
+          </h2>
+
+          <span
+            id="lmLevelLabel"
+          ></span>
+
+        </div>
+
 
         <div class="lm-tools">
-          <div id="lmVoice"></div>
+
+          <div
+            id="lmVoice"
+          ></div>
+
 
           <button
             type="button"
@@ -261,19 +1426,40 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           >
             ЗАКРЫТЬ ×
           </button>
+
         </div>
+
       </header>
 
-      <div id="lmStage">
-        <canvas id="lmCanvas"></canvas>
 
-        <div id="lmHud" role="status">
-          Загрузка модели…
+      <div
+        id="lmStage"
+      >
+
+        <canvas
+          id="lmCanvas"
+        ></canvas>
+
+
+        <div
+          id="lmHud"
+          role="status"
+        >
+          Загрузка…
         </div>
+
+
+        <div
+          id="lmLevelBadge"
+        ></div>
+
       </div>
 
+
       <div class="lm-controls">
+
         <div class="lm-group">
+
           <button
             type="button"
             class="lm-button"
@@ -281,6 +1467,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           >
             ◀ НАКЛОН
           </button>
+
 
           <button
             type="button"
@@ -290,6 +1477,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             НАКЛОН ▶
           </button>
 
+
           <button
             type="button"
             class="lm-button"
@@ -297,9 +1485,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           >
             ПРЫЖОК
           </button>
+
         </div>
 
+
         <div class="lm-group">
+
           <button
             type="button"
             class="lm-button"
@@ -307,6 +1498,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           >
             ТОРМОЗ
           </button>
+
 
           <button
             type="button"
@@ -316,6 +1508,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             ГАЗ
           </button>
 
+
           <button
             type="button"
             class="lm-button"
@@ -324,336 +1517,1193 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           >
             СТАРТ
           </button>
+
         </div>
+
       </div>
+
 
       <div class="lm-help">
-        W / ↑ — газ · S / ↓ — тормоз ·
-        A / D — наклон · Space — прыжок
+
+        W / ↑ — газ ·
+        S / ↓ — тормоз ·
+        A / D — наклон ·
+        Space — прыжок
+
       </div>
+
     `;
 
-    document.body.appendChild(overlay);
 
-    stage = overlay.querySelector("#lmStage");
-    canvas = overlay.querySelector("#lmCanvas");
+    document.body.appendChild(
+      overlay
+    );
+
+
+    stage =
+      overlay.querySelector(
+        "#lmStage"
+      );
+
+
+    canvas =
+      overlay.querySelector(
+        "#lmCanvas"
+      );
+
 
     overlay
-      .querySelector("#lmClose")
-      .addEventListener("click", hide);
+      .querySelector(
+        "#lmClose"
+      )
+      .addEventListener(
+        "click",
+        hide
+      );
+
   }
 
-  /*
-   * TRACK / SCENE
-   */
+
+  function disposeGroup(
+    group
+  ) {
+
+    if (
+      !group
+    ) {
+
+      return;
+
+    }
+
+
+    group.traverse(
+
+      child => {
+
+        if (
+          !child.isMesh &&
+          !child.isLine
+        ) {
+
+          return;
+
+        }
+
+
+        child.geometry
+          ?.dispose
+          ?.();
+
+
+        const materials =
+
+          Array.isArray(
+            child.material
+          )
+
+            ? child.material
+
+            : [
+                child.material
+              ];
+
+
+        materials.forEach(
+
+          material =>
+
+            material
+              ?.dispose
+              ?.()
+
+        );
+
+      }
+
+    );
+
+
+    group.clear();
+
+  }
+
+
+  function createMountainLayer({
+    color,
+    z,
+    height,
+    width,
+    spacing,
+    offset
+  }) {
+
+    for (
+      let x = -40;
+      x <=
+        level().length +
+        80;
+      x += spacing
+    ) {
+
+      const peakX =
+
+        x +
+
+        width *
+
+        (
+          .42 +
+
+          .12 *
+
+          Math.sin(
+            x *
+            .07 +
+            offset
+          )
+        );
+
+
+      const geometry =
+        new THREE
+          .BufferGeometry();
+
+
+      geometry.setAttribute(
+
+        "position",
+
+        new THREE
+          .BufferAttribute(
+
+            new Float32Array([
+
+              x -
+              width *
+              .55,
+
+              -4.5,
+              z,
+
+
+              peakX,
+
+              height +
+              Math.sin(
+                x *
+                .031
+              ) *
+              1.4,
+
+              z,
+
+
+              x +
+              width *
+              .55,
+
+              -4.5,
+              z
+
+            ]),
+
+            3
+
+          )
+
+      );
+
+
+      backgroundRoot.add(
+
+        new THREE.Mesh(
+
+          geometry,
+
+          new THREE
+            .MeshBasicMaterial({
+
+              color,
+
+              side:
+                THREE.DoubleSide,
+
+              depthWrite:
+                false
+
+            })
+
+        )
+
+      );
+
+    }
+
+  }
+
+
+  function createBackground() {
+
+    disposeGroup(
+      backgroundRoot
+    );
+
+
+    scene.background =
+      new THREE.Color(
+        level().skyColor
+      );
+
+
+    const sun =
+      new THREE.Mesh(
+
+        new THREE
+          .CircleGeometry(
+            2.2,
+            20
+          ),
+
+        new THREE
+          .MeshBasicMaterial({
+
+            color:
+              0xf7e7ad,
+
+            depthWrite:
+              false
+
+          })
+
+      );
+
+
+    sun.position.set(
+      16,
+      10,
+      -12
+    );
+
+
+    backgroundRoot.add(
+      sun
+    );
+
+
+    createMountainLayer({
+
+      color:
+        level()
+          .farMountainColor,
+
+      z:
+        -10,
+
+      height:
+        5.2,
+
+      width:
+        18,
+
+      spacing:
+        13,
+
+      offset:
+        .4
+
+    });
+
+
+    createMountainLayer({
+
+      color:
+        level()
+          .mountainColor,
+
+      z:
+        -7,
+
+      height:
+        3.8,
+
+      width:
+        13,
+
+      spacing:
+        10,
+
+      offset:
+        1.3
+
+    });
+
+  }
+
+
+  function addTrackSegment(
+    start,
+    end
+  ) {
+
+    if (
+      end -
+      start <
+      .5
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    const shape =
+      new THREE.Shape();
+
+
+    shape.moveTo(
+      start,
+      -14
+    );
+
+
+    shape.lineTo(
+
+      start,
+
+      nearestGround(
+        start,
+        config
+      )
+
+    );
+
+
+    for (
+      let x = start;
+      x <= end;
+      x += .28
+    ) {
+
+      const y =
+        terrain(
+          x,
+          config
+        );
+
+
+      if (
+        y !==
+        null
+      ) {
+
+        shape.lineTo(
+          x,
+          y
+        );
+
+      }
+
+    }
+
+
+    shape.lineTo(
+
+      end,
+
+      nearestGround(
+        end,
+        config
+      )
+
+    );
+
+
+    shape.lineTo(
+      end,
+      -14
+    );
+
+
+    shape.closePath();
+
+
+    trackRoot.add(
+
+      new THREE.Mesh(
+
+        new THREE
+          .ShapeGeometry(
+            shape
+          ),
+
+        new THREE
+          .MeshLambertMaterial({
+
+            color:
+              config
+                .groundColor,
+
+            side:
+              THREE.DoubleSide
+
+          })
+
+      )
+
+    );
+
+
+    const points =
+      [];
+
+
+    for (
+      let x = start;
+      x <= end;
+      x += .2
+    ) {
+
+      const y =
+        terrain(
+          x,
+          config
+        );
+
+
+      if (
+        y !==
+        null
+      ) {
+
+        points.push(
+
+          new THREE.Vector3(
+            x,
+            y + .055,
+            .03
+          )
+
+        );
+
+      }
+
+    }
+
+
+    if (
+      points.length >
+      1
+    ) {
+
+      trackRoot.add(
+
+        new THREE.Line(
+
+          new THREE
+            .BufferGeometry()
+            .setFromPoints(
+              points
+            ),
+
+          new THREE
+            .LineBasicMaterial({
+
+              color:
+                config
+                  .lineColor
+
+            })
+
+        )
+
+      );
+
+    }
+
+  }
+
+
+  function addMarker(
+    x,
+    finish
+  ) {
+
+    const y =
+      nearestGround(
+        x
+      );
+
+
+    const post =
+      new THREE.Mesh(
+
+        new THREE
+          .BoxGeometry(
+            .08,
+            2.5,
+            .08
+          ),
+
+        new THREE
+          .MeshBasicMaterial({
+            color:
+              0xf5f5f0
+          })
+
+      );
+
+
+    post.position.set(
+      x,
+      y + 1.25,
+      -.3
+    );
+
+
+    markerRoot.add(
+      post
+    );
+
+
+    const flag =
+      new THREE.Mesh(
+
+        new THREE
+          .PlaneGeometry(
+            1.3,
+            .55
+          ),
+
+        new THREE
+          .MeshBasicMaterial({
+
+            color:
+
+              finish
+
+                ? 0xccff00
+                : 0xff725c,
+
+            side:
+              THREE.DoubleSide
+
+          })
+
+      );
+
+
+    flag.position.set(
+      x + .68,
+      y + 2.15,
+      -.3
+    );
+
+
+    markerRoot.add(
+      flag
+    );
+
+  }
+
+
+  function addObstacle(
+    obstacle
+  ) {
+
+    const y =
+      nearestGround(
+        obstacle.x
+      );
+
+
+    let mesh =
+      null;
+
+
+    if (
+      obstacle.type ===
+      "log"
+    ) {
+
+      mesh =
+        new THREE.Mesh(
+
+          new THREE
+            .CylinderGeometry(
+
+              .34 *
+              obstacle.size,
+
+              .4 *
+              obstacle.size,
+
+              1.8 *
+              obstacle.size,
+
+              8
+
+            ),
+
+          new THREE
+            .MeshLambertMaterial({
+              color:
+                0x68422b
+            })
+
+        );
+
+
+      mesh.rotation.z =
+        Math.PI /
+        2;
+
+    } else if (
+      obstacle.type ===
+      "barrier"
+    ) {
+
+      mesh =
+        new THREE.Mesh(
+
+          new THREE
+            .BoxGeometry(
+
+              1 *
+              obstacle.size,
+
+              .78 *
+              obstacle.size,
+
+              .55
+
+            ),
+
+          new THREE
+            .MeshLambertMaterial({
+              color:
+                0xd56a3f
+            })
+
+        );
+
+    } else {
+
+      mesh =
+        new THREE.Mesh(
+
+          new THREE
+            .DodecahedronGeometry(
+
+              .58 *
+              obstacle.size,
+
+              0
+
+            ),
+
+          new THREE
+            .MeshLambertMaterial({
+              color:
+                0x626b6d
+            })
+
+        );
+
+
+      mesh.scale.set(
+        1.35,
+        .82,
+        .68
+      );
+
+    }
+
+
+    mesh.position.set(
+
+      obstacle.x,
+
+      y +
+      .48 *
+      obstacle.size,
+
+      -.12
+
+    );
+
+
+    obstacleRoot.add(
+      mesh
+    );
+
+  }
+
+
+  function buildTrack() {
+
+    disposeGroup(
+      trackRoot
+    );
+
+    disposeGroup(
+      obstacleRoot
+    );
+
+    disposeGroup(
+      markerRoot
+    );
+
+
+    const config =
+      level();
+
+
+    let cursor =
+      -20;
+
+
+    for (
+      const [
+        gapStart,
+        gapEnd
+      ]
+      of config.gaps
+    ) {
+
+      addTrackSegment(
+        cursor,
+        gapStart
+      );
+
+
+      cursor =
+        gapEnd;
+
+    }
+
+
+    addTrackSegment(
+
+      cursor,
+
+      config.length +
+      30
+
+    );
+
+
+    config.obstacles
+      .forEach(
+        addObstacle
+      );
+
+
+    config.checkpoints
+      .forEach(
+
+        x =>
+          addMarker(
+            x,
+            false
+          )
+
+      );
+
+
+    addMarker(
+      config.length,
+      true
+    );
+
+
+    createBackground();
+
+    updateLevelUI();
+
+  }
+
 
   function makeScene() {
-    if (renderer) return;
 
-    renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias:
-        window.innerWidth > 760,
-
-      alpha: false,
-
-      powerPreference:
-        "high-performance"
-    });
-    
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xa7d4e5);
-
-    camera = new THREE.OrthographicCamera(
-      -10, 10, 7, -7, .1, 150
-    );
-
-    camera.position.set(4, 5, 25);
-
-    scene.add(
-      new THREE.HemisphereLight(
-        0xffffff,
-        0x6b7452,
-        2
-      )
-    );
-
-    const sun = new THREE.DirectionalLight(
-      0xffffff,
-      2
-    );
-
-    sun.position.set(-8, 18, 15);
-    scene.add(sun);
-
-    const contour = new THREE.Shape();
-
-    contour.moveTo(-15, -12);
-
-    for (
-      let x = -15;
-      x <= FINISH_X + 20;
-      x += .35
+    if (
+      renderer
     ) {
-      contour.lineTo(x, terrain(x));
+
+      return;
+
     }
 
-    contour.lineTo(FINISH_X + 20, -12);
-    contour.closePath();
 
-    scene.add(
-      new THREE.Mesh(
-        new THREE.ShapeGeometry(contour),
-        new THREE.MeshLambertMaterial({
-          color: 0x7b674a,
-          side: THREE.DoubleSide
-        })
-      )
+    renderer =
+      new THREE
+        .WebGLRenderer({
+
+          canvas,
+
+          antialias:
+            window.innerWidth >
+            760,
+
+          alpha:
+            false,
+
+          powerPreference:
+            "high-performance"
+
+        });
+
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+
+    scene =
+      new THREE.Scene();
+
+
+    camera =
+      new THREE
+        .OrthographicCamera(
+
+          -10,
+          10,
+
+          7,
+          -7,
+
+          .1,
+          160
+
+        );
+
+
+    camera.position.set(
+      START_X + 3,
+      4.5,
+      25
     );
 
-    const path = [];
 
-    for (
-      let x = -15;
-      x <= FINISH_X + 20;
-      x += .25
-    ) {
-      path.push(
-        new THREE.Vector3(
-          x,
-          terrain(x) + .07,
-          -.02
+    scene.add(
+
+      new THREE
+        .HemisphereLight(
+          0xffffff,
+          0x59644c,
+          1.9
         )
-      );
-    }
 
-    scene.add(
-      new THREE.Line(
-        new THREE.BufferGeometry()
-          .setFromPoints(path),
-
-        new THREE.LineBasicMaterial({
-          color: 0xb8a078
-        })
-      )
     );
 
-    for (const x of ROCKS) {
-      const rock = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(.63, 0),
 
-        new THREE.MeshLambertMaterial({
-          color: 0x626f73
-        })
-      );
-
-      rock.scale.set(1.35, .7, .55);
-
-      rock.position.set(
-        x,
-        terrain(x) + .37,
-        -.25
-      );
-
-      scene.add(rock);
-    }
-
-    for (const x of [...CHECKPOINTS, FINISH_X]) {
-      const post = new THREE.Mesh(
-        new THREE.BoxGeometry(.09, 3, .09),
-
-        new THREE.MeshBasicMaterial({
-          color: 0xf6f6f1
-        })
-      );
-
-      post.position.set(
-        x,
-        terrain(x) + 1.5,
-        -.5
-      );
-
-      scene.add(post);
-
-      const flag = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.5, .64),
-
-        new THREE.MeshBasicMaterial({
-          color: x === FINISH_X
-            ? 0xccff00
-            : 0xff744c,
-
-          side: THREE.DoubleSide
-        })
-      );
-
-      flag.position.set(
-        x + .75,
-        terrain(x) + 2.7,
-        -.5
-      );
-
-      scene.add(flag);
-    }
-
-    bikeRoot = new THREE.Group();
-    scene.add(bikeRoot);
+    const keyLight =
+      new THREE
+        .DirectionalLight(
+          0xffffff,
+          1.8
+        );
 
 
-    /*
-     * Selected Tap-Tap character.
-     *
-     * Rider is a child of bikeRoot,
-     * therefore jumps / slopes / crashes
-     * automatically move the character
-     * together with the motorcycle.
-     */
-    riderRoot = new THREE.Group();
+    keyLight.position.set(
+      -10,
+      18,
+      14
+    );
+
+
+    scene.add(
+      keyLight
+    );
+
+
+    worldRoot =
+      new THREE.Group();
+
+
+    backgroundRoot =
+      new THREE.Group();
+
+
+    trackRoot =
+      new THREE.Group();
+
+
+    obstacleRoot =
+      new THREE.Group();
+
+
+    markerRoot =
+      new THREE.Group();
+
+
+    bikeRoot =
+      new THREE.Group();
+
+
+    riderRoot =
+      new THREE.Group();
+
 
     riderRoot.position.set(
-      -.15,
-      1.42,
-      .18
+      -.18,
+      1.28,
+      .12
     );
+
 
     riderRoot.rotation.y =
-      Math.PI / 2;
+      Math.PI /
+      2;
 
-    riderRoot.scale.setScalar(
-      .62
-    );
+
+    riderRoot.rotation.z =
+      -.08;
+
 
     bikeRoot.add(
       riderRoot
     );
 
 
+    worldRoot.add(
+      backgroundRoot,
+      trackRoot,
+      obstacleRoot,
+      markerRoot,
+      bikeRoot
+    );
+
+
+    scene.add(
+      worldRoot
+    );
+
+
+    buildTrack();
+
     resize();
+
   }
 
-  /*
-   * MOTORCYCLE MODEL
-   */
 
   function loadBike() {
-    if (modelPromise) return modelPromise;
 
-    const loader = new GLTFLoader();
+    if (
+      modelPromise
+    ) {
 
-    modelPromise = new Promise(resolve => {
-      loader.load(
-        MODEL_URL,
+      return modelPromise;
 
-        gltf => {
-          const model = gltf.scene;
+    }
 
 
-          /*
-           * Source GLB faces left.
-           *
-           * Gameplay travels toward +X,
-           * therefore the motorcycle
-           * must face right.
-           */
-          model.rotation.y =
-            Math.PI;
-
-          model.updateMatrixWorld(
-            true
-          );
+    const loader =
+      new GLTFLoader();
 
 
-          const bounds = new THREE.Box3()
-            .setFromObject(model);
+    modelPromise =
+      new Promise(
 
-          const center = bounds.getCenter(
-            new THREE.Vector3()
-          );
+        resolve => {
 
-          const size = bounds.getSize(
-            new THREE.Vector3()
-          );
+          loader.load(
 
-          if (
-            !Number.isFinite(size.x) ||
-            size.x < .001
-          ) {
-            resolve(false);
-            return;
-          }
+            MODEL_URL,
 
-          const scale = 3.35 / size.x;
 
-          model.scale.setScalar(scale);
+            gltf => {
 
-          model.position.set(
-            -center.x * scale,
-            -bounds.min.y * scale,
-            -center.z * scale
-          );
+              const model =
+                gltf.scene;
 
-          bikeRoot.add(model);
 
-          modelReady = true;
-          resolve(true);
-        },
+              model.rotation.y =
+                Math.PI;
 
-        undefined,
 
-        () => {
-          // If GLB is not hosted yet, try the
-          // supplied PNG as an interim 2D asset.
-
-          new THREE.TextureLoader().load(
-            PREVIEW_URL,
-
-            texture => {
-              texture.colorSpace =
-                THREE.SRGBColorSpace;
-
-              const preview = new THREE.Mesh(
-                new THREE.PlaneGeometry(
-                  3.35,
-                  3.35
-                ),
-
-                new THREE.MeshBasicMaterial({
-                  map: texture,
-                  transparent: true,
-                  side: THREE.DoubleSide
-                })
+              model.updateMatrixWorld(
+                true
               );
 
-             preview.position.y =
-                1.3;
 
-              preview.scale.x =
-                -1;
+              const bounds =
+                new THREE
+                  .Box3()
+                  .setFromObject(
+                    model
+                  );
+
+
+              const center =
+                bounds.getCenter(
+                  new THREE.Vector3()
+                );
+
+
+              const size =
+                bounds.getSize(
+                  new THREE.Vector3()
+                );
+
+
+              if (
+                !Number.isFinite(
+                  size.x
+                ) ||
+
+                size.x <
+                .001
+              ) {
+
+                resolve(
+                  false
+                );
+
+                return;
+
+              }
+
+
+              const scale =
+
+                3.35 /
+                size.x;
+
+
+              model.scale
+                .setScalar(
+                  scale
+                );
+
+
+              model.position.set(
+
+                -center.x *
+                scale,
+
+                -bounds.min.y *
+                scale,
+
+                -center.z *
+                scale
+
+              );
+
 
               bikeRoot.add(
-                preview
+                model
               );
 
-              modelReady = true;
-              resolve(true);
+
+              modelReady =
+                true;
+
+
+              resolve(
+                true
+              );
+
             },
+
 
             undefined,
 
-            () => resolve(false)
+
+            () => {
+
+              new THREE
+                .TextureLoader()
+                .load(
+
+                  PREVIEW_URL,
+
+
+                  texture => {
+
+                    texture.colorSpace =
+                      THREE
+                        .SRGBColorSpace;
+
+
+                    const preview =
+                      new THREE.Mesh(
+
+                        new THREE
+                          .PlaneGeometry(
+                            3.35,
+                            3.35
+                          ),
+
+                        new THREE
+                          .MeshBasicMaterial({
+
+                            map:
+                              texture,
+
+                            transparent:
+                              true,
+
+                            side:
+                              THREE
+                                .DoubleSide
+
+                          })
+
+                      );
+
+
+                    preview.position.y =
+                      1.3;
+
+
+                    preview.scale.x =
+                      -1;
+
+
+                    bikeRoot.add(
+                      preview
+                    );
+
+
+                    modelReady =
+                      true;
+
+
+                    resolve(
+                      true
+                    );
+
+                  },
+
+
+                  undefined,
+
+
+                  () =>
+                    resolve(
+                      false
+                    )
+
+                );
+
+            }
+
           );
+
         }
+
       );
-    });
+
 
     return modelPromise;
+
   }
 
-/*
-   * RIDER / SELECTED MAIN CHARACTER
-   */
 
   function optimizeKnownCharacterUrl(
     value
@@ -661,39 +2711,47 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     const url =
       String(
-        value || ""
+        value ||
+        ""
       ).trim();
 
 
-    if (!url) {
+    if (
+      !url
+    ) {
+
       return "";
+
     }
 
 
-    /*
-     * Compatibility with an old account/cache
-     * which may still contain the old roster URL.
-     */
     const match =
       url.match(
         /assets\/model\/roster\/([^/?]+)\.glb/i
       );
 
 
-    if (!match) {
+    if (
+      !match
+    ) {
+
       return url;
+
     }
 
 
     const name =
       String(
-        match[1] || ""
+        match[1] ||
+        ""
       ).toLowerCase();
 
 
     if (
       !OPTIMIZED_CHARACTER_NAMES
-        .has(name)
+        .has(
+          name
+        )
     ) {
 
       return url;
@@ -702,7 +2760,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
     return (
+
       `./assets/model/game/characters/${name}.glb?v=1`
+
     );
 
   }
@@ -711,32 +2771,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   function resolveRiderModelUrl(
     context = null
   ) {
-
-    /*
-     * Primary source:
-     * mini-game runtime.
-     *
-     * This is the same selected character
-     * that the account / Tap-Tap screen uses.
-     */
-    const fromContext =
-      context
-        ?.characterModel3d;
-
-
-    /*
-     * Secondary source:
-     * exact model currently installed
-     * in the main 3D Tap-Tap renderer.
-     */
-    const fromMainCharacter =
-
-      window
-        .LAGO_CHARACTER_3D
-        ?.getStatus
-        ?.()
-        ?.modelUrl;
-
 
     const selectedSkin =
       String(
@@ -764,9 +2798,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     return optimizeKnownCharacterUrl(
 
-      fromContext ||
+      context
+        ?.characterModel3d ||
 
-      fromMainCharacter ||
+      window
+        .LAGO_CHARACTER_3D
+        ?.getStatus
+        ?.()
+        ?.modelUrl ||
 
       registryCharacter
         ?.model3d ||
@@ -780,14 +2819,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   function clearRider() {
 
-    if (!riderRoot) {
+    if (
+      !riderRoot
+    ) {
+
       return;
+
     }
 
 
     for (
       const child
-      of [...riderRoot.children]
+      of [
+        ...riderRoot.children
+      ]
     ) {
 
       riderRoot.remove(
@@ -795,14 +2840,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-      /*
-       * cloneModel() gives Moto its own
-       * material clones.
-       *
-       * Geometry remains shared with the
-       * cached main character model.
-       */
       child.traverse?.(
+
         node => {
 
           if (
@@ -829,16 +2868,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
           materials.forEach(
-            material => {
+
+            material =>
 
               material
                 ?.dispose
-                ?.();
+                ?.()
 
-            }
           );
 
         }
+
       );
 
     }
@@ -850,7 +2890,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-  function normalizeFallbackRider(
+  function fitRiderToBike(
     model
   ) {
 
@@ -860,11 +2900,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       0
     );
 
+
     model.rotation.set(
       0,
       0,
       0
     );
+
 
     model.scale.set(
       1,
@@ -879,7 +2921,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
     const firstBox =
-      new THREE.Box3()
+      new THREE
+        .Box3()
         .setFromObject(
           model
         );
@@ -891,21 +2934,28 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    const largest =
-      Math.max(
+    if (
+      !Number.isFinite(
+        size.y
+      ) ||
 
-        size.x,
-        size.y,
-        size.z,
+      size.y <
+      .001
+    ) {
 
-        .001
+      return;
 
-      );
+    }
+
+
+    const scale =
+
+      1.52 /
+      size.y;
 
 
     model.scale.setScalar(
-      2.35 /
-      largest
+      scale
     );
 
 
@@ -915,7 +2965,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
     const box =
-      new THREE.Box3()
+      new THREE
+        .Box3()
         .setFromObject(
           model
         );
@@ -930,11 +2981,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     model.position.x -=
       center.x;
 
-    model.position.y -=
-      center.y;
 
     model.position.z -=
       center.z;
+
+
+    model.position.y -=
+      box.min.y;
 
 
     model.updateMatrixWorld(
@@ -948,8 +3001,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     context = null
   ) {
 
-    if (!riderRoot) {
+    if (
+      !riderRoot
+    ) {
+
       return false;
+
     }
 
 
@@ -959,21 +3016,23 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    if (!modelUrl) {
+    if (
+      !modelUrl
+    ) {
+
       return false;
+
     }
 
 
-    /*
-     * Same selected character is already
-     * mounted. Do not clone/load again.
-     */
     if (
       riderModelUrl ===
         modelUrl &&
 
-      riderRoot.children.length >
-        0
+      riderRoot
+        .children
+        .length >
+      0
     ) {
 
       return true;
@@ -991,47 +3050,29 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         null;
 
 
-      const character3d =
-        window
-          .LAGO_CHARACTER_3D;
-
-
-      /*
-       * Preferred path.
-       *
-       * The main Tap-Tap renderer already
-       * maintains a GLB template cache.
-       *
-       * Therefore opening Moto normally
-       * does NOT download the character
-       * model a second time.
-       */
       if (
-        character3d &&
-        typeof character3d
+        window
+          .LAGO_CHARACTER_3D &&
+
+        typeof window
+          .LAGO_CHARACTER_3D
           .cloneModel ===
           "function"
       ) {
 
         model =
-          await character3d
+
+          await window
+            .LAGO_CHARACTER_3D
             .cloneModel(
               modelUrl
             );
 
       } else {
 
-        /*
-         * Defensive fallback if Moto is
-         * opened before the global
-         * character renderer is ready.
-         */
-        const loader =
-          new GLTFLoader();
-
-
         const gltf =
-          await loader
+
+          await new GLTFLoader()
             .loadAsync(
               modelUrl
             );
@@ -1040,18 +3081,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         model =
           gltf.scene;
 
-
-        normalizeFallbackRider(
-          model
-        );
-
       }
 
 
-      /*
-       * User may have closed/reopened
-       * the game while GLB was loading.
-       */
       if (
         requestId !==
           riderRequestId ||
@@ -1062,6 +3094,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         return false;
 
       }
+
+
+      fitRiderToBike(
+        model
+      );
 
 
       clearRider();
@@ -1104,32 +3141,35 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
   }
-  
-  /*
-   * CAMERA
-   */
+
 
   function resize() {
-    if (!renderer || !stage) return;
 
-    const width = Math.max(
-      1,
-      stage.clientWidth
-    );
+    if (
+      !renderer ||
+      !stage ||
+      !camera
+    ) {
 
-   const height = Math.max(
-      1,
-      stage.clientHeight
-    );
+      return;
+
+    }
 
 
-    /*
-     * High-DPI phones can report DPR 3-4.
-     *
-     * Rendering Moto at that resolution
-     * wastes a huge amount of GPU power
-     * for almost no visible benefit.
-     */
+    const width =
+      Math.max(
+        1,
+        stage.clientWidth
+      );
+
+
+    const height =
+      Math.max(
+        1,
+        stage.clientHeight
+      );
+
+
     renderer.setPixelRatio(
 
       Math.min(
@@ -1137,7 +3177,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         window.devicePixelRatio ||
         1,
 
-        width <= 760
+        width <=
+        760
+
           ? 1
           : 1.35
 
@@ -1152,233 +3194,1008 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       false
     );
 
-    const aspect = width / height;
 
-    const spanX = Math.max(
-      15,
-      12 * aspect
-    );
+    const aspect =
+      width /
+      height;
 
-    const spanY = spanX / aspect;
 
-    camera.left = -spanX / 2;
-    camera.right = spanX / 2;
-    camera.top = spanY / 2;
-    camera.bottom = -spanY / 2;
+    const spanX =
+      Math.max(
 
-    camera.updateProjectionMatrix();
+        14,
+
+        aspect *
+
+        (
+          width <=
+          760
+
+            ? 9.5
+            : 10.5
+        )
+
+      );
+
+
+    const spanY =
+      spanX /
+      aspect;
+
+
+    camera.left =
+      -spanX /
+      2;
+
+
+    camera.right =
+      spanX /
+      2;
+
+
+    camera.top =
+      spanY /
+      2;
+
+
+    camera.bottom =
+      -spanY /
+      2;
+
+
+    camera
+      .updateProjectionMatrix();
+
   }
 
-  /*
-   * MOTORCYCLE PHYSICS
-   */
+
+  function setRunState({
+    x = START_X,
+    playing = false
+  } = {}) {
+
+    const ground =
+      nearestGround(
+        x
+      );
+
+
+    Object.assign(
+
+      state,
+
+      {
+
+        x,
+
+        y:
+          ground +
+          .08,
+
+        vx:
+          0,
+
+        vy:
+          0,
+
+        pitch:
+          terrainAngle(
+            x
+          ),
+
+        grounded:
+          true,
+
+        playing,
+
+        crashed:
+          false,
+
+        finished:
+          false,
+
+        elapsed:
+          0,
+
+        bestCheckpoint:
+          x,
+
+        crashReason:
+          ""
+
+      }
+
+    );
+
+
+    bikeRoot.position.set(
+      state.x,
+      state.y,
+      0
+    );
+
+
+    bikeRoot.rotation.z =
+      state.pitch;
+
+  }
+
+
+  function updatePrimaryButton() {
+
+    const button =
+      overlay
+        ?.querySelector(
+          "#lmRestart"
+        );
+
+
+    if (
+      !button
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      !modelReady
+    ) {
+
+      button.disabled =
+        true;
+
+
+      button.textContent =
+        "ЗАГРУЗКА";
+
+
+      return;
+
+    }
+
+
+    button.disabled =
+      false;
+
+
+    if (
+      state.finished &&
+
+      state.levelIndex <
+      LEVELS.length -
+      1
+    ) {
+
+      button.textContent =
+        "СЛЕД. УРОВЕНЬ";
+
+    } else if (
+      state.finished
+    ) {
+
+      button.textContent =
+        "СНАЧАЛА";
+
+    } else if (
+      state.playing ||
+      state.crashed
+    ) {
+
+      button.textContent =
+        "ЗАНОВО";
+
+    } else {
+
+      button.textContent =
+        "СТАРТ";
+
+    }
+
+  }
+
+
+  function updateLevelUI() {
+
+    if (
+      !overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    const label =
+      overlay.querySelector(
+        "#lmLevelLabel"
+      );
+
+
+    const badge =
+      overlay.querySelector(
+        "#lmLevelBadge"
+      );
+
+
+    if (
+      label
+    ) {
+
+      label.textContent =
+
+        `УРОВЕНЬ ${config.id}/5 · ${config.name}`;
+
+    }
+
+
+    if (
+      badge
+    ) {
+
+      badge.textContent =
+
+        `${config.name} · ${config.difficulty}`;
+
+    }
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function startRun() {
+
+    if (
+      !modelReady ||
+      state.playing ||
+      state.finished
+    ) {
+
+      return;
+
+    }
+
+
+    state.playing =
+      true;
+
+
+    state.crashed =
+      false;
+
+
+    state.crashReason =
+      "";
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function restartLevel() {
+
+    if (
+      !modelReady
+    ) {
+
+      return;
+
+    }
+
+
+    setRunState({
+      x:
+        START_X,
+
+      playing:
+        true
+    });
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function nextLevel() {
+
+    state.levelIndex =
+
+      state.levelIndex <
+      LEVELS.length -
+      1
+
+        ? state.levelIndex +
+          1
+
+        : 0;
+
+
+    buildTrack();
+
+
+    setRunState({
+
+      x:
+        START_X,
+
+      playing:
+        false
+
+    });
+
+
+    camera.position.set(
+      START_X + 3,
+      4.5,
+      25
+    );
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function handlePrimaryAction() {
+
+    if (
+      state.finished
+    ) {
+
+      nextLevel();
+
+      return;
+
+    }
+
+
+    restartLevel();
+
+  }
+
 
   function jump() {
+
     if (
       !state.playing ||
       !state.grounded
     ) {
+
       return;
+
     }
 
-    state.vy = 10;
-    state.grounded = false;
-    state.y += .05;
+
+    state.vy =
+      level()
+        .jumpPower;
+
+
+    state.grounded =
+      false;
+
+
+    state.y +=
+      .08;
+
   }
 
-  function reset() {
-    if (!modelReady) return;
 
-    Object.assign(state, {
-      x: 4,
-      y: terrain(4) + .15,
-      vx: 0,
-      vy: 0,
-      pitch: 0,
-      grounded: true,
-      playing: true,
-      crashed: false,
-      finished: false,
-      elapsed: 0,
-      checkpoint: 4
-    });
+  function input(
+    name
+  ) {
 
-    bikeRoot.position.set(
-      state.x,
-      state.y,
-      0
-    );
+    if (
+      name ===
+      "gas"
+    ) {
 
-    bikeRoot.rotation.z = 0;
+      return (
 
-    overlay.querySelector("#lmRestart")
-      .textContent = "ЗАНОВО";
-  }
+        touch.gas ||
 
-  function input(name) {
-    if (name === "gas") {
-      return touch.gas ||
-        keys.has("KeyW") ||
-        keys.has("ArrowUp");
+        keys.has(
+          "KeyW"
+        ) ||
+
+        keys.has(
+          "ArrowUp"
+        )
+
+      );
+
     }
 
-    if (name === "brake") {
-      return touch.brake ||
-        keys.has("KeyS") ||
-        keys.has("ArrowDown");
+
+    if (
+      name ===
+      "brake"
+    ) {
+
+      return (
+
+        touch.brake ||
+
+        keys.has(
+          "KeyS"
+        ) ||
+
+        keys.has(
+          "ArrowDown"
+        )
+
+      );
+
     }
 
-    if (name === "left") {
-      return touch.left ||
-        keys.has("KeyA") ||
-        keys.has("ArrowLeft");
+
+    if (
+      name ===
+      "left"
+    ) {
+
+      return (
+
+        touch.left ||
+
+        keys.has(
+          "KeyA"
+        ) ||
+
+        keys.has(
+          "ArrowLeft"
+        )
+
+      );
+
     }
 
-    if (name === "right") {
-      return touch.right ||
-        keys.has("KeyD") ||
-        keys.has("ArrowRight");
+
+    if (
+      name ===
+      "right"
+    ) {
+
+      return (
+
+        touch.right ||
+
+        keys.has(
+          "KeyD"
+        ) ||
+
+        keys.has(
+          "ArrowRight"
+        )
+
+      );
+
     }
+
 
     return false;
+
   }
 
-  function step(dt) {
-    if (!state.playing) return;
 
-    state.elapsed += dt;
-
-    if (input("gas")) {
-      state.vx += (
-        state.grounded ? 11 : 4
-      ) * dt;
-    }
-
-    if (input("brake")) {
-      state.vx -= (
-        state.grounded ? 13 : 3
-      ) * dt;
-    }
+  function crash(
+    reason
+  ) {
 
     if (
-      !input("gas") &&
-      !input("brake")
+      state.crashed ||
+      state.finished
     ) {
-      state.vx *= state.grounded
-        ? .987
-        : .998;
+
+      return;
+
     }
 
-    state.vx = THREE.MathUtils.clamp(
-      state.vx,
-      -4,
-      17
-    );
 
-    state.x = Math.max(
-      2,
-      state.x + state.vx * dt
-    );
+    state.crashed =
+      true;
 
-    state.vy -= 24 * dt;
-    state.y += state.vy * dt;
 
-    const ground = Math.max(
-      terrain(state.x - 1.05),
-      terrain(state.x + 1.05)
-    );
+    state.playing =
+      false;
 
-    const slope = terrainAngle(state.x);
+
+    state.crashReason =
+      reason ||
+      "ПАДЕНИЕ";
+
+
+    state.vx =
+      0;
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function checkObstacleCollision() {
+
+    for (
+      const obstacle
+      of level()
+        .obstacles
+    ) {
+
+      const distance =
+
+        Math.abs(
+          state.x -
+          obstacle.x
+        );
+
+
+      if (
+        distance >
+        .95 *
+        obstacle.size
+      ) {
+
+        continue;
+
+      }
+
+
+      const ground =
+        nearestGround(
+          obstacle.x
+        );
+
+
+      const obstacleTop =
+
+        ground +
+
+        (
+          obstacle.type ===
+          "barrier"
+
+            ? .95
+            : .78
+        ) *
+
+        obstacle.size;
+
+
+      if (
+        state.y <
+          obstacleTop +
+          .45 &&
+
+        Math.abs(
+          state.vx
+        ) >
+          2.2
+      ) {
+
+        crash(
+          "СТОЛКНОВЕНИЕ"
+        );
+
+
+        return true;
+
+      }
+
+    }
+
+
+    return false;
+
+  }
+
+
+  function updateCheckpoints() {
+
+    for (
+      const x
+      of level()
+        .checkpoints
+    ) {
+
+      if (
+        state.x >=
+          x &&
+
+        x >
+          state.bestCheckpoint
+      ) {
+
+        state.bestCheckpoint =
+          x;
+
+      }
+
+    }
+
+  }
+
+
+  function step(
+    dt
+  ) {
+
+    if (
+      !state.playing
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    state.elapsed +=
+      dt;
+
+
+    const gas =
+      input(
+        "gas"
+      );
+
+
+    const brake =
+      input(
+        "brake"
+      );
+
+
+    if (
+      gas
+    ) {
+
+      state.vx +=
+
+        (
+          state.grounded
+
+            ? config
+                .acceleration
+
+            : config
+                .acceleration *
+              .28
+        ) *
+
+        dt;
+
+    }
+
+
+    if (
+      brake
+    ) {
+
+      state.vx -=
+
+        (
+          state.grounded
+
+            ? 12.5
+            : 2.6
+        ) *
+
+        dt;
+
+    }
+
+
+    if (
+      !gas &&
+      !brake
+    ) {
+
+      state.vx *=
+
+        state.grounded
+
+          ? .988
+          : .998;
+
+    }
+
+
+    state.vx =
+      THREE.MathUtils.clamp(
+
+        state.vx,
+
+        -3.5,
+
+        config.maxSpeed
+
+      );
+
+
+    state.x =
+      Math.max(
+
+        1,
+
+        state.x +
+        state.vx *
+        dt
+
+      );
+
+
+    state.vy -=
+
+      config.gravity *
+      dt;
+
+
+    state.y +=
+
+      state.vy *
+      dt;
+
+
+    const rearGround =
+      terrain(
+
+        state.x -
+        BIKE_HALF_LENGTH,
+
+        config
+
+      );
+
+
+    const frontGround =
+      terrain(
+
+        state.x +
+        BIKE_HALF_LENGTH,
+
+        config
+
+      );
+
+
+    const hasGround =
+
+      rearGround !==
+        null ||
+
+      frontGround !==
+        null;
+
+
+    const contactGround =
+
+      hasGround
+
+        ? Math.max(
+
+            rearGround ??
+            -Infinity,
+
+            frontGround ??
+            -Infinity
+
+          )
+
+        : null;
+
+
+    const slope =
+      terrainAngle(
+        state.x,
+        config
+      );
+
 
     const tilt =
-      Number(input("right")) -
-      Number(input("left"));
 
-    if (
-      state.y <= ground + .05 &&
-      state.vy <= 0
-    ) {
-      const landingAngle = Math.abs(
-        Math.atan2(
-          Math.sin(state.pitch - slope),
-          Math.cos(state.pitch - slope)
+      Number(
+        input(
+          "right"
+        )
+      ) -
+
+      Number(
+        input(
+          "left"
         )
       );
 
+
+    if (
+      contactGround !==
+        null &&
+
+      state.y <=
+        contactGround +
+        .08 &&
+
+      state.vy <=
+        0
+    ) {
+
+      const landingAngle =
+
+        Math.abs(
+
+          Math.atan2(
+
+            Math.sin(
+
+              state.pitch -
+              slope
+
+            ),
+
+            Math.cos(
+
+              state.pitch -
+              slope
+
+            )
+
+          )
+
+        );
+
+
+      const wasAirborne =
+        !state.grounded;
+
+
       if (
-        !state.grounded &&
-        landingAngle > 1.20 &&
-        Math.abs(state.vx) > 4
+        wasAirborne &&
+
+        landingAngle >
+          config
+            .landingLimit &&
+
+        Math.abs(
+          state.vx
+        ) >
+          4.2
       ) {
-        state.crashed = true;
-        state.playing = false;
+
+        crash(
+          "ЖЁСТКОЕ ПРИЗЕМЛЕНИЕ"
+        );
+
+
+        return;
+
       }
 
-      state.y = ground + .05;
-      state.vy = 0;
-      state.grounded = true;
 
-      state.pitch = THREE.MathUtils.lerp(
-        state.pitch,
-        slope + tilt * .3,
-        Math.min(1, dt * 9)
-      );
+      state.y =
+        contactGround +
+        .08;
+
+
+      state.vy =
+        0;
+
+
+      state.grounded =
+        true;
+
+
+      state.pitch =
+        THREE.MathUtils.lerp(
+
+          state.pitch,
+
+          slope +
+          tilt *
+          .22,
+
+          Math.min(
+            1,
+            dt *
+            8.5
+          )
+
+        );
+
     } else {
-      state.grounded = false;
+
+      state.grounded =
+        false;
+
 
       state.pitch +=
-        tilt * dt * 2.7;
-    }
 
-    for (const x of ROCKS) {
-      if (
-        Math.abs(state.x - x) < 1.05 &&
-        state.y < terrain(x) + 1.20 &&
-        Math.abs(state.vx) > 2
-      ) {
-        state.crashed = true;
-        state.playing = false;
-        break;
-      }
-    }
+        tilt *
+        dt *
 
-    for (const x of CHECKPOINTS) {
-      if (state.x >= x) {
-        state.checkpoint = Math.max(
-          state.checkpoint,
-          x
+        (
+          2.5 +
+          config.id *
+          .06
         );
-      }
+
     }
 
-    if (state.x >= FINISH_X) {
-      state.finished = true;
-      state.playing = false;
+
+    if (
+      !hasGround &&
+
+      state.y <
+      FALL_LIMIT_Y
+    ) {
+
+      crash(
+        "ПРОПАСТЬ"
+      );
+
+
+      return;
+
     }
+
+
+    if (
+      checkObstacleCollision()
+    ) {
+
+      return;
+
+    }
+
+
+    updateCheckpoints();
+
+
+    if (
+      state.x >=
+      config.length
+    ) {
+
+      state.finished =
+        true;
+
+
+      state.playing =
+        false;
+
+
+      state.vx =
+        0;
+
+
+      updatePrimaryButton();
+
+    }
+
   }
 
-  /*
-   * MAIN LOOP
-   */
 
-  function draw(now) {
-    if (!active) return;
+  function updateBikeVisual() {
 
-    const dt = Math.min(
-      .05,
-      Math.max(
-        0,
-        (now - lastTime) / 1000
-      )
-    );
+    if (
+      !bikeRoot
+    ) {
 
-    lastTime = now;
-    accumulator += dt;
+      return;
 
-    while (accumulator >= 1 / 60) {
-      step(1 / 60);
-      accumulator -= 1 / 60;
     }
+
 
     bikeRoot.position.set(
       state.x,
@@ -1386,18 +4203,82 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       0
     );
 
-    bikeRoot.rotation.z = state.pitch;
 
-    const desiredX = state.x + 4;
+    bikeRoot.rotation.z =
+      state.pitch;
+
+  }
+
+
+  function updateCamera() {
+
+    const ground =
+      nearestGround(
+        state.x
+      );
+
+
+    const desiredX =
+
+      state.x +
+
+      (
+        window.innerWidth <=
+        760
+
+          ? 2.8
+          : 4.2
+      );
+
+
+    const speedLift =
+
+      Math.min(
+
+        1.6,
+
+        Math.abs(
+          state.vx
+        ) *
+        .055
+
+      );
+
 
     const desiredY =
-      terrain(state.x) + 2.4;
+
+      Math.max(
+
+        ground +
+        3.1,
+
+        state.y +
+        2.2
+
+      ) +
+
+      speedLift;
+
 
     camera.position.x +=
-      (desiredX - camera.position.x) * .1;
+
+      (
+        desiredX -
+        camera.position.x
+      ) *
+
+      .09;
+
 
     camera.position.y +=
-      (desiredY - camera.position.y) * .1;
+
+      (
+        desiredY -
+        camera.position.y
+      ) *
+
+      .08;
+
 
     camera.lookAt(
       camera.position.x,
@@ -1405,38 +4286,240 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       0
     );
 
-    renderer.render(scene, camera);
 
-    const title = state.finished
-      ? "ФИНИШ"
-      : state.crashed
-        ? "ПАДЕНИЕ"
-        : state.playing
-          ? "ГОНКА"
-          : "ГОТОВ К СТАРТУ";
+    if (
+      backgroundRoot
+    ) {
 
-    overlay.querySelector("#lmHud")
-      .textContent =
-        `${title} · ` +
-        `${Math.round(state.x / FINISH_X * 100)}% · ` +
-        `${state.elapsed.toFixed(1)} с · ` +
-        `${Math.abs(state.vx).toFixed(1)} м/с`;
+      backgroundRoot.position.x =
 
-    animationFrame = requestAnimationFrame(draw);
+        camera.position.x *
+        .12;
+
+    }
+
   }
 
-  /*
-   * DESKTOP / MOBILE CONTROLS
-   */
+
+  function updateHud() {
+
+    if (
+      !overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    const title =
+
+      state.finished
+
+        ? "ФИНИШ"
+
+        : state.crashed
+
+          ? state.crashReason ||
+            "ПАДЕНИЕ"
+
+          : state.playing
+
+            ? "ГОНКА"
+
+            : "ГОТОВ К СТАРТУ";
+
+
+    const progress =
+      THREE.MathUtils.clamp(
+
+        state.x /
+        config.length,
+
+        0,
+        1
+
+      );
+
+
+    const hud =
+      overlay.querySelector(
+        "#lmHud"
+      );
+
+
+    if (
+      hud
+    ) {
+
+      hud.textContent =
+
+        `${title} · ` +
+
+        `${Math.round(
+          progress *
+          100
+        )}% · ` +
+
+        `${state.elapsed.toFixed(
+          1
+        )} с · ` +
+
+        `${Math.abs(
+          state.vx
+        ).toFixed(
+          1
+        )} м/с`;
+
+    }
+
+  }
+
+
+  function draw(
+    now
+  ) {
+
+    if (
+      !active
+    ) {
+
+      return;
+
+    }
+
+
+    const dt =
+      Math.min(
+
+        .05,
+
+        Math.max(
+
+          0,
+
+          (
+            now -
+            lastTime
+          ) /
+          1000
+
+        )
+
+      );
+
+
+    lastTime =
+      now;
+
+
+    accumulator +=
+      dt;
+
+
+    if (
+      !state.playing &&
+
+      !state.crashed &&
+
+      !state.finished &&
+
+      input(
+        "gas"
+      )
+    ) {
+
+      startRun();
+
+    }
+
+
+    while (
+      accumulator >=
+      1 /
+      60
+    ) {
+
+      step(
+        1 /
+        60
+      );
+
+
+      accumulator -=
+        1 /
+        60;
+
+    }
+
+
+    updateBikeVisual();
+
+    updateCamera();
+
+    updateHud();
+
+
+    renderer.render(
+      scene,
+      camera
+    );
+
+
+    animationFrame =
+      requestAnimationFrame(
+        draw
+      );
+
+  }
+
+
+  function releaseInputs() {
+
+    keys.clear();
+
+
+    Object.keys(
+      touch
+    )
+      .forEach(
+
+        key => {
+
+          touch[
+            key
+          ] =
+            false;
+
+        }
+
+      );
+
+  }
+
 
   function bindControls() {
-    controlsAbort?.abort();
 
-    controlsAbort = new AbortController();
+    controlsAbort
+      ?.abort();
+
+
+    controlsAbort =
+      new AbortController();
+
 
     const options = {
-      signal: controlsAbort.signal
+
+      signal:
+        controlsAbort
+          .signal
+
     };
+
 
     window.addEventListener(
       "resize",
@@ -1444,10 +4527,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       options
     );
 
+
     window.addEventListener(
+
       "keydown",
+
       event => {
-        if (!active) return;
+
+        if (
+          !active
+        ) {
+
+          return;
+
+        }
+
 
         if (
           [
@@ -1456,132 +4550,278 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             "ArrowLeft",
             "ArrowRight",
             "Space"
-          ].includes(event.code)
+          ]
+            .includes(
+              event.code
+            )
         ) {
+
           event.preventDefault();
+
         }
 
-        keys.add(event.code);
+
+        keys.add(
+          event.code
+        );
+
 
         if (
-          event.code === "Space" &&
+          (
+            event.code ===
+              "KeyW" ||
+
+            event.code ===
+              "ArrowUp"
+          ) &&
+
+          !state.playing &&
+
+          !state.finished
+        ) {
+
+          startRun();
+
+        }
+
+
+        if (
+          event.code ===
+            "Space" &&
+
           !event.repeat
         ) {
+
           jump();
+
         }
+
       },
+
       options
+
     );
 
+
     window.addEventListener(
+
       "keyup",
-      event => keys.delete(event.code),
+
+      event =>
+        keys.delete(
+          event.code
+        ),
+
       options
+
     );
+
 
     window.addEventListener(
       "blur",
-      () => {
-        keys.clear();
-
-        Object.keys(touch).forEach(
-          key => {
-            touch[key] = false;
-          }
-        );
-      },
+      releaseInputs,
       options
     );
 
+
     overlay
-      .querySelectorAll("[data-hold]")
-      .forEach(button => {
-        const name = button.dataset.hold;
+      .querySelectorAll(
+        "[data-hold]"
+      )
+      .forEach(
 
-        const release = () => {
-          touch[name] = false;
-        };
+        button => {
 
-        button.addEventListener(
-          "pointerdown",
-          event => {
-            event.preventDefault();
+          const name =
+            button.dataset
+              .hold;
 
-            touch[name] = true;
 
-            button.setPointerCapture?.(
-              event.pointerId
-            );
-          },
-          options
-        );
+          const release =
+            () => {
 
-        for (
-          const type of [
-            "pointerup",
-            "pointercancel",
-            "lostpointercapture"
-          ]
-        ) {
+              touch[
+                name
+              ] =
+                false;
+
+            };
+
+
           button.addEventListener(
-            type,
-            release,
+
+            "pointerdown",
+
+            event => {
+
+              event.preventDefault();
+
+
+              touch[
+                name
+              ] =
+                true;
+
+
+              if (
+                name ===
+                  "gas" &&
+
+                !state.playing &&
+
+                !state.finished
+              ) {
+
+                startRun();
+
+              }
+
+
+              button
+                .setPointerCapture
+                ?.(
+                  event.pointerId
+                );
+
+            },
+
             options
+
           );
+
+
+          for (
+            const type
+            of [
+              "pointerup",
+              "pointercancel",
+              "lostpointercapture"
+            ]
+          ) {
+
+            button.addEventListener(
+              type,
+              release,
+              options
+            );
+
+          }
+
         }
-      });
+
+      );
+
 
     overlay
-      .querySelector("#lmJump")
+      .querySelector(
+        "#lmJump"
+      )
       .addEventListener(
         "click",
         jump,
         options
       );
 
+
     overlay
-      .querySelector("#lmRestart")
+      .querySelector(
+        "#lmRestart"
+      )
       .addEventListener(
         "click",
-        reset,
+        handlePrimaryAction,
         options
       );
+
   }
 
-  /*
-   * OPEN / CLOSE
-   */
 
   async function show(
     context = null
   ) {
+
     makeUI();
+
     makeScene();
 
-    if (active) return;
 
-    active = true;
+    if (
+      active
+    ) {
 
-    overlay.classList.add("active");
+      return;
+
+    }
+
+
+    active =
+      true;
+
+
+    overlay.classList.add(
+      "active"
+    );
+
 
     bindControls();
+
     resize();
 
+
     voicePanel =
-      window.LAGO_GAME_VOICE?.createPanel({
-        gameId: GAME_ID,
-        mount: overlay.querySelector("#lmVoice"),
-        placement: "inline"
-      }) || null;
 
-    state.y = terrain(state.x) + .05;
+      window
+        .LAGO_GAME_VOICE
+        ?.createPanel({
 
-    lastTime = performance.now();
+          gameId:
+            GAME_ID,
+
+          mount:
+            overlay.querySelector(
+              "#lmVoice"
+            ),
+
+          placement:
+            "inline"
+
+        }) ||
+
+      null;
+
+
+    setRunState({
+
+      x:
+        START_X,
+
+      playing:
+        false
+
+    });
+
+
+    updateLevelUI();
+
+
+    lastTime =
+      performance.now();
+
+
+    accumulator =
+      0;
+
 
     animationFrame =
-      requestAnimationFrame(draw);
+      requestAnimationFrame(
+        draw
+      );
 
-    const [ok] =
+
+    const [
+      bikeOk
+    ] =
+
       await Promise.all([
 
         loadBike(),
@@ -1593,56 +4833,97 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       ]);
 
 
-    if (!active) {
+    if (
+      !active
+    ) {
+
       return;
+
     }
 
-    const button =
-      overlay.querySelector("#lmRestart");
 
-    button.disabled = !ok;
+    modelReady =
+      Boolean(
+        bikeOk
+      );
 
-    button.textContent = ok
-      ? "СТАРТ"
-      : "МОДЕЛЬ НЕ НАЙДЕНА";
 
-    if (!ok) {
-      overlay.querySelector("#lmHud")
+    updatePrimaryButton();
+
+
+    if (
+      !bikeOk
+    ) {
+
+      overlay
+        .querySelector(
+          "#lmHud"
+        )
         .textContent =
-          "Загрузите red-dirt-bike.glb " +
-          "или red-dirt-bike.png " +
-          "в assets/model/game/moto/";
+
+          "Модель мотоцикла не загрузилась";
+
     }
+
   }
+
 
   function hide() {
-    if (!active) return;
 
-    active = false;
-    state.playing = false;
+    if (
+      !active
+    ) {
 
-    cancelAnimationFrame(animationFrame);
+      return;
 
-    controlsAbort?.abort();
-    controlsAbort = null;
+    }
 
-    keys.clear();
 
-    Object.keys(touch).forEach(
-      key => {
-        touch[key] = false;
-      }
+    active =
+      false;
+
+
+    state.playing =
+      false;
+
+
+    cancelAnimationFrame(
+      animationFrame
     );
 
-    voicePanel?.destroy();
-    voicePanel = null;
 
-    overlay.classList.remove("active");
+    controlsAbort
+      ?.abort();
+
+
+    controlsAbort =
+      null;
+
+
+    releaseInputs();
+
+
+    voicePanel
+      ?.destroy();
+
+
+    voicePanel =
+      null;
+
+
+    overlay.classList.remove(
+      "active"
+    );
+
   }
 
+
   document.addEventListener(
+
     "lago:mini-game-open",
+
     event => {
+
       if (
         event.detail
           ?.game
@@ -1651,18 +4932,31 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       ) {
 
         void show(
+
           event.detail
             ?.context ||
+
           null
+
         );
 
       }
+
     }
+
   );
 
-  window.LAGO_MOTO = Object.freeze({
-    version: VERSION,
-    show,
-    hide
-  });
+
+  window.LAGO_MOTO =
+    Object.freeze({
+
+      version:
+        VERSION,
+
+      show,
+
+      hide
+
+    });
+
 })();
