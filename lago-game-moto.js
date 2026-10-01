@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 5;
+  const VERSION = 6;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -3197,19 +3197,19 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
               }
 
 
-              const scale =
+                          const scale =
 
                 3.35 /
                 size.x;
 
 
-                           model.scale
+              model.scale
                 .setScalar(
                   scale
                 );
 
 
-                            model.position.set(
+              model.position.set(
 
                 -center.x *
                 scale,
@@ -3223,11 +3223,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
               );
 
 
-              bikeRoot.add(
-                model
-              );
-
-                            model.updateMatrixWorld(
+              /*
+               * ВАЖНО:
+               * fittedBounds считаем ДО добавления model
+               * внутрь bikeRoot.
+               *
+               * Тогда координаты колёс остаются локальными
+               * относительно самого мотоцикла.
+               */
+              model.updateMatrixWorld(
                 true
               );
 
@@ -3240,9 +3244,16 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
                   );
 
 
+              bikeRoot.add(
+                model
+              );
+
+
               createWheelVisuals(
                 fittedBounds
               );
+
+
 
               modelReady =
                 true;
@@ -4895,7 +4906,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         : 0;
 
 
-    for (
+        for (
       const wheel
       of wheelVisuals
     ) {
@@ -4914,7 +4925,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .opacity =
 
           wheelOpacity *
-          .42;
+          .10;
 
       }
 
@@ -4926,21 +4937,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         wheel.userData
           .spokeMaterial
-          .opacity =
-
-          wheelOpacity *
-          .9;
-
-      }
-
-
-      if (
-        wheel.userData
-          .hubMaterial
-      ) {
-
-        wheel.userData
-          .hubMaterial
           .opacity =
 
           wheelOpacity *
@@ -4951,6 +4947,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
       if (
         wheel.userData
+          .hubMaterial
+      ) {
+
+        wheel.userData
+          .hubMaterial
+          .opacity =
+
+          wheelOpacity *
+          .48;
+
+      }
+
+
+      if (
+        wheel.userData
           .markerMaterial
       ) {
 
@@ -4958,11 +4969,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .markerMaterial
           .opacity =
 
-          wheelOpacity;
+          wheelOpacity *
+          .68;
 
       }
 
     }
+
+
 
 
     const vibration =
