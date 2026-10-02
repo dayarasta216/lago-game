@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 6;
+  const VERSION = 7;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -474,7 +474,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     right: false
   };
 
-  const state = {
+    const state = {
     levelIndex: 0,
 
     x: START_X,
@@ -484,6 +484,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     vy: 0,
 
     pitch: 0,
+
+    angularVelocity: 0,
+    airRotation: 0,
+    flips: 0,
 
     grounded: true,
 
@@ -496,7 +500,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     bestCheckpoint:
       START_X,
 
-    crashReason: ""
+    crashReason: "",
+
+    crashAt: 0
   };
 
     function level() {
@@ -1603,14 +1609,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           </button>
 
 
-          <button
-            type="button"
-            class="lm-button"
-            id="lmJump"
-          >
-            ПРЫЖОК
-          </button>
-
         </div>
 
 
@@ -1649,12 +1647,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
       <div class="lm-help">
-
         W / ↑ — газ ·
         S / ↓ — тормоз ·
-        A / D — наклон ·
-        Space — прыжок
-
+        A / D — баланс в воздухе ·
+        R — рестарт
       </div>
 
     `;
@@ -3906,13 +3902,27 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   function setRunState({
     x = START_X,
-    playing = false
+    playing = false,
+    preserveElapsed = false,
+    preserveCheckpoint = false
   } = {}) {
 
     const ground =
       nearestGround(
         x
       );
+
+
+    const previousElapsed =
+      state.elapsed;
+
+
+    const previousCheckpoint =
+      state.bestCheckpoint;
+
+
+    const previousFlips =
+      state.flips;
 
 
     Object.assign(
@@ -3938,6 +3948,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             x
           ),
 
+        angularVelocity:
+          0,
+
+        airRotation:
+          0,
+
+        flips:
+          preserveElapsed
+            ? previousFlips
+            : 0,
+
         grounded:
           true,
 
@@ -3950,13 +3971,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           false,
 
         elapsed:
-          0,
+          preserveElapsed
+            ? previousElapsed
+            : 0,
 
         bestCheckpoint:
-          x,
+          preserveCheckpoint
+            ? previousCheckpoint
+            : x,
 
         crashReason:
-          ""
+          "",
+
+        crashAt:
+          0
 
       }
 
@@ -3974,6 +4002,315 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       state.pitch;
 
   }
+
+
+  function updatePrimaryButton() {
+
+    const button =
+      overlay
+        ?.querySelector(
+          "#lmRestart"
+        );
+
+
+    if (
+      !button
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      !modelReady
+    ) {
+
+      button.disabled =
+        true;
+
+
+      button.textContent =
+        "ЗАГРУЗКА";
+
+
+      return;
+
+    }
+
+
+    button.disabled =
+      false;
+
+
+    if (
+      state.finished &&
+      state.levelIndex <
+      LEVELS.length -
+      1
+    ) {
+
+      button.textContent =
+        "СЛЕД. УРОВЕНЬ";
+
+    } else if (
+      state.finished
+    ) {
+
+      button.textContent =
+        "СНАЧАЛА";
+
+    } else if (
+      state.crashed
+    ) {
+
+      button.textContent =
+        "CHECKPOINT";
+
+    } else if (
+      state.playing
+    ) {
+
+      button.textContent =
+        "ЗАНОВО";
+
+    } else {
+
+      button.textContent =
+        "СТАРТ";
+
+    }
+
+  }
+
+
+  function updateLevelUI() {
+
+    if (
+      !overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    const label =
+      overlay.querySelector(
+        "#lmLevelLabel"
+      );
+
+
+    const badge =
+      overlay.querySelector(
+        "#lmLevelBadge"
+      );
+
+
+    if (
+      label
+    ) {
+
+      label.textContent =
+
+        `УРОВЕНЬ ${config.id}/5 · ${config.name}`;
+
+    }
+
+
+    if (
+      badge
+    ) {
+
+      badge.textContent =
+
+        `${config.name} · ${config.difficulty}`;
+
+    }
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function startRun() {
+
+    if (
+      !modelReady ||
+      state.playing ||
+      state.finished
+    ) {
+
+      return;
+
+    }
+
+
+    state.playing =
+      true;
+
+
+    state.crashed =
+      false;
+
+
+    state.crashReason =
+      "";
+
+
+    state.crashAt =
+      0;
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function restartLevel() {
+
+    if (
+      !modelReady
+    ) {
+
+      return;
+
+    }
+
+
+    setRunState({
+      x:
+        START_X,
+
+      playing:
+        true
+    });
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function respawnCheckpoint() {
+
+    if (
+      !modelReady
+    ) {
+
+      return;
+
+    }
+
+
+    const respawnX =
+
+      Math.max(
+
+        START_X,
+
+        state.bestCheckpoint -
+        1.5
+
+      );
+
+
+    setRunState({
+
+      x:
+        respawnX,
+
+      playing:
+        true,
+
+      preserveElapsed:
+        true,
+
+      preserveCheckpoint:
+        true
+
+    });
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function nextLevel() {
+
+    state.levelIndex =
+
+      state.levelIndex <
+      LEVELS.length -
+      1
+
+        ? state.levelIndex +
+          1
+
+        : 0;
+
+
+    buildTrack();
+
+
+    setRunState({
+
+      x:
+        START_X,
+
+      playing:
+        false
+
+    });
+
+
+    camera.position.set(
+      START_X + 3,
+      4.5,
+      25
+    );
+
+
+    updatePrimaryButton();
+
+  }
+
+
+  function handlePrimaryAction() {
+
+    if (
+      state.finished
+    ) {
+
+      nextLevel();
+
+      return;
+
+    }
+
+
+    if (
+      state.crashed
+    ) {
+
+      respawnCheckpoint();
+
+      return;
+
+    }
+
+
+    restartLevel();
+
+  }
+
+
 
 
   function updatePrimaryButton() {
@@ -4218,31 +4555,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-  function jump() {
-
-    if (
-      !state.playing ||
-      !state.grounded
-    ) {
-
-      return;
-
-    }
-
-
-    state.vy =
-      level()
-        .jumpPower;
-
-
-    state.grounded =
-      false;
-
-
-    state.y +=
-      .08;
-
-  }
 
 
   function input(
@@ -4341,7 +4653,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
-
   function crash(
     reason
   ) {
@@ -4369,13 +4680,27 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       "ПАДЕНИЕ";
 
 
+    state.crashAt =
+      performance.now();
+
+
     state.vx =
+      0;
+
+
+    state.vy =
+      0;
+
+
+    state.angularVelocity =
       0;
 
 
     updatePrimaryButton();
 
   }
+
+
 
 
   function checkObstacleCollision() {
@@ -4453,6 +4778,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
+  function normalizeMotoAngle(
+    angle
+  ) {
+
+    return Math.atan2(
+      Math.sin(
+        angle
+      ),
+      Math.cos(
+        angle
+      )
+    );
+
+  }
+
 
   function updateCheckpoints() {
 
@@ -4478,6 +4818,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
   }
+
 
 
   function step(
@@ -4513,6 +4854,29 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
+    const lean =
+
+      Number(
+        input(
+          "left"
+        )
+      ) -
+
+      Number(
+        input(
+          "right"
+        )
+      );
+
+
+    const wasGrounded =
+      state.grounded;
+
+
+    const launchPitch =
+      state.pitch;
+
+
     if (
       gas
     ) {
@@ -4527,7 +4891,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
             : config
                 .acceleration *
-              .28
+              .12
         ) *
 
         dt;
@@ -4544,8 +4908,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         (
           state.grounded
 
-            ? 12.5
-            : 2.6
+            ? 13.5
+            : 1.8
         ) *
 
         dt;
@@ -4562,8 +4926,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         state.grounded
 
-          ? .988
-          : .998;
+          ? Math.pow(
+              .985,
+              dt *
+              60
+            )
+
+          : Math.pow(
+              .998,
+              dt *
+              60
+            );
 
     }
 
@@ -4573,7 +4946,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         state.vx,
 
-        -3.5,
+        -3,
 
         config.maxSpeed
 
@@ -4590,18 +4963,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         dt
 
       );
-
-
-    state.vy -=
-
-      config.gravity *
-      dt;
-
-
-    state.y +=
-
-      state.vy *
-      dt;
 
 
     const rearGround =
@@ -4659,83 +5020,18 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    const tilt =
-
-      Number(
-        input(
-          "right"
-        )
-      ) -
-
-      Number(
-        input(
-          "left"
-        )
-      );
-
-
+    /*
+     * Пока оба колеса имеют поверхность,
+     * байк следует форме трассы.
+     */
     if (
+      wasGrounded &&
       contactGround !==
-        null &&
-
-      state.y <=
-        contactGround +
-        .08 &&
-
-      state.vy <=
-        0
+        null
     ) {
 
-      const landingAngle =
-
-        Math.abs(
-
-          Math.atan2(
-
-            Math.sin(
-
-              state.pitch -
-              slope
-
-            ),
-
-            Math.cos(
-
-              state.pitch -
-              slope
-
-            )
-
-          )
-
-        );
-
-
-      const wasAirborne =
-        !state.grounded;
-
-
-      if (
-        wasAirborne &&
-
-        landingAngle >
-          config
-            .landingLimit &&
-
-        Math.abs(
-          state.vx
-        ) >
-          4.2
-      ) {
-
-        crash(
-          "ЖЁСТКОЕ ПРИЗЕМЛЕНИЕ"
-        );
-
-
-        return;
-
-      }
+      state.grounded =
+        true;
 
 
       state.y =
@@ -4747,8 +5043,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         0;
 
 
-      state.grounded =
-        true;
+      state.angularVelocity *=
+        Math.pow(
+          .16,
+          dt *
+          60
+        );
+
+
+      const groundPitch =
+
+        slope +
+
+        lean *
+        .075;
 
 
       state.pitch =
@@ -4756,41 +5064,260 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
           state.pitch,
 
-          slope +
-          tilt *
-          .22,
+          groundPitch,
 
           Math.min(
             1,
             dt *
-            8.5
+            10.5
           )
 
         );
 
+
+      state.airRotation =
+        0;
+
     } else {
+
+      /*
+       * Естественный вылет.
+       *
+       * Никакого отдельного JUMP:
+       * вертикальная скорость зависит
+       * от угла рампы и скорости байка.
+       */
+      if (
+        wasGrounded
+      ) {
+
+        state.grounded =
+          false;
+
+
+        const forwardSpeed =
+
+          Math.max(
+            0,
+            state.vx
+          );
+
+
+        state.vy =
+
+          Math.max(
+
+            state.vy,
+
+            Math.sin(
+              launchPitch
+            ) *
+            forwardSpeed *
+            .86 +
+
+            Math.max(
+              0,
+              launchPitch
+            ) *
+            1.25
+
+          );
+
+
+        state.angularVelocity =
+
+          THREE.MathUtils.clamp(
+
+            state.angularVelocity,
+
+            -2.4,
+            2.4
+
+          );
+
+      }
+
 
       state.grounded =
         false;
 
 
-      state.pitch +=
+      /*
+       * Управление как в X3M:
+       *
+       * LEFT = нос вверх / back rotation
+       * RIGHT = нос вниз / front rotation
+       */
+      state.angularVelocity +=
 
-        tilt *
-        dt *
+        lean *
+        6.4 *
+        dt;
 
-        (
-          2.5 +
-          config.id *
-          .06
+
+      state.angularVelocity =
+
+        THREE.MathUtils.clamp(
+
+          state.angularVelocity,
+
+          -5.4,
+          5.4
+
         );
+
+
+      state.angularVelocity *=
+
+        Math.pow(
+          .988,
+          dt *
+          60
+        );
+
+
+      const rotationStep =
+
+        state.angularVelocity *
+        dt;
+
+
+      state.pitch +=
+        rotationStep;
+
+
+      state.airRotation +=
+        rotationStep;
+
+
+      state.vy -=
+
+        config.gravity *
+        dt;
+
+
+      state.y +=
+
+        state.vy *
+        dt;
+
+
+      /*
+       * Проверка приземления.
+       */
+      if (
+        contactGround !==
+          null &&
+
+        state.y <=
+          contactGround +
+          .08 &&
+
+        state.vy <=
+          0
+      ) {
+
+        const landingAngle =
+
+          Math.abs(
+
+            normalizeMotoAngle(
+
+              state.pitch -
+              slope
+
+            )
+
+          );
+
+
+        if (
+          landingAngle >
+            config
+              .landingLimit &&
+
+          Math.abs(
+            state.vx
+          ) >
+            3.6
+        ) {
+
+          crash(
+            "ЖЁСТКОЕ ПРИЗЕМЛЕНИЕ"
+          );
+
+
+          return;
+
+        }
+
+
+        const completedFlips =
+
+          Math.floor(
+
+            Math.abs(
+              state.airRotation
+            ) /
+
+            (
+              Math.PI *
+              2
+            )
+
+          );
+
+
+        if (
+          completedFlips >
+          0
+        ) {
+
+          state.flips +=
+            completedFlips;
+
+        }
+
+
+        state.y =
+          contactGround +
+          .08;
+
+
+        state.vy =
+          0;
+
+
+        state.grounded =
+          true;
+
+
+        state.angularVelocity =
+          0;
+
+
+        state.airRotation =
+          0;
+
+
+        state.pitch =
+          THREE.MathUtils.lerp(
+
+            state.pitch,
+
+            slope,
+
+            .72
+
+          );
+
+      }
 
     }
 
 
     if (
       !hasGround &&
-
       state.y <
       FALL_LIMIT_Y
     ) {
@@ -4834,11 +5361,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         0;
 
 
+      state.angularVelocity =
+        0;
+
+
       updatePrimaryButton();
 
     }
 
   }
+
+
 
     function updateBikeVisual(
     dt,
@@ -5244,12 +5777,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         `${state.elapsed.toFixed(
           1
         )} с · ` +
-
         `${Math.abs(
           state.vx
         ).toFixed(
           1
-        )} м/с`;
+        )} м/с · ` +
+
+        `FLIP ${state.flips}`;
 
     }
 
@@ -5295,6 +5829,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     accumulator +=
       dt;
+
+        if (
+      state.crashed &&
+      state.crashAt >
+        0 &&
+      now -
+        state.crashAt >
+        850
+    ) {
+
+      respawnCheckpoint();
+
+    }
+
 
 
     if (
@@ -5426,8 +5974,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             "ArrowUp",
             "ArrowDown",
             "ArrowLeft",
-            "ArrowRight",
-            "Space"
+            "ArrowRight"
           ]
             .includes(
               event.code
@@ -5462,15 +6009,24 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         }
 
-
         if (
           event.code ===
-            "Space" &&
+            "KeyR" &&
 
           !event.repeat
         ) {
 
-          jump();
+          if (
+            state.crashed
+          ) {
+
+            respawnCheckpoint();
+
+          } else {
+
+            restartLevel();
+
+          }
 
         }
 
@@ -5587,17 +6143,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         }
 
-      );
-
-
-    overlay
-      .querySelector(
-        "#lmJump"
-      )
-      .addEventListener(
-        "click",
-        jump,
-        options
       );
 
 
