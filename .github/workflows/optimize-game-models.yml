@@ -45,6 +45,7 @@ jobs:
             "assets/model/roster/oleg.glb"
             "assets/model/roster/bozz.glb"
             "assets/model/roster/taya.glb"
+            "assets/model/game/moto/red-dirt-bike.glb"
           )
 
           for file in "${FILES[@]}"; do
@@ -58,11 +59,13 @@ jobs:
 
           echo "SOURCE CHECK: PASS"
 
-      - name: Create output directories
+           - name: Create output directories
         run: |
-          rm -rf assets/model/game
+          rm -rf assets/model/game/tanks
+          rm -rf assets/model/game/characters
           mkdir -p assets/model/game/tanks
           mkdir -p assets/model/game/characters
+          mkdir -p assets/model/game/moto
 
       - name: Optimize Team Blue tank
         run: |
@@ -191,6 +194,17 @@ jobs:
             -km \
             -ke
 
+      - name: Optimize Moto bike
+        run: |
+          gltfpack \
+            -i assets/model/game/moto/red-dirt-bike.glb \
+            -o assets/model/game/moto/red-dirt-bike-lite.glb \
+            -si 0.12 \
+            -sp \
+            -kn \
+            -km \
+            -ke
+
       - name: Validate optimized GLB files
         shell: bash
         run: |
@@ -214,7 +228,12 @@ jobs:
               ("oleg", Path("assets/model/roster/oleg.glb"), Path("assets/model/game/characters/oleg.glb"), True),
               ("bozz", Path("assets/model/roster/bozz.glb"), Path("assets/model/game/characters/bozz.glb"), True),
               ("taya", Path("assets/model/roster/taya.glb"), Path("assets/model/game/characters/taya.glb"), True),
+              ("moto", Path("assets/model/game/moto/red-dirt-bike.glb"), Path("assets/model/game/moto/red-dirt-bike-lite.glb"), True),
+          
           ]
+          
+
+          
 
           def read_glb(path):
               data = path.read_bytes()
@@ -437,9 +456,13 @@ jobs:
           echo "=== TANKS ==="
           ls -lh assets/model/game/tanks
 
-          echo ""
+                    echo ""
           echo "=== CHARACTERS ==="
           ls -lh assets/model/game/characters
+
+          echo ""
+          echo "=== MOTO ==="
+          ls -lh assets/model/game/moto
 
       - name: Commit optimized models
         shell: bash
