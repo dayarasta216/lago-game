@@ -57,9 +57,9 @@ jobs:
             echo "FOUND: $file"
           done
 
-          echo "SOURCE CHECK: PASS"
+                    echo "SOURCE CHECK: PASS"
 
-           - name: Create output directories
+      - name: Create output directories
         run: |
           rm -rf assets/model/game/tanks
           rm -rf assets/model/game/characters
