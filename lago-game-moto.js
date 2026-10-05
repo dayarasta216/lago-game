@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 9;
+  const VERSION = 10;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -736,8 +736,65 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   const DEFAULT_WHEEL_CENTER_Y =
     .5;
 
-  const FALL_LIMIT_Y =
+    const FALL_LIMIT_Y =
     -11;
+
+
+  const FLIP_TIME_BONUS =
+    .5;
+
+
+  const MOTO_PROGRESS_KEY =
+    "lago:moto:progress:v1";
+
+
+  /*
+   * Временные пороги.
+   *
+   * После реальных прохождений мы их
+   * точно откалибруем.
+   *
+   * [3 stars, 2 stars, 1 star]
+   */
+  const STAR_THRESHOLDS =
+    Object.freeze({
+
+      1:
+        Object.freeze([
+          42,
+          55,
+          75
+        ]),
+
+      2:
+        Object.freeze([
+          55,
+          70,
+          92
+        ]),
+
+      3:
+        Object.freeze([
+          67,
+          85,
+          110
+        ]),
+
+      4:
+        Object.freeze([
+          80,
+          102,
+          132
+        ]),
+
+      5:
+        Object.freeze([
+          94,
+          120,
+          155
+        ])
+
+    });
 
   let overlay = null;
   let stage = null;
@@ -835,11 +892,19 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     bestCheckpoint:
       START_X,
 
-    crashReason: "",
+        crashReason: "",
 
-    crashAt: 0
+    crashAt: 0,
+
+    scoreTime: 0,
+    stars: 0,
+    newBest: false
   };
 
+
+  let motoProgressCache =
+    null;
+  
     function level() {
 
     return (
@@ -4886,8 +4951,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         crashReason:
           "",
 
-        crashAt:
-          0
+                crashAt:
+          0,
+
+        scoreTime:
+          0,
+
+        stars:
+          0,
+
+        newBest:
+          false
 
       }
 
@@ -5218,6 +5292,447 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
 
+   function createEmptyMotoProgress() {
+
+    return {
+      highestUnlockedLevel: 1,
+      levels: {}
+    };
+
+  }
+
+
+  function getMotoProgress() {
+
+    if (
+      motoProgressCache
+    ) {
+
+      return motoProgressCache;
+
+    }
+
+
+    let parsed =
+      null;
+
+
+    try {
+
+      parsed =
+        JSON.parse(
+
+          localStorage.getItem(
+            MOTO_PROGRESS_KEY
+          ) ||
+          "null"
+
+        );
+
+    } catch (
+      error
+    ) {
+
+      console.warn(
+        "[LAGO MOTO] Progress read failed:",
+        error
+      );
+
+    }
+
+
+    if (
+      !parsed ||
+      typeof parsed !==
+      "object"
+    ) {
+
+      parsed =
+        createEmptyMotoProgress();
+
+    }
+
+
+    if (
+      !parsed.levels ||
+      typeof parsed.levels !==
+      "object"
+    ) {
+
+      parsed.levels =
+        {};
+
+    }
+
+
+    parsed.highestUnlockedLevel =
+
+      THREE.MathUtils.clamp(
+
+        Number(
+          parsed.highestUnlockedLevel
+        ) ||
+        1,
+
+        1,
+        LEVELS.length
+
+      );
+
+
+    motoProgressCache =
+      parsed;
+
+
+    return motoProgressCache;
+
+  }
+
+
+  function saveMotoProgress() {
+
+    if (
+      !motoProgressCache
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      localStorage.setItem(
+
+        MOTO_PROGRESS_KEY,
+
+        JSON.stringify(
+          motoProgressCache
+        )
+
+      );
+
+    } catch (
+      error
+    ) {
+
+      console.warn(
+        "[LAGO MOTO] Progress save failed:",
+        error
+      );
+
+    }
+
+  }
+
+
+  function getLevelProgress(
+    levelId = level().id
+  ) {
+
+    const progress =
+      getMotoProgress();
+
+
+    return (
+      progress
+        .levels[
+          String(
+            levelId
+          )
+        ] ||
+      null
+    );
+
+  }
+
+
+  function getBestTime(
+    levelId = level().id
+  ) {
+
+    const result =
+      getLevelProgress(
+        levelId
+      );
+
+
+    const value =
+      Number(
+        result
+          ?.bestTime
+      );
+
+
+    return Number.isFinite(
+      value
+    )
+      ? value
+      : null;
+
+  }
+
+
+  function calculateStars(
+    levelId,
+    scoreTime
+  ) {
+
+    const thresholds =
+
+      STAR_THRESHOLDS[
+        levelId
+      ] ||
+
+      STAR_THRESHOLDS[1];
+
+
+    if (
+      scoreTime <=
+      thresholds[0]
+    ) {
+
+      return 3;
+
+    }
+
+
+    if (
+      scoreTime <=
+      thresholds[1]
+    ) {
+
+      return 2;
+
+    }
+
+
+    if (
+      scoreTime <=
+      thresholds[2]
+    ) {
+
+      return 1;
+
+    }
+
+
+    return 0;
+
+  }
+
+
+  function getLiveScoreTime() {
+
+    return Math.max(
+
+      0,
+
+      state.elapsed -
+
+      state.flips *
+      FLIP_TIME_BONUS
+
+    );
+
+  }
+
+
+  function starsText(
+    stars
+  ) {
+
+    const count =
+      THREE.MathUtils.clamp(
+
+        Math.round(
+          Number(
+            stars
+          ) ||
+          0
+        ),
+
+        0,
+        3
+
+      );
+
+
+    return (
+
+      "★".repeat(
+        count
+      ) +
+
+      "☆".repeat(
+        3 -
+        count
+      )
+
+    );
+
+  }
+
+
+  function finishRun() {
+
+    if (
+      state.finished
+    ) {
+
+      return;
+
+    }
+
+
+    const config =
+      level();
+
+
+    const scoreTime =
+      getLiveScoreTime();
+
+
+    const stars =
+      calculateStars(
+        config.id,
+        scoreTime
+      );
+
+
+    const progress =
+      getMotoProgress();
+
+
+    const key =
+      String(
+        config.id
+      );
+
+
+    const previous =
+      progress.levels[
+        key
+      ] ||
+      {};
+
+
+    const previousBest =
+      Number(
+        previous.bestTime
+      );
+
+
+    const hasPreviousBest =
+      Number.isFinite(
+        previousBest
+      );
+
+
+    const newBest =
+
+      !hasPreviousBest ||
+
+      scoreTime <
+      previousBest;
+
+
+    progress.levels[
+      key
+    ] = {
+
+      bestTime:
+        newBest
+          ? scoreTime
+          : previousBest,
+
+      stars:
+        Math.max(
+
+          Number(
+            previous.stars
+          ) ||
+          0,
+
+          stars
+
+        ),
+
+      bestFlips:
+        Math.max(
+
+          Number(
+            previous.bestFlips
+          ) ||
+          0,
+
+          state.flips
+
+        )
+
+    };
+
+
+    /*
+     * Успешный finish открывает
+     * следующий level.
+     */
+    if (
+      config.id <
+      LEVELS.length
+    ) {
+
+      progress.highestUnlockedLevel =
+
+        Math.max(
+
+          progress
+            .highestUnlockedLevel,
+
+          config.id +
+          1
+
+        );
+
+    }
+
+
+    saveMotoProgress();
+
+
+    state.scoreTime =
+      scoreTime;
+
+
+    state.stars =
+      stars;
+
+
+    state.newBest =
+      newBest;
+
+
+    state.finished =
+      true;
+
+
+    state.playing =
+      false;
+
+
+    state.vx =
+      0;
+
+
+    state.angularVelocity =
+      0;
+
+
+    updateLevelUI();
+
+  }
+
+
   function updatePrimaryButton() {
 
     const button =
@@ -5259,7 +5774,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
     if (
       state.finished &&
-
       state.levelIndex <
       LEVELS.length -
       1
@@ -5276,8 +5790,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         "СНАЧАЛА";
 
     } else if (
-      state.playing ||
       state.crashed
+    ) {
+
+      button.textContent =
+        "CHECKPOINT";
+
+    } else if (
+      state.playing
     ) {
 
       button.textContent =
@@ -5326,7 +5846,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
       label.textContent =
 
-        `УРОВЕНЬ ${config.id}/5 · ${config.name}`;
+        `УРОВЕНЬ ${config.id}/${LEVELS.length} · ${config.name}`;
 
     }
 
@@ -5335,9 +5855,50 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       badge
     ) {
 
-      badge.textContent =
+      if (
+        state.finished
+      ) {
 
-        `${config.name} · ${config.difficulty}`;
+        badge.textContent =
+
+          `${starsText(
+            state.stars
+          )} · ` +
+
+          `${state.scoreTime.toFixed(
+            2
+          )} с` +
+
+          (
+            state.newBest
+              ? " · BEST"
+              : ""
+          );
+
+      } else {
+
+        const bestTime =
+          getBestTime(
+            config.id
+          );
+
+
+        badge.textContent =
+
+          `${config.name} · ${config.difficulty}` +
+
+          (
+            bestTime !==
+            null
+
+              ? ` · BEST ${bestTime.toFixed(
+                  2
+                )} с`
+
+              : ""
+          );
+
+      }
 
     }
 
@@ -5372,6 +5933,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       "";
 
 
+    state.crashAt =
+      0;
+
+
     updatePrimaryButton();
 
   }
@@ -5397,36 +5962,123 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     });
 
 
-    updatePrimaryButton();
+    updateLevelUI();
 
   }
 
 
-  function nextLevel() {
+  function respawnCheckpoint() {
+
+    if (
+      !modelReady
+    ) {
+
+      return;
+
+    }
+
+
+    const respawnX =
+
+      Math.max(
+
+        START_X,
+
+        state.bestCheckpoint -
+        1.5
+
+      );
+
+
+    setRunState({
+
+      x:
+        respawnX,
+
+      playing:
+        true,
+
+      preserveElapsed:
+        true,
+
+      preserveCheckpoint:
+        true
+
+    });
+
+
+    updateLevelUI();
+
+  }
+
+
+  /*
+   * Foundation будущего Level Select.
+   *
+   * Сейчас функция уже умеет открыть
+   * любой разблокированный уровень.
+   */
+  function selectLevel(
+    levelNumber
+  ) {
+
+    const requested =
+
+      Math.round(
+        Number(
+          levelNumber
+        )
+      );
+
+
+    const progress =
+      getMotoProgress();
+
+
+    const maxUnlocked =
+
+      THREE.MathUtils.clamp(
+
+        progress
+          .highestUnlockedLevel,
+
+        1,
+        LEVELS.length
+
+      );
+
+
+    if (
+      !Number.isFinite(
+        requested
+      ) ||
+
+      requested <
+        1 ||
+
+      requested >
+        maxUnlocked
+    ) {
+
+      return false;
+
+    }
+
 
     state.levelIndex =
-
-      state.levelIndex <
-      LEVELS.length -
-      1
-
-        ? state.levelIndex +
-          1
-
-        : 0;
+      requested -
+      1;
 
 
     buildTrack();
 
 
     setRunState({
-
       x:
         START_X,
 
       playing:
         false
-
     });
 
 
@@ -5437,7 +6089,39 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
 
-    updatePrimaryButton();
+    updateLevelUI();
+
+
+    return true;
+
+  }
+
+
+  function nextLevel() {
+
+    const target =
+
+      state.levelIndex <
+      LEVELS.length -
+      1
+
+        ? state.levelIndex +
+          2
+
+        : 1;
+
+
+    if (
+      !selectLevel(
+        target
+      )
+    ) {
+
+      selectLevel(
+        1
+      );
+
+    }
 
   }
 
@@ -5449,6 +6133,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     ) {
 
       nextLevel();
+
+      return;
+
+    }
+
+
+    if (
+      state.crashed
+    ) {
+
+      respawnCheckpoint();
 
       return;
 
@@ -6136,28 +6831,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     updateCheckpoints();
 
 
-    if (
+        if (
       state.x >=
       config.length
     ) {
 
-      state.finished =
-        true;
-
-
-      state.playing =
-        false;
-
-
-      state.vx =
-        0;
-
-
-      state.angularVelocity =
-        0;
-
-
-      updatePrimaryButton();
+      finishRun();
 
     }
 
@@ -6502,7 +7181,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-  function updateHud() {
+   function updateHud() {
 
     if (
       !overlay
@@ -6521,7 +7200,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
       state.finished
 
-        ? "ФИНИШ"
+        ? `ФИНИШ ${starsText(
+            state.stars
+          )}`
 
         : state.crashed
 
@@ -6547,6 +7228,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
+    const liveScore =
+
+      state.finished
+
+        ? state.scoreTime
+
+        : getLiveScoreTime();
+
+
+    const flipBonus =
+
+      state.flips *
+      FLIP_TIME_BONUS;
+
+
     const hud =
       overlay.querySelector(
         "#lmHud"
@@ -6566,9 +7262,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           100
         )}% · ` +
 
-        `${state.elapsed.toFixed(
-          1
+        `${liveScore.toFixed(
+          2
         )} с · ` +
+
+        (
+          flipBonus >
+          0
+
+            ? `BONUS -${flipBonus.toFixed(
+                1
+              )} · `
+
+            : ""
+        ) +
+
         `${Math.abs(
           state.vx
         ).toFixed(
@@ -6580,6 +7288,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
   }
+
 
 
   function draw(
@@ -7168,10 +7877,23 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       version:
         VERSION,
 
-      show,
+            show,
 
-      hide
+      hide,
 
+      selectLevel,
+
+      getProgress() {
+
+        return JSON.parse(
+
+          JSON.stringify(
+            getMotoProgress()
+          )
+
+        );
+
+      }
     });
 
 })();
