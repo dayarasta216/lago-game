@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 7;
+  const VERSION = 8;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -403,9 +403,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       )
     );
 
-  const START_X = 5;
-  const BIKE_HALF_LENGTH =
+    const START_X = 5;
+
+  const DEFAULT_WHEEL_HALF_BASE =
     1.02;
+
+  const DEFAULT_WHEEL_CENTER_Y =
+    .5;
 
   const FALL_LIMIT_Y =
     -11;
@@ -433,8 +437,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let wheelSpin =
     0;
 
-  let wheelRadiusWorld =
+    let wheelRadiusWorld =
     .48;
+
+  let bikeWheelHalfBase =
+    DEFAULT_WHEEL_HALF_BASE;
+
+  let bikeWheelCenterY =
+    DEFAULT_WHEEL_CENTER_Y;
 
   let motionOffset =
     0;
@@ -947,6 +957,426 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
   }
+
+    function obstacleSurfaceBoost(
+    x,
+    config = level()
+  ) {
+
+    let boost =
+      0;
+
+
+    for (
+      const obstacle
+      of config.obstacles
+    ) {
+
+      const halfWidth =
+
+        (
+          obstacle.type ===
+          "barrier"
+
+            ? 1.85
+
+            : obstacle.type ===
+              "log"
+
+              ? 1.55
+
+              : 1.7
+        ) *
+
+        obstacle.size;
+
+
+      const distance =
+
+        Math.abs(
+          x -
+          obstacle.x
+        );
+
+
+      if (
+        distance >=
+        halfWidth
+      ) {
+
+        continue;
+
+      }
+
+
+      const t =
+
+        1 -
+
+        distance /
+        halfWidth;
+
+
+      const height =
+
+        (
+          obstacle.type ===
+          "barrier"
+
+            ? .58
+
+            : obstacle.type ===
+              "log"
+
+              ? .48
+
+              : .54
+        ) *
+
+        obstacle.size;
+
+
+      /*
+       * Плавный профиль препятствия.
+       *
+       * Камень / бревно / барьер теперь
+       * можно переехать колёсами.
+       */
+      const profile =
+
+        Math.sin(
+          t *
+          Math.PI /
+          2
+        );
+
+
+      boost =
+        Math.max(
+
+          boost,
+
+          height *
+          profile *
+          profile
+
+        );
+
+    }
+
+
+    return boost;
+
+  }
+
+
+  function rideSurface(
+    x,
+    config = level()
+  ) {
+
+    const ground =
+      terrain(
+        x,
+        config
+      );
+
+
+    if (
+      ground ===
+      null
+    ) {
+
+      return null;
+
+    }
+
+
+    return (
+
+      ground +
+
+      obstacleSurfaceBoost(
+        x,
+        config
+      )
+
+    );
+
+  }
+
+
+  function rideSurfaceAngle(
+    x,
+    config = level()
+  ) {
+
+    const left =
+      rideSurface(
+        x -
+        .35,
+        config
+      );
+
+
+    const right =
+      rideSurface(
+        x +
+        .35,
+        config
+      );
+
+
+    if (
+      left ===
+        null ||
+
+      right ===
+        null
+    ) {
+
+      return terrainAngle(
+        x,
+        config
+      );
+
+    }
+
+
+    return Math.atan2(
+
+      right -
+      left,
+
+      .7
+
+    );
+
+  }
+
+
+  function getBikeGroundPose(
+    x,
+    config = level()
+  ) {
+
+    const halfBase =
+
+      Math.max(
+        .55,
+        bikeWheelHalfBase
+      );
+
+
+    const centerY =
+
+      Math.max(
+        .1,
+        bikeWheelCenterY
+      );
+
+
+    const radius =
+
+      Math.max(
+        .24,
+        wheelRadiusWorld
+      );
+
+
+    const rearSampleX =
+      x -
+      halfBase;
+
+
+    const frontSampleX =
+      x +
+      halfBase;
+
+
+    const rearSurface =
+      rideSurface(
+        rearSampleX,
+        config
+      );
+
+
+    const frontSurface =
+      rideSurface(
+        frontSampleX,
+        config
+      );
+
+
+    const rearSupported =
+
+      rearSurface !==
+      null;
+
+
+    const frontSupported =
+
+      frontSurface !==
+      null;
+
+
+    const contacts =
+
+      Number(
+        rearSupported
+      ) +
+
+      Number(
+        frontSupported
+      );
+
+
+    if (
+      contacts ===
+      0
+    ) {
+
+      return {
+        contacts: 0,
+        y: state.y,
+        pitch: state.pitch
+      };
+
+    }
+
+
+    let pitch =
+      state.pitch;
+
+
+    /*
+     * Два колеса на земле:
+     * угол байка определяется именно
+     * высотой земли под обоими колёсами.
+     */
+    if (
+      contacts ===
+      2
+    ) {
+
+      pitch =
+        Math.atan2(
+
+          frontSurface -
+          rearSurface,
+
+          halfBase *
+          2
+
+        );
+
+    } else {
+
+      /*
+       * Одно колесо на краю:
+       * байк остаётся на этой опоре,
+       * а не висит всем корпусом в воздухе.
+       */
+      pitch =
+        rideSurfaceAngle(
+
+          rearSupported
+            ? rearSampleX
+            : frontSampleX,
+
+          config
+
+        );
+
+    }
+
+
+    const sinPitch =
+      Math.sin(
+        pitch
+      );
+
+
+    const cosPitch =
+      Math.cos(
+        pitch
+      );
+
+
+    const candidates =
+      [];
+
+
+    if (
+      rearSupported
+    ) {
+
+      const rearLocalY =
+
+        -halfBase *
+        sinPitch +
+
+        centerY *
+        cosPitch;
+
+
+      candidates.push(
+
+        rearSurface +
+        radius -
+        rearLocalY
+
+      );
+
+    }
+
+
+    if (
+      frontSupported
+    ) {
+
+      const frontLocalY =
+
+        halfBase *
+        sinPitch +
+
+        centerY *
+        cosPitch;
+
+
+      candidates.push(
+
+        frontSurface +
+        radius -
+        frontLocalY
+
+      );
+
+    }
+
+
+    return {
+
+      contacts,
+
+      pitch,
+
+      y:
+        candidates.reduce(
+          (
+            sum,
+            value
+          ) =>
+            sum +
+            value,
+          0
+        ) /
+        candidates.length
+
+    };
+
+  }
+
 
 
   function makeUI() {
@@ -3064,7 +3494,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    wheelRadiusWorld =
+        wheelRadiusWorld =
       radius;
 
 
@@ -3081,6 +3511,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       size.x *
       .335;
 
+
+    /*
+     * Один набор размеров используется
+     * одновременно визуалом и физикой.
+     */
+    bikeWheelHalfBase =
+      xOffset;
+
+
+    bikeWheelCenterY =
+      wheelY;
 
     const wheelZ =
 
@@ -3248,6 +3689,33 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
               createWheelVisuals(
                 fittedBounds
               );
+
+
+                            if (
+                state.grounded
+              ) {
+
+                const pose =
+                  getBikeGroundPose(
+                    state.x
+                  );
+
+
+                if (
+                  pose.contacts >
+                  0
+                ) {
+
+                  state.y =
+                    pose.y;
+
+
+                  state.pitch =
+                    pose.pitch;
+
+                }
+
+              }
 
 
 
@@ -3900,15 +4368,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-  function setRunState({
+    function setRunState({
     x = START_X,
     playing = false,
     preserveElapsed = false,
     preserveCheckpoint = false
   } = {}) {
 
-    const ground =
-      nearestGround(
+    const pose =
+      getBikeGroundPose(
         x
       );
 
@@ -3934,8 +4402,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         x,
 
         y:
-          ground +
-          .08,
+          pose.y,
 
         vx:
           0,
@@ -3944,9 +4411,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           0,
 
         pitch:
-          terrainAngle(
-            x
-          ),
+          pose.pitch,
 
         angularVelocity:
           0,
@@ -3960,7 +4425,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             : 0,
 
         grounded:
-          true,
+          pose.contacts >
+          0,
 
         playing,
 
@@ -4002,6 +4468,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       state.pitch;
 
   }
+
+
 
 
   function updatePrimaryButton() {
@@ -4703,80 +5171,20 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
 
-  function checkObstacleCollision() {
+    function checkObstacleCollision() {
 
-    for (
-      const obstacle
-      of level()
-        .obstacles
-    ) {
-
-      const distance =
-
-        Math.abs(
-          state.x -
-          obstacle.x
-        );
-
-
-      if (
-        distance >
-        .95 *
-        obstacle.size
-      ) {
-
-        continue;
-
-      }
-
-
-      const ground =
-        nearestGround(
-          obstacle.x
-        );
-
-
-      const obstacleTop =
-
-        ground +
-
-        (
-          obstacle.type ===
-          "barrier"
-
-            ? .95
-            : .78
-        ) *
-
-        obstacle.size;
-
-
-      if (
-        state.y <
-          obstacleTop +
-          .45 &&
-
-        Math.abs(
-          state.vx
-        ) >
-          2.2
-      ) {
-
-        crash(
-          "СТОЛКНОВЕНИЕ"
-        );
-
-
-        return true;
-
-      }
-
-    }
-
-
+    /*
+     * Rock / log / barrier теперь входят
+     * в rideSurface() и переезжаются колёсами.
+     *
+     * Настоящие смертельные traps позже будут
+     * отдельным типом с отдельной collision-физикой.
+     */
     return false;
 
   }
+
+
 
   function normalizeMotoAngle(
     angle
@@ -4821,7 +5229,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
 
-  function step(
+   function step(
     dt
   ) {
 
@@ -4884,14 +5292,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       state.vx +=
 
         (
-          state.grounded
+          wasGrounded
 
             ? config
                 .acceleration
 
             : config
                 .acceleration *
-              .12
+              .10
         ) *
 
         dt;
@@ -4906,10 +5314,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       state.vx -=
 
         (
-          state.grounded
+          wasGrounded
 
             ? 13.5
-            : 1.8
+
+            : 1.6
         ) *
 
         dt;
@@ -4924,10 +5333,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
       state.vx *=
 
-        state.grounded
+        wasGrounded
 
           ? Math.pow(
-              .985,
+              .986,
               dt *
               60
             )
@@ -4965,69 +5374,26 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    const rearGround =
-      terrain(
+    const pose =
+      getBikeGroundPose(
 
-        state.x -
-        BIKE_HALF_LENGTH,
-
-        config
-
-      );
-
-
-    const frontGround =
-      terrain(
-
-        state.x +
-        BIKE_HALF_LENGTH,
-
-        config
-
-      );
-
-
-    const hasGround =
-
-      rearGround !==
-        null ||
-
-      frontGround !==
-        null;
-
-
-    const contactGround =
-
-      hasGround
-
-        ? Math.max(
-
-            rearGround ??
-            -Infinity,
-
-            frontGround ??
-            -Infinity
-
-          )
-
-        : null;
-
-
-    const slope =
-      terrainAngle(
         state.x,
+
         config
+
       );
 
 
     /*
-     * Пока оба колеса имеют поверхность,
-     * байк следует форме трассы.
+     * Есть хотя бы одна реальная опора.
+     *
+     * Два колеса = обычная езда.
+     * Одно колесо = перекат через край.
      */
     if (
       wasGrounded &&
-      contactGround !==
-        null
+      pose.contacts >
+      0
     ) {
 
       state.grounded =
@@ -5035,8 +5401,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
       state.y =
-        contactGround +
-        .08;
+        pose.y;
 
 
       state.vy =
@@ -5044,19 +5409,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
       state.angularVelocity *=
+
         Math.pow(
-          .16,
+          .18,
           dt *
           60
         );
-
-
-      const groundPitch =
-
-        slope +
-
-        lean *
-        .075;
 
 
       state.pitch =
@@ -5064,12 +5422,14 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
           state.pitch,
 
-          groundPitch,
+          pose.pitch +
+          lean *
+          .055,
 
           Math.min(
             1,
             dt *
-            10.5
+            12
           )
 
         );
@@ -5081,14 +5441,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     } else {
 
       /*
-       * Естественный вылет.
-       *
-       * Никакого отдельного JUMP:
-       * вертикальная скорость зависит
-       * от угла рампы и скорости байка.
+       * Оба колеса потеряли поверхность:
+       * начинается настоящий полёт.
        */
       if (
-        wasGrounded
+        wasGrounded &&
+        pose.contacts ===
+        0
       ) {
 
         state.grounded =
@@ -5103,37 +5462,37 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           );
 
 
+        /*
+         * Вертикальная скорость наследуется
+         * от угла рампы.
+         */
         state.vy =
 
-          Math.max(
+          Math.sin(
+            launchPitch
+          ) *
 
-            state.vy,
+          forwardSpeed *
+          .92;
 
-            Math.sin(
-              launchPitch
-            ) *
-            forwardSpeed *
-            .86 +
 
+        /*
+         * Только минимальная компенсация,
+         * чтобы колесо не клипалось в край.
+         * Это НЕ кнопка прыжка.
+         */
+        if (
+          forwardSpeed >
+          3
+        ) {
+
+          state.vy =
             Math.max(
-              0,
-              launchPitch
-            ) *
-            1.25
+              state.vy,
+              .18
+            );
 
-          );
-
-
-        state.angularVelocity =
-
-          THREE.MathUtils.clamp(
-
-            state.angularVelocity,
-
-            -2.4,
-            2.4
-
-          );
+        }
 
       }
 
@@ -5142,16 +5501,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         false;
 
 
-      /*
-       * Управление как в X3M:
-       *
-       * LEFT = нос вверх / back rotation
-       * RIGHT = нос вниз / front rotation
-       */
       state.angularVelocity +=
 
         lean *
-        6.4 *
+        6.2 *
         dt;
 
 
@@ -5161,8 +5514,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
           state.angularVelocity,
 
-          -5.4,
-          5.4
+          -5.2,
+
+          5.2
 
         );
 
@@ -5202,16 +5556,27 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         dt;
 
 
+      const landingPose =
+        getBikeGroundPose(
+
+          state.x,
+
+          config
+
+        );
+
+
       /*
-       * Проверка приземления.
+       * Приземляется именно колесо,
+       * а не условный центр bikeRoot.
        */
       if (
-        contactGround !==
-          null &&
+        landingPose.contacts >
+          0 &&
 
         state.y <=
-          contactGround +
-          .08 &&
+          landingPose.y +
+          .11 &&
 
         state.vy <=
           0
@@ -5224,7 +5589,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
             normalizeMotoAngle(
 
               state.pitch -
-              slope
+              landingPose.pitch
 
             )
 
@@ -5280,8 +5645,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
         state.y =
-          contactGround +
-          .08;
+          landingPose.y;
 
 
         state.vy =
@@ -5305,9 +5669,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
             state.pitch,
 
-            slope,
+            landingPose.pitch,
 
-            .72
+            .78
 
           );
 
@@ -5317,7 +5681,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
     if (
-      !hasGround &&
+      !state.grounded &&
       state.y <
       FALL_LIMIT_Y
     ) {
@@ -5326,15 +5690,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         "ПРОПАСТЬ"
       );
 
-
-      return;
-
-    }
-
-
-    if (
-      checkObstacleCollision()
-    ) {
 
       return;
 
