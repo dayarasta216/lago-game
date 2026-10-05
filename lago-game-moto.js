@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 10;
+  const VERSION = 11;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -902,8 +902,16 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   };
 
 
-  let motoProgressCache =
+    let motoProgressCache =
     null;
+
+
+  let levelSelectOpen =
+    false;
+
+
+  let resumeAfterLevelSelect =
+    false;
   
     function level() {
 
@@ -2203,6 +2211,306 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
       }
 
+      .lm-level-select {
+
+        position:
+          absolute;
+
+        inset:
+          0;
+
+        z-index:
+          120;
+
+        display:
+          none;
+
+        align-items:
+          center;
+
+        justify-content:
+          center;
+
+        padding:
+          18px;
+
+        background:
+          rgba(
+            9,
+            17,
+            25,
+            .90
+          );
+
+        backdrop-filter:
+          blur(5px);
+
+      }
+
+
+      .lm-level-select.open {
+
+        display:
+          flex;
+
+      }
+
+
+      .lm-level-panel {
+
+        width:
+          min(
+            760px,
+            100%
+          );
+
+        max-height:
+          100%;
+
+        overflow:
+          auto;
+
+        padding:
+          16px;
+
+        border:
+          1px solid
+          #ffffff26;
+
+        border-radius:
+          16px;
+
+        background:
+          #142230f2;
+
+        box-shadow:
+          0 18px 60px
+          #0008;
+
+      }
+
+
+      .lm-level-panel-head {
+
+        display:
+          flex;
+
+        align-items:
+          center;
+
+        justify-content:
+          space-between;
+
+        gap:
+          10px;
+
+        margin-bottom:
+          12px;
+
+      }
+
+
+      .lm-level-panel-title {
+
+        font-size:
+          18px;
+
+        font-weight:
+          950;
+
+      }
+
+
+      .lm-level-grid {
+
+        display:
+          grid;
+
+        grid-template-columns:
+          repeat(
+            5,
+            minmax(
+              0,
+              1fr
+            )
+          );
+
+        gap:
+          9px;
+
+      }
+
+
+      .lm-level-card {
+
+        min-height:
+          118px;
+
+        padding:
+          11px;
+
+        border:
+          1px solid
+          #ffffff2b;
+
+        border-radius:
+          12px;
+
+        background:
+          #263b4f;
+
+        color:
+          #fff;
+
+        text-align:
+          left;
+
+        cursor:
+          pointer;
+
+        font:
+          800 11px
+          system-ui;
+
+      }
+
+
+      .lm-level-card.current {
+
+        border-color:
+          #c8ec42;
+
+        box-shadow:
+          inset 0 0 0 1px
+          #c8ec42;
+
+      }
+
+
+      .lm-level-card.locked {
+
+        opacity:
+          .44;
+
+        cursor:
+          not-allowed;
+
+      }
+
+
+      .lm-level-number {
+
+        display:
+          block;
+
+        margin-bottom:
+          7px;
+
+        font-size:
+          20px;
+
+        font-weight:
+          950;
+
+      }
+
+
+      .lm-level-name {
+
+        display:
+          block;
+
+        min-height:
+          26px;
+
+        font-size:
+          11px;
+
+      }
+
+
+      .lm-level-stars {
+
+        display:
+          block;
+
+        margin-top:
+          7px;
+
+        color:
+          #dff45d;
+
+        font-size:
+          15px;
+
+        letter-spacing:
+          1px;
+
+      }
+
+
+      .lm-level-best {
+
+        display:
+          block;
+
+        margin-top:
+          5px;
+
+        opacity:
+          .66;
+
+        font-size:
+          9px;
+
+      }
+
+
+      @media (
+        max-width:
+        760px
+      ) {
+
+        .lm-level-select {
+
+          padding:
+            8px;
+
+        }
+
+
+        .lm-level-panel {
+
+          padding:
+            10px;
+
+        }
+
+
+        .lm-level-grid {
+
+          grid-template-columns:
+            repeat(
+              2,
+              minmax(
+                0,
+                1fr
+              )
+            );
+
+        }
+
+
+        .lm-level-card {
+
+          min-height:
+            92px;
+
+        }
+
+      }
+
+
 
       .lm-controls {
 
@@ -2472,9 +2780,18 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         <div class="lm-tools">
 
-          <div
+                   <div
             id="lmVoice"
           ></div>
+
+
+          <button
+            type="button"
+            class="lm-button"
+            id="lmLevels"
+          >
+            УРОВНИ
+          </button>
 
 
           <button
@@ -2512,11 +2829,53 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         </div>
 
 
-        <div
+                <div
           id="lmLevelBadge"
         ></div>
 
-      </div>
+
+        <div
+          id="lmLevelSelect"
+          class="lm-level-select"
+          aria-hidden="true"
+        >
+
+          <div
+            class="lm-level-panel"
+          >
+
+            <div
+              class="lm-level-panel-head"
+            >
+
+              <div
+                class="lm-level-panel-title"
+              >
+                ВЫБОР УРОВНЯ
+              </div>
+
+
+              <button
+                type="button"
+                class="lm-button"
+                id="lmLevelSelectClose"
+              >
+                НАЗАД
+              </button>
+
+            </div>
+
+
+            <div
+              id="lmLevelGrid"
+              class="lm-level-grid"
+            ></div>
+
+          </div>
+
+        </div>
+
+      </div>>
 
 
       <div class="lm-controls">
@@ -2605,7 +2964,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       );
 
 
-    overlay
+        overlay
       .querySelector(
         "#lmClose"
       )
@@ -2614,8 +2973,75 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         hide
       );
 
-  }
 
+    overlay
+      .querySelector(
+        "#lmLevels"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          renderLevelSelect();
+
+          setLevelSelectOpen(
+            !levelSelectOpen
+          );
+
+        }
+      );
+
+
+    overlay
+      .querySelector(
+        "#lmLevelSelectClose"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          setLevelSelectOpen(
+            false
+          )
+      );
+
+
+    overlay
+      .querySelector(
+        "#lmLevelGrid"
+      )
+      .addEventListener(
+        "click",
+        event => {
+
+          const button =
+            event.target
+              ?.closest
+              ?.(
+                "[data-level]"
+              );
+
+
+          if (
+            !button ||
+            button.disabled
+          ) {
+
+            return;
+
+          }
+
+
+          selectLevel(
+            Number(
+              button.dataset
+                .level
+            )
+          );
+
+        }
+      );
+
+  }
 
   function disposeGroup(
     group
@@ -4981,317 +5407,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-
-
-  function updatePrimaryButton() {
-
-    const button =
-      overlay
-        ?.querySelector(
-          "#lmRestart"
-        );
-
-
-    if (
-      !button
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      !modelReady
-    ) {
-
-      button.disabled =
-        true;
-
-
-      button.textContent =
-        "ЗАГРУЗКА";
-
-
-      return;
-
-    }
-
-
-    button.disabled =
-      false;
-
-
-    if (
-      state.finished &&
-      state.levelIndex <
-      LEVELS.length -
-      1
-    ) {
-
-      button.textContent =
-        "СЛЕД. УРОВЕНЬ";
-
-    } else if (
-      state.finished
-    ) {
-
-      button.textContent =
-        "СНАЧАЛА";
-
-    } else if (
-      state.crashed
-    ) {
-
-      button.textContent =
-        "CHECKPOINT";
-
-    } else if (
-      state.playing
-    ) {
-
-      button.textContent =
-        "ЗАНОВО";
-
-    } else {
-
-      button.textContent =
-        "СТАРТ";
-
-    }
-
-  }
-
-
-  function updateLevelUI() {
-
-    if (
-      !overlay
-    ) {
-
-      return;
-
-    }
-
-
-    const config =
-      level();
-
-
-    const label =
-      overlay.querySelector(
-        "#lmLevelLabel"
-      );
-
-
-    const badge =
-      overlay.querySelector(
-        "#lmLevelBadge"
-      );
-
-
-    if (
-      label
-    ) {
-
-      label.textContent =
-
-        `УРОВЕНЬ ${config.id}/5 · ${config.name}`;
-
-    }
-
-
-    if (
-      badge
-    ) {
-
-      badge.textContent =
-
-        `${config.name} · ${config.difficulty}`;
-
-    }
-
-
-    updatePrimaryButton();
-
-  }
-
-
-  function startRun() {
-
-    if (
-      !modelReady ||
-      state.playing ||
-      state.finished
-    ) {
-
-      return;
-
-    }
-
-
-    state.playing =
-      true;
-
-
-    state.crashed =
-      false;
-
-
-    state.crashReason =
-      "";
-
-
-    state.crashAt =
-      0;
-
-
-    updatePrimaryButton();
-
-  }
-
-
-  function restartLevel() {
-
-    if (
-      !modelReady
-    ) {
-
-      return;
-
-    }
-
-
-    setRunState({
-      x:
-        START_X,
-
-      playing:
-        true
-    });
-
-
-    updatePrimaryButton();
-
-  }
-
-
-  function respawnCheckpoint() {
-
-    if (
-      !modelReady
-    ) {
-
-      return;
-
-    }
-
-
-    const respawnX =
-
-      Math.max(
-
-        START_X,
-
-        state.bestCheckpoint -
-        1.5
-
-      );
-
-
-    setRunState({
-
-      x:
-        respawnX,
-
-      playing:
-        true,
-
-      preserveElapsed:
-        true,
-
-      preserveCheckpoint:
-        true
-
-    });
-
-
-    updatePrimaryButton();
-
-  }
-
-
-  function nextLevel() {
-
-    state.levelIndex =
-
-      state.levelIndex <
-      LEVELS.length -
-      1
-
-        ? state.levelIndex +
-          1
-
-        : 0;
-
-
-    buildTrack();
-
-
-    setRunState({
-
-      x:
-        START_X,
-
-      playing:
-        false
-
-    });
-
-
-    camera.position.set(
-      START_X + 3,
-      4.5,
-      25
-    );
-
-
-    updatePrimaryButton();
-
-  }
-
-
-  function handlePrimaryAction() {
-
-    if (
-      state.finished
-    ) {
-
-      nextLevel();
-
-      return;
-
-    }
-
-
-    if (
-      state.crashed
-    ) {
-
-      respawnCheckpoint();
-
-      return;
-
-    }
-
-
-    restartLevel();
-
-  }
-
-
-
-
    function createEmptyMotoProgress() {
 
     return {
@@ -5573,6 +5688,271 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
+    function renderLevelSelect() {
+
+    if (
+      !overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const grid =
+      overlay.querySelector(
+        "#lmLevelGrid"
+      );
+
+
+    if (
+      !grid
+    ) {
+
+      return;
+
+    }
+
+
+    const progress =
+      getMotoProgress();
+
+
+    const maxUnlocked =
+
+      THREE.MathUtils.clamp(
+
+        Number(
+          progress
+            .highestUnlockedLevel
+        ) ||
+        1,
+
+        1,
+        LEVELS.length
+
+      );
+
+
+    grid.innerHTML =
+
+      LEVELS.map(
+
+        config => {
+
+          const unlocked =
+
+            config.id <=
+            maxUnlocked;
+
+
+          const result =
+
+            progress
+              .levels[
+                String(
+                  config.id
+                )
+              ] ||
+            null;
+
+
+          const stars =
+
+            Number(
+              result
+                ?.stars
+            ) ||
+            0;
+
+
+          const best =
+
+            Number(
+              result
+                ?.bestTime
+            );
+
+
+          const bestText =
+
+            Number.isFinite(
+              best
+            )
+
+              ? `BEST ${best.toFixed(
+                  2
+                )} с`
+
+              : "BEST —";
+
+
+          const current =
+
+            config.id ===
+            level().id;
+
+
+          return `
+
+            <button
+              type="button"
+              class="lm-level-card
+                ${current ? "current" : ""}
+                ${unlocked ? "" : "locked"}"
+              data-level="${config.id}"
+              ${unlocked ? "" : "disabled"}
+            >
+
+              <span
+                class="lm-level-number"
+              >
+                ${unlocked ? config.id : "🔒"}
+              </span>
+
+              <span
+                class="lm-level-name"
+              >
+                ${config.name}
+              </span>
+
+              <span
+                class="lm-level-stars"
+              >
+                ${starsText(
+                  stars
+                )}
+              </span>
+
+              <span
+                class="lm-level-best"
+              >
+                ${unlocked ? bestText : "ЗАКРЫТО"}
+              </span>
+
+            </button>
+
+          `;
+
+        }
+
+      )
+        .join("");
+
+  }
+
+
+  function setLevelSelectOpen(
+    open
+  ) {
+
+    if (
+      !overlay
+    ) {
+
+      return;
+
+    }
+
+
+    const panel =
+      overlay.querySelector(
+        "#lmLevelSelect"
+      );
+
+
+    if (
+      !panel
+    ) {
+
+      return;
+
+    }
+
+
+    const next =
+      Boolean(
+        open
+      );
+
+
+    if (
+      next ===
+      levelSelectOpen
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      next
+    ) {
+
+      resumeAfterLevelSelect =
+
+        state.playing &&
+        !state.finished &&
+        !state.crashed;
+
+
+      state.playing =
+        false;
+
+    }
+
+
+    releaseInputs();
+
+
+    levelSelectOpen =
+      next;
+
+
+    panel.classList.toggle(
+      "open",
+      next
+    );
+
+
+    panel.setAttribute(
+      "aria-hidden",
+      String(
+        !next
+      )
+    );
+
+
+    if (
+      !next &&
+      resumeAfterLevelSelect &&
+      !state.finished &&
+      !state.crashed
+    ) {
+
+      state.playing =
+        true;
+
+    }
+
+
+    if (
+      !next
+    ) {
+
+      resumeAfterLevelSelect =
+        false;
+
+    }
+
+
+    updatePrimaryButton();
+
+  }
+
+
+
 
   function finishRun() {
 
@@ -5697,7 +6077,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
 
-    saveMotoProgress();
+       saveMotoProgress();
+
+
+    renderLevelSelect();
 
 
     state.scoreTime =
@@ -5910,8 +6293,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   function startRun() {
 
-    if (
+        if (
       !modelReady ||
+      levelSelectOpen ||
       state.playing ||
       state.finished
     ) {
@@ -6089,7 +6473,25 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
 
-    updateLevelUI();
+       updateLevelUI();
+
+
+    resumeAfterLevelSelect =
+      false;
+
+
+    if (
+      levelSelectOpen
+    ) {
+
+      setLevelSelectOpen(
+        false
+      );
+
+    }
+
+
+    renderLevelSelect();
 
 
     return true;
@@ -7725,7 +8127,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     });
 
 
-    updateLevelUI();
+       updateLevelUI();
+
+
+    renderLevelSelect();
+
+
+    setLevelSelectOpen(
+      true
+    );
 
 
     lastTime =
@@ -7827,12 +8237,26 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     releaseInputs();
 
 
-    voicePanel
-      ?.destroy();
-
-
-    voicePanel =
+        voicePanel =
       null;
+
+
+    levelSelectOpen =
+      false;
+
+
+    resumeAfterLevelSelect =
+      false;
+
+
+    overlay
+      .querySelector(
+        "#lmLevelSelect"
+      )
+      ?.classList
+      .remove(
+        "open"
+      );
 
 
     overlay.classList.remove(
