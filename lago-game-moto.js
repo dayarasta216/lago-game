@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 11;
+  const VERSION = 12;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -84,13 +84,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       name: "ХОЛМЫ",
       difficulty: "НОРМАЛЬНО",
 
-      length: 230,
-      maxSpeed: 15.5,
-      acceleration: 11,
+            length: 230,
+      maxSpeed: 16,
+      acceleration: 11.6,
 
-      gravity: 23,
+      gravity: 22,
       jumpPower: 9,
-      landingLimit: 1.16,
+      landingLimit: 1.18,
 
       groundColor: 0x725c40,
       lineColor: 0xd0a96f,
@@ -144,14 +144,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       name: "КАНЬОН",
       difficulty: "СЛОЖНО",
 
-      length: 285,
-      maxSpeed: 16.5,
-      acceleration: 11.4,
+           length: 285,
+      maxSpeed: 17,
+      acceleration: 12,
 
-      gravity: 24,
+      gravity: 23,
       jumpPower: 9.3,
-      landingLimit: 1.04,
-
+      landingLimit: 1.08,
       groundColor: 0x694c37,
       lineColor: 0xc78c58,
 
@@ -369,7 +368,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
    * → recovery hills
    * → finish
    */
-  const LEVEL_ONE_LAYOUT =
+    const LEVEL_ONE_LAYOUT =
     Object.freeze({
 
       length:
@@ -390,13 +389,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         ]),
 
-      /*
-       * Эти объекты уже НЕ являются
-       * instant-death collision walls.
-       *
-       * Через rideSurface() они работают
-       * как реальные переезжаемые неровности.
-       */
       obstacles:
         Object.freeze([
 
@@ -429,211 +421,356 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     });
 
 
-  /*
-   * Ручной профиль земли первого уровня.
-   *
-   * Каждая пара:
-   * [ X, HEIGHT ]
-   *
-   * smooth interpolation между точками
-   * создаётся ниже через sampleLevelOneTerrain().
-   */
   const LEVEL_ONE_PROFILE =
     Object.freeze([
 
-      Object.freeze([
-        -20,
-        0
-      ]),
+      Object.freeze([-20, 0]),
+      Object.freeze([25, 0]),
 
-      Object.freeze([
-        25,
-        0
-      ]),
+      Object.freeze([44, .22]),
+      Object.freeze([57, 1.05]),
+      Object.freeze([72, .12]),
 
+      Object.freeze([87, .30]),
+      Object.freeze([97, 1.25]),
+      Object.freeze([107.5, 4.65]),
 
-      /*
-       * Маленькая обучающая волна.
-       */
-      Object.freeze([
-        44,
-        .22
-      ]),
+      Object.freeze([118, 1.55]),
+      Object.freeze([131, .42]),
+      Object.freeze([148, .18]),
 
-      Object.freeze([
-        57,
-        1.05
-      ]),
+      Object.freeze([164, .18]),
+      Object.freeze([180, 1.25]),
+      Object.freeze([196, .18]),
 
-      Object.freeze([
-        72,
-        .12
-      ]),
+      Object.freeze([211, .55]),
+      Object.freeze([225, 1.65]),
+      Object.freeze([240, .55]),
 
+      Object.freeze([252, .45]),
+      Object.freeze([264, 1.25]),
+      Object.freeze([276, 3.15]),
+      Object.freeze([287.5, 5.75]),
 
-      /*
-       * Первый настоящий ramp.
-       */
-      Object.freeze([
-        87,
-        .30
-      ]),
+      Object.freeze([299, 1.25]),
+      Object.freeze([315, .20]),
 
-      Object.freeze([
-        97,
-        1.25
-      ]),
-
-      Object.freeze([
-        107.5,
-        4.65
-      ]),
-
-
-      /*
-       * Первый landing после gap 108–118.
-       */
-      Object.freeze([
-        118,
-        1.55
-      ]),
-
-      Object.freeze([
-        131,
-        .42
-      ]),
-
-      Object.freeze([
-        148,
-        .18
-      ]),
-
-
-      /*
-       * Средняя холмистая секция.
-       */
-      Object.freeze([
-        164,
-        .18
-      ]),
-
-      Object.freeze([
-        180,
-        1.25
-      ]),
-
-      Object.freeze([
-        196,
-        .18
-      ]),
-
-
-      Object.freeze([
-        211,
-        .55
-      ]),
-
-      Object.freeze([
-        225,
-        1.65
-      ]),
-
-      Object.freeze([
-        240,
-        .55
-      ]),
-
-
-      /*
-       * Большой stunt ramp.
-       */
-      Object.freeze([
-        252,
-        .45
-      ]),
-
-      Object.freeze([
-        264,
-        1.25
-      ]),
-
-      Object.freeze([
-        276,
-        3.15
-      ]),
-
-      Object.freeze([
-        287.5,
-        5.75
-      ]),
-
-
-      /*
-       * Landing после второго большого gap.
-       */
-      Object.freeze([
-        299,
-        1.25
-      ]),
-
-      Object.freeze([
-        315,
-        .20
-      ]),
-
-
-      /*
-       * Последняя recovery-секция.
-       */
-      Object.freeze([
-        332,
-        .60
-      ]),
-
-      Object.freeze([
-        349,
-        1.45
-      ]),
-
-      Object.freeze([
-        366,
-        .38
-      ]),
-
-      Object.freeze([
-        390,
-        0
-      ]),
-
-      Object.freeze([
-        420,
-        0
-      ])
+      Object.freeze([332, .60]),
+      Object.freeze([349, 1.45]),
+      Object.freeze([366, .38]),
+      Object.freeze([390, 0]),
+      Object.freeze([420, 0])
 
     ]);
 
 
-  const RUNTIME_LEVELS =
+  /*
+   * LEVEL 2 — ХОЛМЫ
+   */
+  const LEVEL_TWO_LAYOUT =
+    Object.freeze({
+
+      length:
+        470,
+
+      gaps:
+        Object.freeze([
+
+          Object.freeze([
+            126,
+            138
+          ]),
+
+          Object.freeze([
+            270,
+            284
+          ]),
+
+          Object.freeze([
+            396,
+            411
+          ])
+
+        ]),
+
+      obstacles:
+        Object.freeze([
+
+          Object.freeze({
+            x: 72,
+            type: "rock",
+            size: .46
+          }),
+
+          Object.freeze({
+            x: 216,
+            type: "log",
+            size: .52
+          }),
+
+          Object.freeze({
+            x: 348,
+            type: "barrier",
+            size: .44
+          }),
+
+          Object.freeze({
+            x: 444,
+            type: "rock",
+            size: .46
+          })
+
+        ]),
+
+      checkpoints:
+        Object.freeze([
+          170,
+          330
+        ])
+
+    });
+
+
+  const LEVEL_TWO_PROFILE =
+    Object.freeze([
+
+      Object.freeze([-20, 0]),
+      Object.freeze([24, 0]),
+
+      Object.freeze([42, .45]),
+      Object.freeze([58, 1.45]),
+      Object.freeze([76, .25]),
+      Object.freeze([92, 1.15]),
+      Object.freeze([106, .55]),
+
+      Object.freeze([114, 1.30]),
+      Object.freeze([121, 3.10]),
+      Object.freeze([125.6, 5.25]),
+
+      Object.freeze([138, 1.85]),
+      Object.freeze([151, .55]),
+      Object.freeze([168, .25]),
+
+      Object.freeze([184, 1.20]),
+      Object.freeze([199, 2.10]),
+      Object.freeze([216, .55]),
+      Object.freeze([232, 1.85]),
+      Object.freeze([247, .45]),
+
+      Object.freeze([256, 1.10]),
+      Object.freeze([264, 2.85]),
+      Object.freeze([269.6, 5.55]),
+
+      Object.freeze([284, 1.70]),
+      Object.freeze([300, .35]),
+      Object.freeze([317, 1.20]),
+      Object.freeze([334, .30]),
+
+      Object.freeze([350, 1.10]),
+      Object.freeze([365, 2.10]),
+      Object.freeze([381, 3.55]),
+      Object.freeze([395.6, 6.25]),
+
+      Object.freeze([411, 1.55]),
+      Object.freeze([427, .35]),
+      Object.freeze([444, 1.10]),
+      Object.freeze([458, .25]),
+      Object.freeze([470, 0]),
+      Object.freeze([500, 0])
+
+    ]);
+
+
+  /*
+   * LEVEL 3 — КАНЬОН
+   */
+  const LEVEL_THREE_LAYOUT =
+    Object.freeze({
+
+      length:
+        550,
+
+      gaps:
+        Object.freeze([
+
+          Object.freeze([
+            112,
+            126
+          ]),
+
+          Object.freeze([
+            238,
+            254
+          ]),
+
+          Object.freeze([
+            365,
+            383
+          ]),
+
+          Object.freeze([
+            476,
+            494
+          ])
+
+        ]),
+
+      obstacles:
+        Object.freeze([
+
+          Object.freeze({
+            x: 58,
+            type: "rock",
+            size: .48
+          }),
+
+          Object.freeze({
+            x: 180,
+            type: "barrier",
+            size: .46
+          }),
+
+          Object.freeze({
+            x: 314,
+            type: "log",
+            size: .54
+          }),
+
+          Object.freeze({
+            x: 438,
+            type: "rock",
+            size: .50
+          }),
+
+          Object.freeze({
+            x: 526,
+            type: "barrier",
+            size: .44
+          })
+
+        ]),
+
+      checkpoints:
+        Object.freeze([
+          155,
+          292,
+          420
+        ])
+
+    });
+
+
+  const LEVEL_THREE_PROFILE =
+    Object.freeze([
+
+      Object.freeze([-20, 0]),
+      Object.freeze([22, 0]),
+
+      Object.freeze([40, .35]),
+      Object.freeze([58, 1.25]),
+      Object.freeze([74, .20]),
+
+      Object.freeze([88, .65]),
+      Object.freeze([99, 2.15]),
+      Object.freeze([107, 4.05]),
+      Object.freeze([111.6, 6.15]),
+
+      Object.freeze([126, 1.75]),
+      Object.freeze([142, .30]),
+      Object.freeze([158, .15]),
+
+      Object.freeze([176, 1.35]),
+      Object.freeze([194, 2.40]),
+      Object.freeze([211, .45]),
+
+      Object.freeze([221, 1.20]),
+      Object.freeze([230, 3.35]),
+      Object.freeze([237.6, 6.75]),
+
+      Object.freeze([254, 1.50]),
+      Object.freeze([269, .30]),
+      Object.freeze([286, 1.20]),
+      Object.freeze([302, .35]),
+
+      Object.freeze([318, 1.65]),
+      Object.freeze([334, 2.85]),
+      Object.freeze([348, 1.10]),
+      Object.freeze([357, 3.25]),
+      Object.freeze([364.6, 7.10]),
+
+      Object.freeze([383, 1.45]),
+      Object.freeze([399, .20]),
+      Object.freeze([418, .55]),
+
+      Object.freeze([434, 1.65]),
+      Object.freeze([449, 2.80]),
+      Object.freeze([463, 4.25]),
+      Object.freeze([475.6, 7.45]),
+
+      Object.freeze([494, 1.35]),
+      Object.freeze([511, .25]),
+      Object.freeze([529, 1.10]),
+      Object.freeze([544, .25]),
+      Object.freeze([550, 0]),
+      Object.freeze([580, 0])
+
+    ]);
+
+
+  const HAND_AUTHORED_LAYOUTS =
+    Object.freeze({
+
+      1:
+        LEVEL_ONE_LAYOUT,
+
+      2:
+        LEVEL_TWO_LAYOUT,
+
+      3:
+        LEVEL_THREE_LAYOUT
+
+    });
+
+
+  const HAND_AUTHORED_PROFILES =
+    Object.freeze({
+
+      1:
+        LEVEL_ONE_PROFILE,
+
+      2:
+        LEVEL_TWO_PROFILE,
+
+      3:
+        LEVEL_THREE_PROFILE
+
+    });
+
+
+
+    const RUNTIME_LEVELS =
     Object.freeze(
 
       LEVELS.map(
 
         config => {
 
-          /*
-           * Level 1 больше НЕ масштабируется
-           * из старой procedural-трассы.
-           */
+          const manualLayout =
+
+            HAND_AUTHORED_LAYOUTS[
+              config.id
+            ];
+
+
           if (
-            config.id ===
-            1
+            manualLayout
           ) {
 
             return Object.freeze({
 
               ...config,
 
-              ...LEVEL_ONE_LAYOUT
+              ...manualLayout
 
             });
 
@@ -641,11 +778,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
           /*
-           * Остальные 4 уровня пока остаются
-           * на старой системе.
-           *
-           * Мы заменим их после того,
-           * как физика Level 1 будет принята.
+           * Levels 4–5 пока остаются
+           * на старом генераторе.
            */
           return Object.freeze({
 
@@ -727,6 +861,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       )
 
     );
+
+
 
     const START_X = 5;
 
@@ -974,12 +1110,26 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
   }
 
-    function sampleLevelOneTerrain(
+      function sampleHandAuthoredTerrain(
+    levelId,
     x
   ) {
 
     const points =
-      LEVEL_ONE_PROFILE;
+
+      HAND_AUTHORED_PROFILES[
+        levelId
+      ];
+
+
+    if (
+      !points ||
+      !points.length
+    ) {
+
+      return null;
+
+    }
 
 
     if (
@@ -1056,6 +1206,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     ][1];
 
   }
+
 
 
 
@@ -1307,34 +1458,37 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
 
+        const manualProfile =
+
+      HAND_AUTHORED_PROFILES[
+        config.id
+      ];
+
+
     /*
-     * LEVEL 1
+     * Levels 1–3 полностью ручные.
      *
-     * Полностью вручную заданная трасса.
-     *
-     * Здесь больше нет:
-     * - случайной sinus terrain;
-     * - автоматического rampBoost;
-     * - случайных комбинаций.
-     *
-     * Геометрия специально рассчитана
-     * под текущую bike physics.
+     * Ни sine terrain, ни автоматический
+     * rampBoost здесь больше не используются.
      */
     if (
-      config.id ===
-      1
+      manualProfile
     ) {
 
-      return sampleLevelOneTerrain(
+      return sampleHandAuthoredTerrain(
+
+        config.id,
+
         x
+
       );
 
     }
 
 
     /*
-     * Levels 2–5 пока используют
-     * старый генератор.
+     * Levels 4–5 пока используют
+     * старый generator.
      */
     return (
 
