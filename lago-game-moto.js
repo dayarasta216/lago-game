@@ -4,12 +4,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 12;
+  const VERSION = 13;
   const GAME_ID = "lago-moto";
 
-  const MODEL_URL =
-    "./assets/model/game/moto/red-dirt-bike.glb?v=1";
-
+    const MODEL_URL =
+    "./assets/model/game/moto/red-dirt-bike-lite.glb?v=1";
+  
   const PREVIEW_URL =
     "./assets/model/game/moto/red-dirt-bike.png?v=1";
 
@@ -964,8 +964,24 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   let bikeWheelCenterY =
     DEFAULT_WHEEL_CENTER_Y;
 
-  let motionOffset =
+    let motionOffset =
     0;
+
+
+  let visualBikeY =
+    Number.NaN;
+
+  let visualBikePitch =
+    Number.NaN;
+
+  let suspensionOffset =
+    0;
+
+  let suspensionVelocity =
+    0;
+
+  let previousPhysicsY =
+    Number.NaN;
 
   let voicePanel = null;
 
@@ -3519,8 +3535,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     for (
       let x = start;
       x <= end;
-      x += .28
-    ) {
+            x += .40
 
       const y =
         terrain(
@@ -5381,8 +5396,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
         width <=
         760
 
-          ? 1
-          : 1.35
+         ? 1
+          : 1.20
 
       )
 
@@ -5555,8 +5570,28 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
 
-    bikeRoot.rotation.z =
+       bikeRoot.rotation.z =
       state.pitch;
+
+
+    visualBikeY =
+      state.y;
+
+
+    visualBikePitch =
+      state.pitch;
+
+
+    suspensionOffset =
+      0;
+
+
+    suspensionVelocity =
+      0;
+
+
+    previousPhysicsY =
+      state.y;
 
   }
 
@@ -7400,7 +7435,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
 
-    function updateBikeVisual(
+      function updateBikeVisual(
     dt,
     now
   ) {
@@ -7456,17 +7491,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
               speedRatio -
               .04
             ) *
-            1.35,
+            1.15,
 
             0,
-            .92
+            .68
 
           )
 
         : 0;
 
 
-        for (
+    for (
       const wheel
       of wheelVisuals
     ) {
@@ -7485,7 +7520,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .opacity =
 
           wheelOpacity *
-          .10;
+          .06;
 
       }
 
@@ -7500,7 +7535,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .opacity =
 
           wheelOpacity *
-          .72;
+          .62;
 
       }
 
@@ -7515,7 +7550,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .opacity =
 
           wheelOpacity *
-          .48;
+          .38;
 
       }
 
@@ -7530,28 +7565,227 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
           .opacity =
 
           wheelOpacity *
-          .68;
+          .56;
 
       }
 
     }
 
 
+    if (
+      !Number.isFinite(
+        visualBikeY
+      )
+    ) {
+
+      visualBikeY =
+        state.y;
+
+    }
 
 
-    const vibration =
+    if (
+      !Number.isFinite(
+        visualBikePitch
+      )
+    ) {
 
-      state.playing &&
+      visualBikePitch =
+        state.pitch;
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        previousPhysicsY
+      )
+    ) {
+
+      previousPhysicsY =
+        state.y;
+
+    }
+
+
+    const safeDt =
+      Math.max(
+        .001,
+        dt
+      );
+
+
+    const verticalSpeed =
+
+      (
+        state.y -
+        previousPhysicsY
+      ) /
+      safeDt;
+
+
+    previousPhysicsY =
+      state.y;
+
+
+    /*
+     * Визуальная подвеска.
+     *
+     * Физика остаётся точной.
+     * Но визуальный корпус сжимается
+     * на буграх и разгружается на спусках.
+     */
+    const targetSuspension =
+
       state.grounded
 
-        ? Math.sin(
-            now *
-            .034
-          ) *
-          .018 *
-          speedRatio
+        ? THREE.MathUtils.clamp(
+
+            -verticalSpeed *
+            .012,
+
+            -.085,
+            .065
+
+          )
 
         : 0;
+
+
+    const springStrength =
+
+      state.grounded
+        ? 52
+        : 30;
+
+
+    const springDamping =
+
+      state.grounded
+        ? 11
+        : 8;
+
+
+    suspensionVelocity +=
+
+      (
+        targetSuspension -
+        suspensionOffset
+      ) *
+
+      springStrength *
+      safeDt;
+
+
+    suspensionVelocity *=
+
+      Math.exp(
+
+        -springDamping *
+        safeDt
+
+      );
+
+
+    suspensionOffset +=
+
+      suspensionVelocity *
+      safeDt;
+
+
+    suspensionOffset =
+
+      THREE.MathUtils.clamp(
+
+        suspensionOffset,
+
+        -.11,
+        .09
+
+      );
+
+
+    /*
+     * Корпус больше не приклеен жёстко
+     * к каждой точке terrain.
+     */
+    const yResponse =
+
+      1 -
+
+      Math.exp(
+
+        -(
+          state.grounded
+            ? 18
+            : 12
+        ) *
+
+        safeDt
+
+      );
+
+
+    visualBikeY =
+
+      THREE.MathUtils.lerp(
+
+        visualBikeY,
+
+        state.y,
+
+        yResponse
+
+      );
+
+
+    /*
+     * Инерция наклона корпуса.
+     */
+    const pitchDelta =
+
+      normalizeMotoAngle(
+
+        state.pitch -
+        visualBikePitch
+
+      );
+
+
+    const pitchResponse =
+
+      1 -
+
+      Math.exp(
+
+        -(
+          state.grounded
+            ? 12
+            : 20
+        ) *
+
+        safeDt
+
+      );
+
+
+    visualBikePitch +=
+
+      pitchDelta *
+      pitchResponse;
+
+
+    const visualLag =
+
+      THREE.MathUtils.clamp(
+
+        visualBikeY -
+        state.y,
+
+        -.07,
+        .07
+
+      );
 
 
     bikeRoot.position.set(
@@ -7559,7 +7793,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       state.x,
 
       state.y +
-      vibration,
+      visualLag +
+      suspensionOffset,
 
       0
 
@@ -7567,22 +7802,41 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
     bikeRoot.rotation.z =
+      visualBikePitch;
 
-      state.pitch +
 
-      (
-        state.playing &&
-        state.grounded
+    /*
+     * Райдер немного компенсирует движение
+     * мотоцикла — визуально появляется работа
+     * ног/подвески вместо деревянного блока.
+     */
+    if (
+      riderRoot
+    ) {
 
-          ? Math.sin(
-              now *
-              .027
-            ) *
-            .008 *
-            speedRatio
+      riderRoot.position.y =
 
-          : 0
-      );
+        1.28 -
+
+        suspensionOffset *
+        .55;
+
+
+      riderRoot.rotation.z =
+
+        -.08 +
+
+        THREE.MathUtils.clamp(
+
+          -suspensionVelocity *
+          .035,
+
+          -.045,
+          .045
+
+        );
+
+    }
 
 
     const speedFx =
@@ -7599,8 +7853,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       motionOffset +=
 
         state.vx *
-        dt *
-        24;
+        safeDt *
+        18;
 
 
       speedFx.style
@@ -7612,23 +7866,30 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       speedFx.style.opacity =
 
         String(
+
           state.playing
 
             ? Math.max(
+
                 0,
+
                 (
                   speedRatio -
-                  .18
+                  .28
                 ) *
-                .72
+                .48
+
               )
 
             : 0
+
         );
 
     }
 
   }
+
+
 
 
   function updateCamera() {
