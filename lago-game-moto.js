@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 8;
+  const VERSION = 9;
   const GAME_ID = "lago-moto";
 
   const MODEL_URL =
@@ -35,13 +35,13 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       name: "РАЗМИНКА",
       difficulty: "ЛЕГКО",
 
-      length: 180,
-      maxSpeed: 14,
-      acceleration: 10.5,
+            length: 180,
+      maxSpeed: 15,
+      acceleration: 11.2,
 
-      gravity: 22,
+      gravity: 21,
       jumpPower: 8.6,
-      landingLimit: 1.28,
+      landingLimit: 1.30,
 
       groundColor: 0x78664b,
       lineColor: 0xcbb083,
@@ -347,60 +347,385 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     })
    ]);
 
-  const TRACK_LENGTH_SCALE =
+   const TRACK_LENGTH_SCALE =
     1.65;
+
+
+  /*
+   * LEVEL 1
+   * ---------------------------------------------------------
+   * Первый полностью вручную спроектированный Lago Moto track.
+   *
+   * Разгон
+   * → маленькая волна
+   * → большой первый ramp
+   * → gap
+   * → landing
+   * → checkpoint
+   * → холмистая секция
+   * → stunt ramp
+   * → большой gap
+   * → checkpoint
+   * → recovery hills
+   * → finish
+   */
+  const LEVEL_ONE_LAYOUT =
+    Object.freeze({
+
+      length:
+        390,
+
+      gaps:
+        Object.freeze([
+
+          Object.freeze([
+            108,
+            118
+          ]),
+
+          Object.freeze([
+            288,
+            299
+          ])
+
+        ]),
+
+      /*
+       * Эти объекты уже НЕ являются
+       * instant-death collision walls.
+       *
+       * Через rideSurface() они работают
+       * как реальные переезжаемые неровности.
+       */
+      obstacles:
+        Object.freeze([
+
+          Object.freeze({
+            x: 52,
+            type: "rock",
+            size: .45
+          }),
+
+          Object.freeze({
+            x: 188,
+            type: "log",
+            size: .50
+          }),
+
+          Object.freeze({
+            x: 345,
+            type: "rock",
+            size: .48
+          })
+
+        ]),
+
+      checkpoints:
+        Object.freeze([
+          145,
+          320
+        ])
+
+    });
+
+
+  /*
+   * Ручной профиль земли первого уровня.
+   *
+   * Каждая пара:
+   * [ X, HEIGHT ]
+   *
+   * smooth interpolation между точками
+   * создаётся ниже через sampleLevelOneTerrain().
+   */
+  const LEVEL_ONE_PROFILE =
+    Object.freeze([
+
+      Object.freeze([
+        -20,
+        0
+      ]),
+
+      Object.freeze([
+        25,
+        0
+      ]),
+
+
+      /*
+       * Маленькая обучающая волна.
+       */
+      Object.freeze([
+        44,
+        .22
+      ]),
+
+      Object.freeze([
+        57,
+        1.05
+      ]),
+
+      Object.freeze([
+        72,
+        .12
+      ]),
+
+
+      /*
+       * Первый настоящий ramp.
+       */
+      Object.freeze([
+        87,
+        .30
+      ]),
+
+      Object.freeze([
+        97,
+        1.25
+      ]),
+
+      Object.freeze([
+        107.5,
+        4.65
+      ]),
+
+
+      /*
+       * Первый landing после gap 108–118.
+       */
+      Object.freeze([
+        118,
+        1.55
+      ]),
+
+      Object.freeze([
+        131,
+        .42
+      ]),
+
+      Object.freeze([
+        148,
+        .18
+      ]),
+
+
+      /*
+       * Средняя холмистая секция.
+       */
+      Object.freeze([
+        164,
+        .18
+      ]),
+
+      Object.freeze([
+        180,
+        1.25
+      ]),
+
+      Object.freeze([
+        196,
+        .18
+      ]),
+
+
+      Object.freeze([
+        211,
+        .55
+      ]),
+
+      Object.freeze([
+        225,
+        1.65
+      ]),
+
+      Object.freeze([
+        240,
+        .55
+      ]),
+
+
+      /*
+       * Большой stunt ramp.
+       */
+      Object.freeze([
+        252,
+        .45
+      ]),
+
+      Object.freeze([
+        264,
+        1.25
+      ]),
+
+      Object.freeze([
+        276,
+        3.15
+      ]),
+
+      Object.freeze([
+        287.5,
+        5.75
+      ]),
+
+
+      /*
+       * Landing после второго большого gap.
+       */
+      Object.freeze([
+        299,
+        1.25
+      ]),
+
+      Object.freeze([
+        315,
+        .20
+      ]),
+
+
+      /*
+       * Последняя recovery-секция.
+       */
+      Object.freeze([
+        332,
+        .60
+      ]),
+
+      Object.freeze([
+        349,
+        1.45
+      ]),
+
+      Object.freeze([
+        366,
+        .38
+      ]),
+
+      Object.freeze([
+        390,
+        0
+      ]),
+
+      Object.freeze([
+        420,
+        0
+      ])
+
+    ]);
+
 
   const RUNTIME_LEVELS =
     Object.freeze(
+
       LEVELS.map(
-        config =>
-          Object.freeze({
+
+        config => {
+
+          /*
+           * Level 1 больше НЕ масштабируется
+           * из старой procedural-трассы.
+           */
+          if (
+            config.id ===
+            1
+          ) {
+
+            return Object.freeze({
+
+              ...config,
+
+              ...LEVEL_ONE_LAYOUT
+
+            });
+
+          }
+
+
+          /*
+           * Остальные 4 уровня пока остаются
+           * на старой системе.
+           *
+           * Мы заменим их после того,
+           * как физика Level 1 будет принята.
+           */
+          return Object.freeze({
+
             ...config,
 
             length:
               Math.round(
+
                 config.length *
                 TRACK_LENGTH_SCALE
+
               ),
 
             gaps:
               Object.freeze(
+
                 config.gaps.map(
-                  ([start, end]) =>
+
+                  (
+                    [
+                      start,
+                      end
+                    ]
+                  ) =>
+
                     Object.freeze([
+
                       start *
                       TRACK_LENGTH_SCALE,
 
                       end *
                       TRACK_LENGTH_SCALE
+
                     ])
+
                 )
+
               ),
 
             obstacles:
               Object.freeze(
+
                 config.obstacles.map(
+
                   obstacle =>
+
                     Object.freeze({
+
                       ...obstacle,
 
                       x:
                         obstacle.x *
                         TRACK_LENGTH_SCALE
+
                     })
+
                 )
+
               ),
 
             checkpoints:
               Object.freeze(
+
                 config.checkpoints.map(
+
                   x =>
+
                     x *
                     TRACK_LENGTH_SCALE
+
                 )
+
               )
-          })
+
+          });
+
+        }
+
       )
+
     );
 
     const START_X = 5;
@@ -575,6 +900,90 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
   }
+
+    function sampleLevelOneTerrain(
+    x
+  ) {
+
+    const points =
+      LEVEL_ONE_PROFILE;
+
+
+    if (
+      x <=
+      points[0][0]
+    ) {
+
+      return points[0][1];
+
+    }
+
+
+    for (
+      let index = 0;
+
+      index <
+      points.length -
+      1;
+
+      index += 1
+    ) {
+
+      const current =
+        points[
+          index
+        ];
+
+
+      const next =
+        points[
+          index +
+          1
+        ];
+
+
+      if (
+        x >
+        next[0]
+      ) {
+
+        continue;
+
+      }
+
+
+      const t =
+        smoothStep(
+
+          current[0],
+
+          next[0],
+
+          x
+
+        );
+
+
+      return THREE.MathUtils.lerp(
+
+        current[1],
+
+        next[1],
+
+        t
+
+      );
+
+    }
+
+
+    return points[
+      points.length -
+      1
+    ][1];
+
+  }
+
 
 
   function isGap(
@@ -808,7 +1217,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
   }
 
 
-  function terrain(
+    function terrain(
     x,
     config = level()
   ) {
@@ -825,6 +1234,35 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     }
 
 
+    /*
+     * LEVEL 1
+     *
+     * Полностью вручную заданная трасса.
+     *
+     * Здесь больше нет:
+     * - случайной sinus terrain;
+     * - автоматического rampBoost;
+     * - случайных комбинаций.
+     *
+     * Геометрия специально рассчитана
+     * под текущую bike physics.
+     */
+    if (
+      config.id ===
+      1
+    ) {
+
+      return sampleLevelOneTerrain(
+        x
+      );
+
+    }
+
+
+    /*
+     * Levels 2–5 пока используют
+     * старый генератор.
+     */
     return (
 
       baseTerrain(
@@ -840,7 +1278,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
   }
-
 
   function nearestGround(
     x,
