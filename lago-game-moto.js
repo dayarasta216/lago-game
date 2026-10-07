@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 (() => {
   "use strict";
 
-  const VERSION = 13;
+  const VERSION = 14;
   const GAME_ID = "lago-moto";
 
     const MODEL_URL =
@@ -3532,10 +3532,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     );
 
 
-    for (
+       for (
       let x = start;
       x <= end;
-            x += .40
+      x += .40
+    ) {
 
       const y =
         terrain(
