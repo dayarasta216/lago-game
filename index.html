@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <head>
 <meta charset="utf-8">
 
@@ -581,6 +582,12 @@ src="lago-account-core.js?v=17"
 <script
   src="lago-my-lagos.js"
 ></script>
-
+  
+<script>
+  // Tell Telegram the app is ready to be displayed
+  window.Telegram.WebApp.ready();
+  // Force the app to expand to full screen
+  window.Telegram.WebApp.expand();
+</script>
 </body>
 </html>
