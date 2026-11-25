@@ -324,6 +324,101 @@
 
 }
 
+
+/* R1.6E2 — Docked chat layout */
+
+#lagoModern.lg-chat-docked {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#lagoModern.lg-chat-docked .lago-game-area {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#lagoModern.lg-chat-docked .lago-center {
+  min-height: 0;
+  height: 100%;
+  justify-content: center;
+}
+
+#lagoModern.lg-chat-docked #modernSnailArea {
+  min-height: 0;
+  flex-shrink: 1;
+  height: clamp(100px, 28dvh, 340px);
+}
+
+#lagoModern.lg-chat-docked > .lg-agent-chat {
+  position: relative;
+  z-index: 6;
+
+  flex: 0 0 auto;
+
+  width: min(calc(100% - 24px), 620px);
+
+  margin: 0 auto;
+  padding: 6px 0 10px;
+
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+#lagoModern.lg-chat-docked .lg-agent-form {
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+#lagoModern.lg-chat-docked .lg-agent-messages {
+  height: clamp(64px, 18dvh, 150px);
+  overflow-y: auto;
+}
+
+#lagoModern.lg-chat-docked .lg-agent-note {
+  font-size: 9px;
+}
+
+#lagoModern.lg-chat-docked:not(.lg-agent-open)
+.lg-agent-note {
+  display: none;
+}
+
+#lagoModern.lg-chat-docked .lago-bottom {
+  flex-shrink: 0;
+}
+
+@media (max-width: 899px) {
+
+  #lagoModern.lg-chat-docked .lago-center {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  #lagoModern.lg-chat-docked #modernSnailArea {
+    height: clamp(90px, 24dvh, 240px);
+  }
+
+}
+
+@media (max-height: 600px) {
+
+  #lagoModern.lg-chat-docked .lg-agent-messages {
+    height: 64px;
+  }
+
+  #lagoModern.lg-chat-docked .lg-agent-note {
+    display: none;
+  }
+
+}
+
+
       @media (prefers-reduced-motion: reduce) {
 
         .lg-agent-chat * {
@@ -491,7 +586,17 @@ id="lgAgentChatMessages"
 
     `;
 
-    center.appendChild(panel);
+  
+    const root =
+      document.getElementById("lagoModern");
+
+    const gameArea =
+      root.querySelector(".lago-game-area");
+
+    gameArea.after(panel);
+
+    root.classList.add("lg-chat-docked");
+
 
     const toggle = panel.querySelector(
       ".lg-agent-toggle"
@@ -550,10 +655,6 @@ send.disabled = true;
 
 setOpened(true);
 
-form.scrollIntoView({
-  block: "nearest",
-  inline: "nearest"
-});
 
     });
 
