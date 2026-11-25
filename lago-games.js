@@ -2,10 +2,12 @@
   "use strict";
 
 
-const VERSION = 73;
+const VERSION = 74;
   
 let overlay = null;
 
+let launchInProgress = false;
+let launchGeneration = 0;
 
 /*
  * Mini-games are loaded only when
@@ -513,89 +515,52 @@ const CATALOG = [
 
   }
 
-    async function ensureGameModule(
-    gameId
-  ) {
+    
+  async function ensureGameModule(gameId) {
 
-    const key =
-      String(
-        gameId || ""
-      ).trim();
+    const key = String(
+      gameId || ""
+    ).trim().toLowerCase();
 
+    if (!Object.hasOwn(GAME_MODULES, key)) {
 
-    const module =
-      GAME_MODULES[
-        key
-      ];
-
-
-    /*
-     * Games without a separate module
-     * do not need lazy loading.
-     */
-    if (!module) {
-      return true;
-    }
-
-
-    if (
-      module.ready()
-    ) {
-
-      return true;
+      throw new Error(
+        `Game module is not registered: ${key}`
+      );
 
     }
 
+    const module = GAME_MODULES[key];
 
-    /*
-     * Never start several imports of
-     * the same game from double taps.
-     */
-    if (
-      !gameModulePromises.has(
-        key
-      )
-    ) {
+    if (module.ready()) {
+      return true;
+    }
 
-      const promise =
-        module
-          .load()
-          .then(
-            () => {
+    if (!gameModulePromises.has(key)) {
 
-              if (
-                !module.ready()
-              ) {
+      const promise = Promise.resolve()
 
-                throw new Error(
-                  `${key} module loaded but did not become ready`
-                );
+        .then(() => module.load())
 
-              }
+        .then(() => {
 
+          if (!module.ready()) {
 
-              return true;
+            throw new Error(
+              `Game module is not ready: ${key}`
+            );
 
-            }
-          )
-          .catch(
-            error => {
+          }
 
-              /*
-               * Allow RETRY after a
-               * failed network/module load.
-               */
-              gameModulePromises
-                .delete(
-                  key
-                );
+          return true;
 
+        })
 
-              throw error;
+        .finally(() => {
 
-            }
-          );
+          gameModulePromises.delete(key);
 
+        });
 
       gameModulePromises.set(
         key,
@@ -604,13 +569,11 @@ const CATALOG = [
 
     }
 
-
-    return gameModulePromises
-      .get(
-        key
-      );
+    return gameModulePromises.get(key);
 
   }
+
+
 
   function create() {
 
@@ -1088,9 +1051,144 @@ const CATALOG = [
       );
 
 
-       overlay.addEventListener(
+       o
+    overlay.addEventListener(
       "click",
       async event => {
+
+        const button = event.target.closest(
+          "[data-game-open]"
+        );
+
+        if (
+          !button ||
+          button.disabled ||
+          launchInProgress
+        ) return;
+
+        const id = String(
+          button.dataset.gameOpen || ""
+        );
+
+        const api = runtime();
+
+        const game = api?.get?.(id);
+
+        if (
+          !game ||
+          game.status !== "available"
+        ) return;
+
+        if (api.getActiveRun?.()) {
+          return;
+        }
+
+        launchInProgress = true;
+
+        const generation =
+          ++launchGeneration;
+
+        const initialLabel =
+          button.textContent;
+
+        button.disabled = true;
+
+        button.textContent = "LOADING...";
+
+        let failed = false;
+
+        try {
+
+          await ensureGameModule(id);
+
+          /*
+           * Do not open a game after
+           * the player closes the catalog.
+           */
+
+          if (
+            generation !== launchGeneration ||
+            !overlay.classList.contains("active")
+          ) return;
+
+          if (api.getActiveRun?.()) {
+            return;
+          }
+
+          const result = api.open(id);
+
+          if (result?.ok === true) {
+
+            hide();
+
+            return;
+
+          }
+
+          failed = true;
+
+          console.warn(
+            "[LAGO GAMES] Launch rejected:",
+            id,
+            result
+          );
+
+        } catch (error) {
+
+          failed = true;
+
+          console.error(
+            "[LAGO GAMES] Launch failed:",
+            id,
+            error
+          );
+
+        } finally {
+
+          launchInProgress = false;
+
+          if (button.isConnected) {
+
+            button.disabled = false;
+
+            button.textContent = initialLabel;
+
+          }
+
+          if (
+            overlay?.classList.contains("active")
+          ) {
+
+            render();
+
+            if (
+              failed &&
+              generation === launchGeneration
+            ) {
+
+              const retry = Array.from(
+                overlay.querySelectorAll(
+                  "[data-game-open]"
+                )
+              ).find(
+                item => item.dataset.gameOpen === id
+              );
+
+              if (retry && !retry.disabled) {
+
+                retry.textContent = "RETRY";
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+    );
+
 
         const button =
           event.target.closest(
@@ -1246,6 +1344,8 @@ const CATALOG = [
 
   function render() {
 
+    if (launchInProgress) return;
+    
     create();
 
 
@@ -1338,6 +1438,8 @@ const CATALOG = [
 
 
   function hide() {
+
+        launchGeneration++;
 
     overlay
       ?.classList.remove(
