@@ -12808,3 +12808,147 @@ and
   }
 
 }
+
+/* ==================================================
+   LAGO GAME 2.0
+   R1.2A — PREMIUM APP SHELL
+   ================================================== */
+
+#lagoModern {
+  --lago-bg: var(--lg-bg);
+  --lago-panel: var(--lg-surface);
+  --lago-lime: var(--lg-accent);
+  --lago-purple: var(--lg-ai);
+  --lago-pink: var(--lg-ai);
+  --lago-cyan: var(--lg-info);
+  --lago-text: var(--lg-text);
+  --lago-muted: var(--lg-text-secondary);
+  --lago-radius: var(--lg-radius-lg);
+
+  color: var(--lg-text);
+  font-family: var(--lg-font);
+
+  background:
+    radial-gradient(
+      ellipse at 50% 28%,
+      rgba(169, 151, 255, .065),
+      transparent 60%
+    ),
+    var(--lg-bg);
+}
+
+/* Remove old decorative grid */
+
+#lagoModern::before {
+  display: none;
+}
+
+/* Application header */
+
+#lagoModern .lago-modern-header {
+  border-bottom: 1px solid var(--lg-border);
+}
+
+/* Brand identity */
+
+#lagoModern .lago-brand-name {
+  font-family: var(--lg-font);
+  font-weight: 900;
+  letter-spacing: -.065em;
+  color: var(--lg-accent);
+  text-shadow: none;
+}
+
+#lagoModern .lago-brand-tag {
+  background: var(--lg-accent-soft);
+  color: var(--lg-accent);
+  border: 1px solid rgba(209, 250, 101, .18);
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+/* Account profile */
+
+#lagoModern .lago-profile {
+  background: var(--lg-surface);
+  color: var(--lg-text);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+  box-shadow: none;
+}
+
+#lagoModern .lago-profile:hover {
+  background: var(--lg-surface-hover);
+  border-color: var(--lg-border-strong);
+  transform: none;
+}
+
+#lagoModern .lago-profile-icon {
+  background: var(--lg-ai-soft);
+  color: var(--lg-ai);
+  border-radius: var(--lg-radius-sm);
+}
+
+#lagoModern .lago-profile-level {
+  color: var(--lg-text-secondary);
+  font-weight: 600;
+}
+
+#lagoModern .lago-profile-value {
+  color: var(--lg-accent);
+  font-weight: 750;
+}
+
+/* Statistics */
+
+#lagoModern .lago-stat-card {
+  background: var(--lg-surface);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#lagoModern .lago-stat-label {
+  color: var(--lg-text-secondary);
+  font-weight: 650;
+  letter-spacing: .035em;
+}
+
+#lagoModern .lago-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -.035em;
+  text-shadow: none;
+}
+
+/* Keyboard interaction */
+
+#lagoModern button:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+
+/* Compact mobile typography */
+
+@media (max-width: 760px) {
+  #lagoModern .lago-stat-label {
+    font-size: 9px;
+  }
+
+  #lagoModern .lago-brand-name {
+    font-size: 24px;
+  }
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  #lagoModern .lago-profile,
+  #lagoModern .lago-stat-card {
+    transition: none;
+  }
+}
+
+/* END R1.2A */
