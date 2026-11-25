@@ -1007,7 +1007,7 @@
               <div
                 class="lago-side-title"
               >
-                SP BALANCE
+               GAME SP BALANCE
               </div>
 
 
@@ -1040,13 +1040,13 @@
             >
 
               <span>
-                LEVEL PROGRESS
+                LEVEL XP
               </span>
 
               <span
                 id="modernLevelProgressText"
               >
-                0 / 100 SP
+                0 / 100 XP
               </span>
 
             </div>
@@ -2562,10 +2562,12 @@ modernRoot
         );
 
 
-    $("modernLevelProgressText")
-      ?.replaceChildren(
-        `${levelProgressLabel} / 100 SP`
-      );
+   
+$("modernLevelProgressText")
+  ?.replaceChildren(
+    `${levelProgressLabel} / 100 XP`
+  );
+
 
 
     const bar =
