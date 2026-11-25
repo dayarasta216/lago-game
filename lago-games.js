@@ -2,7 +2,7 @@
   "use strict";
 
 
-const VERSION = 71;
+const VERSION = 72;
   
 let overlay = null;
 
@@ -579,352 +579,322 @@ const CATALOG = [
       );
 
 
+    
     style.textContent = `
+
+      /* R1.7C — Premium borderless game catalog */
 
       #lagoGamesOverlay {
         position: fixed;
         inset: 0;
-
         z-index: 20000;
 
         display: none;
+        box-sizing: border-box;
 
+        overflow-x: hidden;
         overflow-y: auto;
+
+        overscroll-behavior: contain;
 
         padding:
           calc(24px + env(safe-area-inset-top))
-          20px
+          24px
           calc(30px + env(safe-area-inset-bottom));
 
-        background:
-          #08040a;
-
-        color:
-          white;
+        background: var(--lg-bg, #090b10);
+        color: var(--lg-text, #f4f6fa);
 
         font-family:
-          Inter,
-          system-ui,
-          sans-serif;
-      }
+          var(--lg-font, system-ui, sans-serif);
 
+        -webkit-overflow-scrolling: touch;
+      }
 
       #lagoGamesOverlay.active {
         display: block;
       }
 
-
-      .lago-games-shell {
-        width:
-          min(1100px,100%);
-
-        margin:
-          0 auto;
+      #lagoGamesOverlay *,
+      #lagoGamesOverlay *::before,
+      #lagoGamesOverlay *::after {
+        box-sizing: border-box;
       }
 
+      .lago-games-shell {
+        width: min(1100px, 100%);
+        margin: 0 auto;
+      }
 
       .lago-games-header {
         display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
 
-        justify-content:
-          space-between;
-
-        align-items:
-          flex-start;
-
-        gap:
-          20px;
-
-        margin-bottom:
-          18px;
+        gap: 16px;
+        margin-bottom: 20px;
       }
-
 
       .lago-games-title {
-        font-size:
-          clamp(34px,6vw,64px);
-
-        font-weight:
-          1000;
-
-        letter-spacing:
-          -.06em;
+        font-size: clamp(28px, 5vw, 42px);
+        font-weight: 850;
+        letter-spacing: -.045em;
+        line-height: 1.1;
       }
-
 
       .lago-games-subtitle {
-        margin-top:
-          7px;
+        margin-top: 7px;
 
-        color:
-          rgba(255,255,255,.46);
+        color: var(--lg-text-secondary, #a1a8b6);
 
-        font-size:
-          11px;
-
-        font-weight:
-          800;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .06em;
       }
-
 
       .lago-games-context {
-        margin-bottom:
-          18px;
+        margin-bottom: 24px;
+        padding: 6px 0;
 
-        padding:
-          11px 13px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
 
-        border:
-          1px solid
-          rgba(204,255,0,.16);
+        color: var(--lg-ai, #a997ff);
 
-        border-radius:
-          13px;
-
-        color:
-          #ccff00;
-
-        background:
-          rgba(204,255,0,.045);
-
-        font-size:
-          10px;
-
-        font-weight:
-          900;
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
       }
-
 
       .lago-games-close {
+        display: grid;
+        place-items: center;
+
         width: 44px;
         height: 44px;
+        flex: 0 0 44px;
 
-        flex:
-          0 0 44px;
+        border: 1px solid var(--lg-border, #282e39);
+        border-radius: 12px;
 
-        border-radius:
-          50%;
+        background: var(--lg-surface, #141821);
+        color: var(--lg-text, #f4f6fa);
 
-        border:
-          1px solid
-          rgba(255,255,255,.12);
-
-        background:
-          rgba(255,255,255,.06);
-
-        color:
-          white;
-
-        cursor:
-          pointer;
+        cursor: pointer;
+        touch-action: manipulation;
       }
-
 
       .lago-games-grid {
-        display:
-          grid;
+        display: grid;
 
         grid-template-columns:
-          repeat(
-            auto-fit,
-            minmax(220px,1fr)
-          );
+          repeat(4, minmax(0, 1fr));
 
-        gap:
-          14px;
+        column-gap: 24px;
+        row-gap: 32px;
       }
-
 
       .lago-game-card {
-        min-height:
-          250px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
 
-        padding:
-          18px;
+        gap: 12px;
 
-        display:
-          flex;
+        min-width: 0;
+        min-height: 200px;
 
-        flex-direction:
-          column;
+        padding: 12px 4px;
 
-        justify-content:
-          space-between;
+        border: none;
+        border-radius: 0;
 
-        border-radius:
-          22px;
-
-        border:
-          1px solid
-          rgba(255,255,255,.09);
-
-        background:
-          rgba(255,255,255,.045);
+        background: transparent;
+        box-shadow: none;
       }
-
 
       .lago-game-card-icon {
-        min-height:
-          54px;
+        display: flex;
+        align-items: center;
 
-        display:
-          flex;
-
-        align-items:
-          center;
-
-        font-size:
-          48px;
+        min-height: 48px;
+        margin-bottom: 12px;
       }
 
+      .lago-game-card-icon svg {
+        display: block;
+        width: 42px;
+        height: 42px;
+
+        flex-shrink: 0;
+        pointer-events: none;
+      }
 
       .lago-game-card-name {
-        margin-top:
-          15px;
+        color: var(--lg-text, #f4f6fa);
 
-        font-size:
-          20px;
+        font-size: 17px;
+        font-weight: 800;
 
-        font-weight:
-          900;
+        letter-spacing: -.025em;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
       }
-
 
       .lago-game-card-status {
-        margin-top:
-          6px;
+        margin-top: 6px;
 
-        color:
-          #ccff00;
+        color: var(--lg-success, #4ade80);
 
-        font-size:
-          10px;
-
-        font-weight:
-          900;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .05em;
       }
-
 
       .lago-game-card-copy {
-        min-height:
-          34px;
+        margin-top: 9px;
 
-        margin-top:
-          8px;
+        color: var(--lg-text-secondary, #a1a8b6);
 
-        color:
-          rgba(255,255,255,.48);
-
-        font-size:
-          10px;
-
-        font-weight:
-          700;
-
-        line-height:
-          1.45;
+        font-size: 12px;
+        font-weight: 450;
+        line-height: 1.5;
       }
-
 
       .lago-game-card-meta {
-        margin-top:
-          10px;
+        margin-top: 10px;
 
-        color:
-          rgba(255,255,255,.30);
+        color: var(--lg-text-muted, #858e9e);
 
-        font-size:
-          8px;
+        font-size: 10px;
+        font-weight: 600;
 
-        font-weight:
-          900;
-
-        letter-spacing:
-          .06em;
+        line-height: 1.5;
       }
-
 
       .lago-game-card button {
-        width:
-          100%;
+        width: 100%;
+        min-height: 44px;
 
-        margin-top:
-          18px;
+        margin-top: auto;
+        padding: 10px;
 
-        padding:
-          12px;
+        border: 1px solid var(--lg-accent, #d1fa65);
+        border-radius: 10px;
 
-        border:
-          0;
+        background: var(--lg-accent, #d1fa65);
+        color: var(--lg-on-accent, #11170b);
 
-        border-radius:
-          12px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 750;
 
-        background:
-          #ccff00;
-
-        color:
-          #130614;
-
-        font-weight:
-          1000;
-
-        cursor:
-          pointer;
+        cursor: pointer;
+        touch-action: manipulation;
       }
-
 
       .lago-game-card.coming {
-        opacity:
-          .52;
+        opacity: 1;
       }
 
+      .lago-game-card.coming
+      .lago-game-card-status {
+        color: var(--lg-text-muted, #858e9e);
+      }
 
       .lago-game-card button:disabled {
-        background:
-          rgba(255,255,255,.1);
+        background: var(--lg-surface, #141821);
 
-        color:
-          rgba(255,255,255,.5);
+        border-color:
+          var(--lg-border, #282e39);
 
-        cursor:
-          default;
+        color: var(--lg-text-muted, #858e9e);
+
+        cursor: default;
       }
 
+      #lagoGamesOverlay button:focus-visible {
+        outline: 2px solid var(--lg-ai, #a997ff);
+        outline-offset: 3px;
+      }
 
-      @media (
-        max-width:
-        560px
-      ) {
+      @media (hover: hover) and (pointer: fine) {
 
-        #lagoGamesOverlay {
-          padding:
-            calc(
-              14px +
-              env(safe-area-inset-top)
-            )
-            12px
-            calc(
-              22px +
-              env(safe-area-inset-bottom)
-            );
+        .lago-games-close:hover {
+          background: var(--lg-surface-hover, #292f3c);
         }
 
+        .lago-game-card button:not(:disabled):hover {
+          filter: brightness(1.08);
+        }
+
+      }
+
+      @media (max-width: 899px) {
 
         .lago-games-grid {
           grid-template-columns:
-            1fr;
+            repeat(3, minmax(0, 1fr));
+
+          column-gap: 18px;
+          row-gap: 24px;
         }
 
+      }
+
+      @media (max-width: 600px) {
+
+        #lagoGamesOverlay {
+          padding:
+            calc(16px + env(safe-area-inset-top))
+            16px
+            calc(24px + env(safe-area-inset-bottom));
+        }
+
+        .lago-games-grid {
+          grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+          column-gap: 16px;
+          row-gap: 22px;
+        }
 
         .lago-game-card {
-          min-height:
-            220px;
+          min-height: 190px;
+          padding: 6px 0;
+        }
+
+        .lago-game-card-name {
+          font-size: 14px;
+        }
+
+        .lago-game-card-icon svg {
+          width: 36px;
+          height: 36px;
+        }
+
+        .lago-game-card-copy {
+          font-size: 11px;
+        }
+
+        .lago-games-context {
+          margin-bottom: 16px;
+        }
+
+      }
+
+      @media (max-width: 320px) {
+
+        .lago-games-grid {
+          grid-template-columns: minmax(0, 1fr);
         }
 
       }
 
     `;
+
 
 
     document.head.appendChild(
