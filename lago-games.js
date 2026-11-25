@@ -2,8 +2,8 @@
   "use strict";
 
 
-  const VERSION = 69;
-
+const VERSION = 70;
+  
 let overlay = null;
 
 
@@ -186,109 +186,87 @@ const CATALOG = [
   }
 
 
-  function cardStatus(
-  game,
-  context
-) {
+  
+  /*
+   * R1.7A — Unified game catalog status.
+   */
 
-  if (
-    game.status !==
-    "available"
-  ) {
+  function cardStatus(game, context) {
 
-    return "COMING SOON";
+    if (game.status !== "available") {
+      return "COMING SOON";
+    }
 
-  }
+    if (
+      game.requiredCharacter &&
+      game.requiredCharacter !== context.characterId
+    ) {
+      return "CHARACTER LOCKED";
+    }
 
+    if (
+      Number(game.dumCost || 0) >
+      Number(context.dum || 0)
+    ) {
+      return "NOT ENOUGH DUM";
+    }
 
-  if (
-    game.requiredCharacter &&
-    game.requiredCharacter !==
-      context.characterId
-  ) {
-
-    return "CHARACTER LOCKED";
-
-  }
-
-
-  if (
-    game.dumCost >
-    context.dum
-  ) {
-
-    return "NOT ENOUGH DUM";
+    return "AVAILABLE";
 
   }
 
+  function gameMeta(game, stats = {}) {
 
-  return (
-    game.id ===
-    "lago-tanks"
-
-      ? "AVAILABLE NOW"
-      : "LOCAL PROTOTYPE"
-  );
-
-}
-
-   function gameMeta(
-    game,
-    stats = {}
-  ) {
-
-   if (game.id !== "lago-tanks") {
-  return "LOCAL TEST · ONLINE LATER · 0 DUM";
-}
-
+    if (game.status !== "available") {
+      return "IN DEVELOPMENT";
+    }
 
     const parts = [];
 
-
-    if (
-      game.dumCost > 0
-    ) {
-
-      parts.push(
-        `${game.dumCost} DUM / RUN`
-      );
-
-    }
-
-
-    if (
-      game.maxRewardSP > 0
-    ) {
-
-      parts.push(
-        `UP TO ${game.maxRewardSP} SP`
-      );
-
-    }
-
-
-    if (
-      Number(
-        stats.plays
-      ) > 0
-    ) {
-
-      parts.push(
-        `BEST ${Math.floor(
-          Number(
-            stats.bestScore
-          ) || 0
-        )}`
-      );
-
-    }
-
-
-    return parts.join(
-      " · "
+    const cost = Math.max(
+      0,
+      Number(game.dumCost) || 0
     );
 
+    const reward = Math.max(
+      0,
+      Number(game.maxRewardSP) || 0
+    );
+
+    parts.push(
+      cost > 0
+        ? `${cost} DUM / RUN`
+        : "FREE TO PLAY"
+    );
+
+    if (reward > 0) {
+
+      parts.push(
+        `UP TO ${reward.toLocaleString("en-US")} SP`
+      );
+
+    } else {
+
+      parts.push("NO SP REWARD");
+
+    }
+
+    if (Number(stats.plays) > 0) {
+
+      parts.push(
+        `BEST ${Math.max(
+          0,
+          Math.floor(Number(stats.bestScore) || 0)
+        ).toLocaleString("en-US")}`
+      );
+
+    }
+
+    return parts.join(" · ");
+
   }
+
+
 
 
   function buttonLabel(
