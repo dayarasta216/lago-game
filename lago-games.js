@@ -2,7 +2,7 @@
   "use strict";
 
 
-const VERSION = 72;
+const VERSION = 73;
   
 let overlay = null;
 
@@ -269,6 +269,24 @@ const CATALOG = [
 
   }
 
+  
+  /*
+   * R1.7D — Game rewards and account statistics.
+   */
+
+  function formatGameNumber(value) {
+
+    const n = Number(value);
+
+    return Math.max(
+      0,
+      Number.isFinite(n) ? n : 0
+    ).toLocaleString("en-US", {
+      maximumFractionDigits: 2
+    });
+
+  }
+
   function gameMeta(game, stats = {}) {
 
     if (game.status !== "available") {
@@ -289,34 +307,59 @@ const CATALOG = [
 
     parts.push(
       cost > 0
-        ? `${cost} DUM / RUN`
+        ? `${formatGameNumber(cost)} DUM / RUN`
         : "FREE TO PLAY"
     );
 
-    if (reward > 0) {
-
-      parts.push(
-        `UP TO ${reward.toLocaleString("en-US")} SP`
-      );
-
-    } else {
-
-      parts.push("NO SP REWARD");
-
-    }
-
-    if (Number(stats.plays) > 0) {
-
-      parts.push(
-        `BEST ${Math.max(
-          0,
-          Math.floor(Number(stats.bestScore) || 0)
-        ).toLocaleString("en-US")}`
-      );
-
-    }
+    parts.push(
+      reward > 0
+        ? `UP TO ${formatGameNumber(reward)} SP`
+        : "NO SP REWARD"
+    );
 
     return parts.join(" · ");
+
+  }
+
+  function gameStats(game, stats = {}) {
+
+    if (game.status !== "available") {
+      return "";
+    }
+
+    const items = [
+
+      {
+        label: "PLAYED",
+        value: stats.plays
+      },
+
+      {
+        label: "BEST SCORE",
+        value: stats.bestScore
+      },
+
+      {
+        label: "SP EARNED",
+        value: stats.spEarned
+      }
+
+    ];
+
+    return `
+      <div class="lg-game-statistics">
+        ${items.map(item => `
+          <div class="lg-game-stat">
+            <span>
+              ${escapeHTML(item.label)}
+            </span>
+            <strong>
+              ${formatGameNumber(item.value)}
+            </strong>
+          </div>
+        `).join("")}
+      </div>
+    `;
 
   }
 
@@ -430,6 +473,69 @@ const CATALOG = [
               game.description
             )}
           </div>
+
+
+      /* R1.7D — Borderless game statistics */
+
+      .lg-game-statistics {
+        display: grid;
+
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+
+        gap: 6px;
+
+        margin-top: 16px;
+        padding: 4px 0;
+      }
+
+      .lg-game-stat {
+        display: flex;
+        flex-direction: column;
+
+        min-width: 0;
+        gap: 5px;
+
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+
+      .lg-game-stat span {
+        color: var(--lg-text-muted, #858e9e);
+
+        font-size: 8px;
+        font-weight: 650;
+        line-height: 1.4;
+      }
+
+      .lg-game-stat strong {
+        color: var(--lg-text, #f4f6fa);
+
+        font-size: 15px;
+        font-weight: 750;
+
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 600px) {
+
+        .lg-game-statistics {
+          gap: 4px;
+        }
+
+        .lg-game-stat strong {
+          font-size: 12px;
+        }
+
+        .lg-game-stat span {
+          font-size: 7px;
+        }
+
+      }
+
+
 
           <div
             class="lago-game-card-meta"
