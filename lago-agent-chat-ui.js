@@ -446,20 +446,35 @@ id="lgAgentChatMessages"
             disabled
           >
 
-            <svg
-              width="21"
-              height="21"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 19V5"/>
-              <path d="m5 12 7-7 7 7"/>
-            </svg>
+            
+<svg
+  width="28"
+  height="28"
+  viewBox="0 0 28 28"
+  fill="currentColor"
+  aria-hidden="true"
+>
+  <path d="
+    M12.9 27
+    C5.5 26.3 0 21.5 0 14.6
+    C0 6.9 6.6 1 14 1
+    C21.7 1 28 7.2 28 14.7
+    C28 21.4 23.2 26.5 17.7 26.5
+    C12.2 26.5 7.5 22.1 7.5 16.8
+    C7.5 12.4 10.1 9.6 13.8 9.6
+    C16.5 9.6 18.6 11.8 18.6 14.4
+    C18.6 16 17.5 17.1 16 17.1
+    C14.9 17.1 14.2 16.2 14.8 15.5
+    C15.7 14.4 14.2 13.7 13.5 14.7
+    C12.2 16.5 13.7 18.6 15.8 18.6
+    C18.2 18.6 20 16.8 20 14.1
+    C20 10.7 17.3 8.1 13.8 8.1
+    C9.1 8.1 6.1 12.1 6.1 16.6
+    C6.1 21 8.5 24.7 12.9 27
+    Z
+  "/>
+</svg>
+
 
           </button>
 
