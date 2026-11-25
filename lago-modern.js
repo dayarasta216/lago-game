@@ -2210,6 +2210,64 @@ modernRoot
   }
 
 
+  function renderAgentIdentity(explicitId = null) {
+
+    const account =
+      window.LAGO_ACCOUNT?.getState?.();
+
+    const selectedId = String(
+      explicitId ||
+      account?.selectedSkin ||
+      "default"
+    ).trim();
+
+    const character =
+      window.LAGO_CHARACTERS
+        ?.getById?.(selectedId);
+
+    const name = String(
+      character?.name || "Lago"
+    ).toUpperCase();
+
+    const title =
+      document.getElementById(
+        "lagoCharacterName"
+      );
+
+    if (title && title.textContent !== name) {
+
+      title.textContent = name;
+
+      title.dataset.characterId =
+        character?.id || "lago";
+
+    }
+
+  }
+
+  document.addEventListener(
+    "lago:character-equipped",
+    event => {
+
+      renderAgentIdentity(
+        event.detail?.id
+      );
+
+    }
+  );
+
+  document.addEventListener(
+    "lago:agent-chat-state",
+    event => {
+
+      renderAgentIdentity(
+        event.detail?.characterId
+      );
+
+    }
+  );
+
+  
   /*
    * =========================================================
    * RENDER
@@ -2221,32 +2279,8 @@ modernRoot
   ) {
 
     
-    /*
-     * Dynamic personal agent identity.
-     */
-
-    const selectedCharacterId =
-      window.LAGO_ACCOUNT
-        ?.getState?.()?.selectedSkin || "default";
-
-    const selectedCharacter =
-      window.LAGO_CHARACTERS
-        ?.getById?.(selectedCharacterId);
-
-    const agentName = String(
-      selectedCharacter?.name || "Lago"
-    ).toUpperCase();
-
-    const agentTitle =
-      $("lagoCharacterName");
-
-    if (
-      agentTitle &&
-      agentTitle.textContent !== agentName
-    ) {
-      agentTitle.textContent = agentName;
-    }
-
+    
+    renderAgentIdentity();
 
     if (
       nextTapState &&
