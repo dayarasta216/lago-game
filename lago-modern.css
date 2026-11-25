@@ -13503,3 +13503,80 @@ and
 
 /* END R1.4B */
 
+
+/* ==================================================
+   LAGO GAME 2.0
+   R1.4D — BORDERLESS MINIMALISM
+   Borders are reserved for interactive buttons.
+   ================================================== */
+
+/* Unified character environment */
+
+#lagoModern .lago-center {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+#lagoModern .lago-modern-snail {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Clean application surfaces */
+
+#lagoModern .lago-modern-header,
+#lagoModern .lago-main-nav,
+#lagoModern .lago-bottom,
+#lagoModern .lago-statbar,
+#lagoModern .lago-stat-card,
+#lagoModern .lago-side-card:not(button),
+#lagoModern .lago-speech,
+#lagoModern .lago-brand-tag,
+#lagoModern .lago-level-chip,
+#lagoModern .lago-progress,
+#lagoModern .lago-game-area,
+#lagoModern .lago-side {
+  border: none;
+  box-shadow: none;
+}
+
+/* Remove surrounding card backgrounds */
+
+#lagoModern .lago-stat-card,
+#lagoModern .lago-side-card:not(button),
+#lagoModern .lago-main-nav,
+#lagoModern .lago-bottom {
+  background: transparent;
+}
+
+/* Minimal character dialogue */
+
+#lagoModern .lago-speech {
+  background: transparent;
+  color: var(--lg-text-secondary);
+}
+
+/* Keep borders on interactive controls */
+
+#lagoModern .lago-action,
+#lagoModern .lago-profile,
+#lagoModern .lago-dashboard-button,
+#lagoModern .lago-nav-btn,
+#lagoModern .lago-bottom-btn {
+  border: 1px solid var(--lg-border);
+}
+
+/* Active controls */
+
+#lagoModern .lago-nav-btn.active,
+#lagoModern .lago-bottom-btn.active {
+  background: var(--lg-accent-soft);
+  border-color: rgba(209, 250, 101, .24);
+  color: var(--lg-accent);
+}
+
+/* END R1.4D */
