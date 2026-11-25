@@ -1,0 +1,247 @@
+
+/* ==================================================
+   LAGO GAME 2.0
+   DESIGN SYSTEM — R1.1A
+   Dark Arcade Intelligence
+   Version 1.0.0
+   ================================================== */
+
+:root {
+  /* Backgrounds */
+  --lg-bg: #090b10;
+  --lg-surface: #141821;
+  --lg-surface-raised: #222834;
+  --lg-surface-hover: #292f3c;
+
+  /* Borders */
+  --lg-border: #282e39;
+  --lg-border-strong: #3b4352;
+
+  /* Typography */
+  --lg-text: #f4f6fa;
+  --lg-text-secondary: #a1a8b6;
+  --lg-text-muted: #858e9e;
+
+  /* Brand */
+  --lg-accent: #d1fa65;
+  --lg-accent-hover: #e0ff96;
+  --lg-accent-soft: rgba(209, 250, 101, .09);
+  --lg-on-accent: #11170b;
+
+  /* Artificial intelligence */
+  --lg-ai: #a997ff;
+  --lg-ai-soft: rgba(169, 151, 255, .10);
+
+  /* Status */
+  --lg-success: #4ade80;
+  --lg-danger: #fb7185;
+  --lg-warning: #fbbf24;
+  --lg-info: #60a5fa;
+
+  /* Typography system */
+  --lg-font: Inter, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --lg-font-mono: ui-monospace, SFMono-Regular,
+    Menlo, Monaco, monospace;
+
+  --lg-font-xs: 11px;
+  --lg-font-sm: 13px;
+  --lg-font-md: 15px;
+  --lg-font-lg: 18px;
+  --lg-font-xl: 24px;
+  --lg-font-display: 32px;
+
+  /* Spacing */
+  --lg-space-1: 4px;
+  --lg-space-2: 8px;
+  --lg-space-3: 12px;
+  --lg-space-4: 16px;
+  --lg-space-5: 20px;
+  --lg-space-6: 24px;
+  --lg-space-8: 32px;
+
+  /* Geometry */
+  --lg-radius-sm: 8px;
+  --lg-radius-md: 12px;
+  --lg-radius-lg: 16px;
+  --lg-radius-xl: 24px;
+  --lg-radius-full: 999px;
+
+  /* Layout */
+  --lg-content-width: 1200px;
+  --lg-touch-target: 44px;
+  --lg-nav-height: 64px;
+
+  /* Lightweight effects */
+  --lg-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+
+  --lg-motion-fast: 120ms;
+  --lg-motion-normal: 200ms;
+  --lg-ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* Device safe areas */
+  --lg-safe-top: env(safe-area-inset-top, 0px);
+  --lg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==================================================
+   COMPONENT FOUNDATION
+   New components only.
+   Existing interface remains untouched.
+   ================================================== */
+
+.lg-card {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--lg-space-4);
+  background: var(--lg-surface);
+  color: var(--lg-text);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-lg);
+}
+
+.lg-card--raised {
+  background: var(--lg-surface-raised);
+}
+
+.lg-card--interactive {
+  transition:
+    border-color var(--lg-motion-fast),
+    background var(--lg-motion-fast);
+}
+
+.lg-card--interactive:hover {
+  border-color: var(--lg-border-strong);
+}
+
+/* Buttons */
+
+.lg-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lg-space-2);
+
+  min-height: var(--lg-touch-target);
+  padding: 10px 16px;
+
+  border: 1px solid transparent;
+  border-radius: var(--lg-radius-md);
+
+  font-family: var(--lg-font);
+  font-size: var(--lg-font-sm);
+  font-weight: 700;
+  line-height: 1.3;
+
+  cursor: pointer;
+  touch-action: manipulation;
+
+  transition:
+    background var(--lg-motion-fast),
+    border-color var(--lg-motion-fast),
+    transform var(--lg-motion-fast);
+}
+
+.lg-button--primary {
+  background: var(--lg-accent);
+  color: var(--lg-on-accent);
+}
+
+.lg-button--primary:hover {
+  background: var(--lg-accent-hover);
+}
+
+.lg-button--secondary {
+  background: var(--lg-surface-raised);
+  color: var(--lg-text);
+  border-color: var(--lg-border);
+}
+
+.lg-button--ai {
+  background: var(--lg-ai-soft);
+  color: var(--lg-ai);
+  border-color: rgba(169, 151, 255, .25);
+}
+
+.lg-button:active:not(:disabled) {
+  transform: scale(.98);
+}
+
+.lg-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Keyboard accessibility */
+
+.lg-button:focus-visible,
+.lg-focusable:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 3px;
+}
+
+/* Text */
+
+.lg-heading {
+  margin: 0;
+  color: var(--lg-text);
+  font-family: var(--lg-font);
+  font-size: var(--lg-font-xl);
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+
+.lg-caption {
+  color: var(--lg-text-secondary);
+  font-size: var(--lg-font-xs);
+  line-height: 1.5;
+}
+
+.lg-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+/* Status indicators */
+
+.lg-status-dot {
+  display: inline-block;
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lg-text-muted);
+}
+
+.lg-status-dot--online {
+  background: var(--lg-success);
+}
+
+.lg-status-dot--ai {
+  background: var(--lg-ai);
+}
+
+.lg-status-dot--warning {
+  background: var(--lg-warning);
+}
+
+.lg-status-dot--offline {
+  background: var(--lg-danger);
+}
+
+/* Performance and accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lg-motion-fast: 0ms;
+    --lg-motion-normal: 0ms;
+  }
+
+  .lg-button:active:not(:disabled) {
+    transform: none;
+  }
+}
