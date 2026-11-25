@@ -229,40 +229,100 @@
 
       /* Keep the chat within the game screen. */
 
-      #lagoModern.lg-agent-open .lago-center {
-        overflow-y: auto;
-        justify-content: flex-start;
-      }
+      
+/* R1.5D — Always accessible composer */
 
-      #lagoModern.lg-agent-open .lago-modern-snail {
-        flex-shrink: 0;
-      }
+#lagoModern .lago-game-area {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
 
-      @media (max-width: 899px) {
+#lagoModern .lago-game-area > .lago-center {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
 
-        #lagoModern .lg-agent-chat {
-          width: 94%;
-          margin-top: 5px;
-        }
+#lagoModern .lg-agent-chat {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+  padding-bottom: 10px;
+}
 
-        .lg-agent-messages {
-          height: 140px;
-        }
+#lagoModern .lg-agent-body {
+  display: block;
+  overflow: visible;
+}
 
-        #lagoModern.lg-agent-open .lago-game-area {
-          overflow-y: auto;
-        }
+#lagoModern .lg-agent-form {
+  display: flex;
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 44px;
+  overflow: visible;
+}
 
-        #lagoModern.lg-agent-open
-        .lago-game-area > .lago-center {
-          flex: 0 0 auto;
-          height: auto;
-          min-height: 0;
-          overflow: visible;
-          padding-bottom: 12px;
-        }
+#lagoModern .lg-agent-input {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  min-width: 0;
+  font-size: 16px;
+}
 
-      }
+#lagoModern .lg-agent-send {
+  display: grid;
+  place-items: center;
+  visibility: visible;
+  flex-shrink: 0;
+}
+
+#lagoModern .lg-agent-send svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+}
+
+#lagoModern .lg-agent-send:disabled {
+  opacity: .5;
+}
+
+#lagoModern .lg-agent-send:active:not(:disabled) {
+  transform: scale(.94);
+}
+
+#lagoModern.lg-agent-open .lago-center {
+  justify-content: flex-start;
+}
+
+@media (max-width: 899px) {
+
+  #lagoModern .lago-game-area {
+    grid-template-rows: auto;
+  }
+
+  #lagoModern .lago-game-area > .lago-center {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  #lagoModern .lg-agent-chat {
+    width: 94%;
+    margin-top: 5px;
+  }
+
+  #lagoModern .lg-agent-messages {
+    height: clamp(90px, 20dvh, 140px);
+  }
+
+}
 
       @media (prefers-reduced-motion: reduce) {
 
@@ -295,7 +355,11 @@
     const body = panel.querySelector(".lg-agent-body");
     const toggle = panel.querySelector(".lg-agent-toggle");
 
-    body.hidden = !opened;
+   body.hidden = false;
+
+body.querySelector(
+  ".lg-agent-messages"
+).hidden = !opened;
 
     toggle.setAttribute(
       "aria-expanded",
@@ -346,7 +410,7 @@
           class="lg-agent-toggle"
           type="button"
           aria-expanded="false"
-          aria-controls="lgAgentChatBody"
+          aria-controls="lgAgentChatMessages"
         ></button>
 
       </div>
@@ -358,7 +422,8 @@
       >
 
         <div
-          class="lg-agent-messages"
+         class="lg-agent-messages"
+id="lgAgentChatMessages"
           role="log"
           aria-live="polite"
           aria-label="Agent messages"
@@ -466,7 +531,14 @@
       }
 
       input.value = "";
-      send.disabled = true;
+send.disabled = true;
+
+setOpened(true);
+
+form.scrollIntoView({
+  block: "nearest",
+  inline: "nearest"
+});
 
     });
 
