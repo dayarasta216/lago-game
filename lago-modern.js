@@ -1175,104 +1175,76 @@
         </section>
 
 
-        <!-- RIGHT -->
+        
+<!-- RIGHT — PLAYER DASHBOARD -->
 
-        <aside
-          class="
-            lago-side
-            lago-right-dashboard
-          "
+<aside class="lago-side lago-right-dashboard">
+
+  <button
+    class="lago-side-card lago-dashboard-card lago-dashboard-button"
+    id="lagoDailyBonusButton"
+    type="button"
+  >
+
+    <span class="lago-side-title">
+      DAILY BONUS
+    </span>
+
+    <span class="lago-dashboard-row">
+
+      <span class="lago-dashboard-icon">
+
+        <span
+          class="lago-icon-slot"
+          data-lago-icon="daily"
+        ></span>
+
+      </span>
+
+      <span>
+
+        <span
+          class="lago-dashboard-status"
+          id="lagoDailyBonusStatus"
         >
+          CLAIM NOW
+        </span>
 
-         <button
-  class="
-    lago-side-card
-    lago-dashboard-card
-    lago-dashboard-button
-  "
-  id="lagoDailyBonusButton"
-  type="button"
->
+        <span class="lago-side-desc">
+          Daily rewards and streak.
+        </span>
 
-            <div
-              class="lago-side-title"
-            >
-              DAILY BONUS
-            </div>
+      </span>
 
+    </span>
 
-            <div
-              class="lago-dashboard-row"
-            >
+  </button>
 
-              <div
-                class="lago-dashboard-icon"
-              >
+  <button
+    class="lago-side-card lago-dashboard-card lago-dashboard-button"
+    id="lagoDailyTasksButton"
+    type="button"
+  >
 
-                <span
-                  class="lago-icon-slot"
-                  data-lago-icon="daily"
-                ></span>
+    <span class="lago-side-title">
+      DAILY TASKS
+    </span>
 
-              </button>
+    <span
+      class="lago-dashboard-value"
+      id="lagoDailyTasksValue"
+    >
+      0 / 3
+    </span>
 
+    <span class="lago-side-desc">
+      Tap. Play. Complete tasks.
+    </span>
 
-              <div>
+  </button>
 
-               <div
-  class="lago-dashboard-status"
-  id="lagoDailyBonusStatus"
->
-  CLAIM NOW
-</div>
+</aside>
 
-                <div
-                  class="lago-side-desc"
-                >
-                  Daily rewards and streak.
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <button
-  class="
-    lago-side-card
-    lago-dashboard-card
-    lago-dashboard-button
-  "
-  id="lagoDailyTasksButton"
-  type="button"
->
-
-            <div
-              class="lago-side-title"
-            >
-              DAILY TASKS
-            </div>
-
-
-           <div
-  class="lago-dashboard-value"
-  id="lagoDailyTasksValue"
->
-  0 / 3
-</div>
-
-
-            <div
-              class="lago-side-desc"
-            >
-              Tap. Play. Complete tasks.
-            </div>
-
-          </div>
-
-        </aside>
 
       </main>
 
