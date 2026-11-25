@@ -475,10 +475,7 @@ const CATALOG = [
           </div>
 
 
-      /* R1.7D — Borderless game statistics */
-
-${gameStats(game, stats)}
-
+      /${gameStats(game, stats)}
 
           <div
             class="lago-game-card-meta"
