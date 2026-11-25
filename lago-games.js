@@ -2,7 +2,7 @@
   "use strict";
 
 
-const VERSION = 70;
+const VERSION = 71;
   
 let overlay = null;
 
@@ -156,30 +156,84 @@ const CATALOG = [
   }
 
 
-  function gameIcon(game) {
+ 
+  const GAME_ICONS = Object.freeze({
 
-    if (game.icon) {
+    "shell-out": {
+      color: "#D1FA65",
+      path: "M5 5h7v7H5z M14 5h5v7h-5z M5 14h7v5H5z M14 14h5v5h-5z"
+    },
 
-      return `
-        <div
-          class="lago-game-card-icon"
-          data-lago-icon="${escapeHTML(
-            game.icon
-          )}"
-        ></div>
-      `;
+    "spiral-idiot": {
+      color: "#A997FF",
+      path: "M3 6h15l-4-4 M18 6l-4 4 M21 12H6l4-4 M6 12l4 4 M3 18h15l-4-4 M18 18l-4 4"
+    },
 
+    "snail-jam": {
+      color: "#F472B6",
+      path: "M5 3h4 M6 3v15a2 2 0 0 0 4 0V3 M15 3h4 M14 3v15a3 3 0 0 0 6 0V3 M6 12h4 M14 8h6 M14 14h6"
+    },
+
+    "lago-mines": {
+      color: "#FB923C",
+      path: "M12 5a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M5 19l2-2 M9 10h2"
+    },
+
+    "lago-snake": {
+      color: "#4ADE80",
+      path: "M4 20V8a4 4 0 0 1 8 0v8a4 4 0 0 0 8 0V4 M17 4h6 M17 7h6"
+    },
+
+    "shell-2048": {
+      color: "#60A5FA",
+      path: "M3 3h18v18H3z M12 3v18 M3 12h18 M6 6h3v3H6z M15 15h3v3h-3z"
+    },
+
+    "lago-cannon": {
+      color: "#FACC15",
+      path: "M3 15l10-10 5 5-10 10z M13 5l3-3 5 5-3 3 M3 21h18 M19 2h2"
+    },
+
+    "slime-sand": {
+      color: "#2DD4BF",
+      path: "M5 3h14 M5 21h14 M7 3v4l10 10v4 M17 3v4L7 17v4 M10 6h4 M10 18h4"
     }
 
+  });
+
+  function gameIcon(game) {
+
+    const icon = Object.hasOwn(
+      GAME_ICONS,
+      game.id
+    )
+      ? GAME_ICONS[game.id]
+      : {
+          color: "#A1A8B6",
+          path: "M4 7h16v10H4z M7 12h6 M10 9v6 M16 10h1 M18 14h1"
+        };
 
     return `
       <div
         class="lago-game-card-icon"
+        style="color:${icon.color}"
         aria-hidden="true"
       >
-        ${escapeHTML(
-          game.emoji || "🎮"
-        )}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="42"
+          height="42"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          focusable="false"
+          aria-hidden="true"
+        >
+          <path d="${icon.path}"/>
+        </svg>
       </div>
     `;
 
