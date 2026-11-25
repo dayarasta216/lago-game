@@ -1143,11 +1143,11 @@
           </div>
 
 
-          <div
-            class="lago-center-sub"
-          >
-            THE DUMBEST SNAIL ON THE INTERNET
-          </div>
+          <<div
+  class="lago-center-sub"
+>
+  PERSONAL AGENT
+</div>
 
 
           <div
@@ -2219,6 +2219,34 @@ modernRoot
   function update(
     nextTapState = null
   ) {
+
+    
+    /*
+     * Dynamic personal agent identity.
+     */
+
+    const selectedCharacterId =
+      window.LAGO_ACCOUNT
+        ?.getState?.()?.selectedSkin || "default";
+
+    const selectedCharacter =
+      window.LAGO_CHARACTERS
+        ?.getById?.(selectedCharacterId);
+
+    const agentName = String(
+      selectedCharacter?.name || "Lago"
+    ).toUpperCase();
+
+    const agentTitle =
+      $("lagoCharacterName");
+
+    if (
+      agentTitle &&
+      agentTitle.textContent !== agentName
+    ) {
+      agentTitle.textContent = agentName;
+    }
+
 
     if (
       nextTapState &&
