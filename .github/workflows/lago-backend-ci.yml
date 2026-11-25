@@ -1,0 +1,39 @@
+
+name: LAGO Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    name: Backend syntax and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check backend syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for file in server/*.mjs; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+
+      - name: Run backend tests
+        run: node --test server/*.test.mjs
