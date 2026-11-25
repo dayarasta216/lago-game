@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = 68;
+  const VERSION = 69;
 
 let overlay = null;
 
@@ -15,257 +15,82 @@ const gameModulePromises =
   new Map();
 
 
-const GAME_MODULES =
-  Object.freeze({
 
-    "lago-tanks":
-      Object.freeze({
-
-        ready() {
-
-          return (
-            typeof window
-              .LAGO_TANKS
-              ?.show ===
-            "function"
-          );
-
-        },
-
-        load() {
-
-          return import(
-            "./lago-game-tanks.js?v=31"
-          );
-
-        }
-
-      }),
-
-
-    "lago-moto":
-      Object.freeze({
-
-        ready() {
-
-          return (
-            typeof window
-              .LAGO_MOTO
-              ?.show ===
-            "function"
-          );
-
-        },
-
-        load() {
-
-          return import(
-            "./lago-game-moto.js?v=14"
-          );
-
-        }
-
-      }),
-
-
-        "cart-chaos":
-      Object.freeze({
-
-        ready() {
-
-          return (
-            typeof window
-              .LAGO_CART_CHAOS
-              ?.show ===
-            "function"
-          );
-
-        },
-
-        load() {
-
-          return import(
-            "./lago-game-cart-chaos.js?v=1"
-          );
-
-        }
-
-      }),
-
-
-    "chambeer":
-  Object.freeze({
-
-    ready() {
-
-      return (
-        typeof window
-          .LAGO_CHAMBEER
-          ?.show ===
-        "function"
-      );
-
-    },
-
-    load() {
-
-      return import(
-        "./lago-game-chambeer.js?v=1"
-      );
-
-    }
-
-  }),
-
-
-"lago-fights":
-  Object.freeze({
-
-    ready() {
-
-      return (
-        typeof window
-          .LAGO_STICK_FIGHTS
-          ?.show ===
-        "function"
-      );
-
-    },
-
-    load() {
-
-      return import(
-        "./lago-game-stick-fights.js?v=1"
-      );
-
-    }
-
-  })
-
-});
-
+const GAME_MODULES = Object.freeze({});
 
 const CATALOG = [
-
   {
-    id:
-      "lago-tanks",
-
-    name:
-      "LAGO TANKS",
-
-    description:
-      "3D tank battles. Local 4v4. Multiplayer later.",
-
-    emoji:
-      "💥",
-
-    status:
-      "available",
-
-    dumCost:
-      0,
-
-    maxRewardSP:
-      300
+    id: "shell-out",
+    name: "SHELL OUT",
+    description: "Block puzzle. Build lines and collect points.",
+    emoji: "🧩",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
   },
-
-
   {
-    id:
-      "lago-moto",
-
-    name:
-      "LAGO MOTO",
-
-    description:
-      "Side-view motocross. Red Dirt Bike GLB.",
-
-    emoji:
-      "🏍️",
-
-    status:
-      "available",
-
-    dumCost:
-      0,
-
-    maxRewardSP:
-      0
+    id: "spiral-idiot",
+    name: "SPIRAL IDIOT",
+    description: "Arrow escape puzzle.",
+    emoji: "🌀",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
   },
-
-
   {
-    id:
-      "cart-chaos",
-
-    name:
-      "CART CHAOS",
-
-    description:
-      "3D chaos race. Choose one of five GLB vehicles.",
-
-    emoji:
-      "🛒",
-
-    status:
-      "available",
-
-    dumCost:
-      0,
-
-    maxRewardSP:
-      0
+    id: "snail-jam",
+    name: "SNAIL JAM",
+    description: "Sort colorful slime.",
+    emoji: "🎨",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
   },
-
-
   {
-    id:
-      "chambeer",
-
-    name:
-      "ChamBeer",
-
-    description:
-  "Eat everything, survive hunters, bullets and traps.",
-
-    emoji:
-      "🐻",
-
-    status:
-  "available",
-
-    dumCost:
-      0,
-
-    maxRewardSP:
-      0
+    id: "lago-mines",
+    name: "LAGO MINES",
+    description: "Classic minesweeper.",
+    emoji: "💣",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
   },
-
-
   {
-    id:
-      "lago-fights",
-
-    name:
-      "STICK FIGHTS",
-
-    description:
-      "Black stick-figure 1v1 fights with custom backgrounds.",
-
-    emoji:
-      "🥊",
-
-    status:
-  "available",
-
-    dumCost:
-      0,
-
-    maxRewardSP:
-      0
+    id: "lago-snake",
+    name: "LAGO SNAKE",
+    description: "Classic snake arcade.",
+    emoji: "🐍",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
+  },
+  {
+    id: "shell-2048",
+    name: "SHELL 2048",
+    description: "Merge tiles and beat your record.",
+    emoji: "🔢",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
+  },
+  {
+    id: "lago-cannon",
+    name: "LAGO CANNON",
+    description: "Aim, launch and hit targets.",
+    emoji: "🎯",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
+  },
+  {
+    id: "slime-sand",
+    name: "SLIME SAND",
+    description: "Relaxing sand physics puzzle.",
+    emoji: "⏳",
+    status: "coming",
+    dumCost: 0,
+    maxRewardSP: 0
   }
-
 ];
 
   function runtime() {
