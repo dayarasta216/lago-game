@@ -1,0 +1,73 @@
+
+name: LAGO Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-check:
+    name: Frontend quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in *.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+
+      - name: Check removed game dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pattern='lago-(game-(tanks|moto|cart-chaos|chambeer|stick-fights)|tank-rig)\.js|assets/model/game/(tanks|moto|cart-chaos|chambeer)/'
+
+          if git grep -nEi "$pattern" -- '*.js' '*.html' '*.css' '*.json' '*.mjs'; then
+            echo "::error::Legacy game dependencies detected"
+            exit 1
+          fi
+
+          echo "PASS: No legacy game dependencies"
+
+      - name: Check essential application files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for file in \
+            index.html \
+            lago-games.js \
+            lago-mini-game-runtime.js \
+            lago-character-registry.js \
+            lago-account-core.js \
+            lago-tap-game.js \
+            lago-auth.js; do
+
+            test -f "$file" || {
+              echo "::error::Missing file: $file"
+              exit 1
+            }
+
+            echo "PASS: $file"
+          done
+
+          echo "LAGO FRONTEND QUALITY GATE PASSED"
