@@ -673,3 +673,386 @@
   width: 90%;
   height: 90%;
 }
+
+
+/* =========================================================
+   LAGO GAME — R1.8I2
+   PREMIUM AI INTELLIGENCE
+   ========================================================= */
+
+#lagoShop .lago-shop-ai {
+
+  position: relative;
+  isolation: isolate;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) 240px;
+
+  column-gap: 32px;
+
+  margin: 0 0 42px;
+
+  padding: 28px 0 34px;
+
+  border: none;
+  border-radius: 0;
+
+  background: transparent;
+  box-shadow: none;
+
+}
+
+.lago-shop-ai-kicker {
+
+  grid-column: 1;
+  grid-row: 1;
+
+  color: var(--lg-ai, #a997ff);
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: .12em;
+
+}
+
+.lago-shop-ai-symbol {
+
+  grid-column: 2;
+  grid-row: 1 / 5;
+
+  display: grid;
+  place-items: center;
+
+  align-self: stretch;
+
+  min-height: 160px;
+
+  color: var(--lg-ai, #a997ff);
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(169,151,255,.12),
+      transparent 68%
+    );
+
+  pointer-events: none;
+
+}
+
+.lago-shop-ai-symbol svg {
+
+  width: 108px;
+  height: 108px;
+
+  filter:
+    drop-shadow(
+      0 0 18px
+      rgba(169,151,255,.16)
+    );
+
+}
+
+.lago-shop-ai-title {
+
+  grid-column: 1;
+  grid-row: 2;
+
+  margin: 12px 0 0;
+
+  color: var(--lg-text, #f4f6fa);
+
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 850;
+
+  line-height: 1.12;
+  letter-spacing: -.045em;
+
+}
+
+.lago-shop-ai-description {
+
+  grid-column: 1;
+  grid-row: 3;
+
+  max-width: 480px;
+
+  margin: 12px 0 0;
+
+  color:
+    var(--lg-text-secondary, #a1a8b6);
+
+  font-size: 14px;
+  line-height: 1.6;
+
+}
+
+.lago-shop-ai-features {
+
+  grid-column: 1;
+  grid-row: 4;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 14px 18px;
+
+  margin: 26px 0;
+
+}
+
+.lago-shop-ai-features span {
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  color: var(--lg-text, #f4f6fa);
+
+  font-size: 10px;
+  font-weight: 650;
+
+  line-height: 1.5;
+  letter-spacing: .02em;
+
+}
+
+.lago-shop-ai-features span::before {
+
+  content: "";
+
+  flex: 0 0 6px;
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: var(--lg-ai, #a997ff);
+
+}
+
+.lago-shop-ai-payment {
+
+  grid-column: 1 / -1;
+
+  margin-top: 8px;
+
+}
+
+.lago-shop-ai-currency {
+
+  color: var(--lg-ai, #a997ff);
+
+  font-size: 30px;
+  font-weight: 850;
+
+  letter-spacing: -.04em;
+
+}
+
+.lago-shop-ai-network {
+
+  margin-top: 4px;
+
+  color: var(--lg-text-muted, #858e9e);
+
+  font-size: 10px;
+  font-weight: 650;
+
+  letter-spacing: .1em;
+
+}
+
+.lago-shop-ai-purchase {
+
+  grid-column: 1 / -1;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 48px;
+
+  margin-top: 20px;
+
+  padding: 12px 16px;
+
+  border:
+    1px solid
+    var(--lg-ai, #a997ff);
+
+  border-radius: 12px;
+
+  background: var(--lg-ai, #a997ff);
+
+  color: #100d1c;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: .06em;
+
+  cursor: pointer;
+  touch-action: manipulation;
+
+}
+
+.lago-shop-ai-purchase:disabled {
+
+  border-color:
+    rgba(169,151,255,.24);
+
+  background:
+    var(--lg-ai-soft, rgba(169,151,255,.10));
+
+  color: var(--lg-ai, #a997ff);
+
+  opacity: 1;
+
+  cursor: not-allowed;
+
+}
+
+.lago-shop-ai-status {
+
+  grid-column: 1 / -1;
+
+  margin-top: 10px;
+
+  color:
+    var(--lg-text-secondary, #a1a8b6);
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  text-align: center;
+
+}
+
+.lago-shop-ai-policy {
+
+  grid-column: 1 / -1;
+
+  margin-top: 18px;
+
+  color: var(--lg-text-muted, #858e9e);
+
+  font-size: 11px;
+  line-height: 1.65;
+
+  text-align: center;
+
+}
+
+
+/* TABLET */
+
+@media (max-width: 899px) {
+
+  #lagoShop .lago-shop-ai {
+
+    grid-template-columns:
+      minmax(0, 1fr) 160px;
+
+    column-gap: 20px;
+
+  }
+
+  .lago-shop-ai-symbol svg {
+
+    width: 88px;
+    height: 88px;
+
+  }
+
+}
+
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+  #lagoShop .lago-shop-ai {
+
+    display: flex;
+    flex-direction: column;
+
+    margin-bottom: 26px;
+
+    padding: 12px 0 24px;
+
+  }
+
+  .lago-shop-ai-symbol {
+
+    min-height: 120px;
+
+    margin: 6px 0;
+
+  }
+
+  .lago-shop-ai-symbol svg {
+
+    width: 80px;
+    height: 80px;
+
+  }
+
+  .lago-shop-ai-title {
+
+    font-size: 28px;
+
+    margin-top: 8px;
+
+  }
+
+  .lago-shop-ai-description {
+
+    font-size: 13px;
+
+  }
+
+  .lago-shop-ai-features {
+
+    gap: 12px;
+
+    margin: 22px 0;
+
+  }
+
+  .lago-shop-ai-features span {
+
+    font-size: 10px;
+
+  }
+
+  .lago-shop-ai-currency {
+
+    font-size: 26px;
+
+  }
+
+}
+
+@media (max-width: 320px) {
+
+  .lago-shop-ai-features {
+
+    grid-template-columns:
+      minmax(0, 1fr);
+
+  }
+
+}
+
