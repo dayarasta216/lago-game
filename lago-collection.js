@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 18;
+  const VERSION = 19;
 
 
   const LAGO_CHARACTER =
@@ -993,148 +993,148 @@ function mountPreviewHosts(
   }
 
 
-   function equipCharacter(id) {
+   
+  /*
+   * R1.8F — Character selection.
+   *
+   * Selecting a game character does not
+   * purchase or activate AI access.
+   */
 
-    if (
-      id === "lago"
-    ) {
+  function equipCharacter(id) {
 
-      const skin =
-        getLastLagoSkin();
+    const characterId = String(
+      id || ""
+    ).trim();
 
+    if (!characterId) {
+      return false;
+    }
 
-      if (
-        !selectSkin(
-          skin
-        )
-      ) {
+    if (characterId === "lago") {
 
-        toast(
-          "EQUIP FAILED"
-        );
-
-        return false;
+      if (selectedCharacterId() === "lago") {
+        return true;
       }
 
+      const skin = getLastLagoSkin();
 
-      notifyCharacterEquipped(
-        "lago"
-      );
+      return equipLagoSkin(skin);
 
+    }
 
+    if (!isComicCharacter(characterId)) {
+      return false;
+    }
+
+    if (!ownedIds().has(characterId)) {
+
+      toast("AVAILABLE IN SHOP");
+
+      return false;
+
+    }
+
+    if (
+      selectedCharacterId() === characterId
+    ) {
       return true;
-
     }
 
+    try {
 
-    if (
-      !isComicCharacter(
-        id
-      )
-    ) {
+      if (!selectSkin(characterId)) {
 
-      return false;
+        toast("EQUIP FAILED");
 
-    }
+        return false;
 
+      }
 
-    if (
-      !ownedIds().has(
-        id
-      )
-    ) {
+    } catch (error) {
 
-      toast(
-        "AVAILABLE IN SHOP"
+      console.error(
+        "[LAGO COLLECTION] Selection failed:",
+        error
       );
 
-      return false;
-
-    }
-
-
-    if (
-      !selectSkin(
-        id
-      )
-    ) {
-
-      toast(
-        "EQUIP FAILED"
-      );
+      toast("EQUIP FAILED");
 
       return false;
 
     }
 
-
-    notifyCharacterEquipped(
-      id
-    );
-
+    notifyCharacterEquipped(characterId);
 
     return true;
 
   }
 
-    function equipLagoSkin(id) {
 
-    const skin =
-      LAGO_SKINS.find(
-        item =>
-          item.id === id
-      );
+  function equipLagoSkin(id) {
 
+    const skinId = String(
+      id || ""
+    ).trim();
+
+    const skin = LAGO_SKINS.find(
+      item => item.id === skinId
+    );
 
     if (!skin) {
       return false;
     }
 
-
     const owned =
-      id === "default" ||
-      ownedIds().has(
-        id
-      );
-
+      skinId === "default" ||
+      ownedIds().has(skinId);
 
     if (!owned) {
 
-      toast(
-        "SKIN LOCKED"
-      );
+      toast("SKIN LOCKED");
 
       return false;
-    }
 
+    }
 
     if (
-      !selectSkin(
-        id
-      )
+      (state().selectedSkin || "default")
+        === skinId
     ) {
-
-      toast(
-        "EQUIP FAILED"
-      );
-
-      return false;
+      return true;
     }
 
+    try {
 
-    rememberLagoSkin(
-      id
-    );
+      if (!selectSkin(skinId)) {
 
+        toast("EQUIP FAILED");
 
-    notifyCharacterEquipped(
-      "lago"
-    );
+        return false;
 
+      }
+
+    } catch (error) {
+
+      console.error(
+        "[LAGO COLLECTION] Skin selection failed:",
+        error
+      );
+
+      toast("EQUIP FAILED");
+
+      return false;
+
+    }
+
+    rememberLagoSkin(skinId);
+
+    notifyCharacterEquipped("lago");
 
     return true;
 
   }
+
 
 
   function renderHero() {
