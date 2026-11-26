@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
- const VERSION = 7;
+ const VERSION = 8;
 
 let lastRenderKey = "";
 
@@ -508,10 +508,10 @@ function mountPreviewHosts(
           </div>
 
           <div
-            class="lago-shop-subtitle"
-          >
-            CHARACTERS
-          </div>
+  class="lago-shop-subtitle"
+>
+  CHARACTERS &amp; INTELLIGENCE
+</div>
         </div>
 
         <div
@@ -549,6 +549,123 @@ function mountPreviewHosts(
             FULL LOCAL TEST ACCESS
           </div>
         </section>
+
+
+        <!-- R1.8I1 — Premium AI product -->
+
+        <section
+          class="lago-shop-ai"
+          id="lagoShopAI"
+          aria-labelledby="lagoShopAITitle"
+        >
+
+          <div class="lago-shop-ai-kicker">
+            PREMIUM INTELLIGENCE
+          </div>
+
+          <div
+            class="lago-shop-ai-symbol"
+            aria-hidden="true"
+          >
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect
+                x="5" y="5"
+                width="14" height="14"
+                rx="3"
+              />
+              <rect
+                x="9" y="9"
+                width="6" height="6"
+                rx="1"
+              />
+              <path d="
+                M9 2v3
+                M15 2v3
+                M9 19v3
+                M15 19v3
+                M2 9h3
+                M2 15h3
+                M19 9h3
+                M19 15h3
+              "/>
+            </svg>
+          </div>
+
+          <h2
+            class="lago-shop-ai-title"
+            id="lagoShopAITitle"
+          >
+            PERSONAL AI AGENT
+          </h2>
+
+          <p class="lago-shop-ai-description">
+            Give your character a mind of its own.
+            One player. One personal AI agent.
+          </p>
+
+          <div class="lago-shop-ai-features">
+
+            <span>PERSONAL AI CHAT</span>
+
+            <span>ADAPTIVE MEMORY</span>
+
+            <span>MARKET ANALYSIS</span>
+
+            <span>AI TRADING</span>
+
+            <span>CONTINUOUS LEARNING</span>
+
+            <span>AGENT NETWORK</span>
+
+          </div>
+
+          <div class="lago-shop-ai-payment">
+
+            <div class="lago-shop-ai-currency">
+              $LAGO
+            </div>
+
+            <div class="lago-shop-ai-network">
+              SOLANA NETWORK
+            </div>
+
+          </div>
+
+          <button
+            class="lago-shop-ai-purchase"
+            id="lagoShopAIPurchase"
+            type="button"
+            disabled
+          >
+            PURCHASE COMING SOON
+          </button>
+
+          <div
+            class="lago-shop-ai-status"
+            id="lagoShopAIStatus"
+          >
+            Payment service not connected yet.
+          </div>
+
+          <div class="lago-shop-ai-policy">
+            Paid access only.
+            One active agent per account.
+            One purchase per 24 hours.
+            Trading requires separate authorization.
+          </div>
+
+        </section>
+
+
 
         <section
           class="lago-shop-intro"
