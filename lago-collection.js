@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 17;
+  const VERSION = 18;
 
 
   const LAGO_CHARACTER =
@@ -476,16 +476,63 @@
 
 }
 
+
+  /*
+   * R1.8E2 — Collection preview lifecycle.
+   */
+
+  function releaseCollectionPreviews(
+    root = document.getElementById(
+      "lagoCollection"
+    )
+  ) {
+
+    if (!root) return;
+
+    root.querySelectorAll(
+      "[data-lago-glb-preview]"
+    ).forEach(host => {
+
+      previewObserver?.unobserve(host);
+
+      /*
+       * Keep completed static snapshots.
+       */
+
+      if (
+        host.querySelector(
+          ".lago-glb-preview-image"
+        )
+      ) return;
+
+      host._lago3dPreviewController
+        ?.destroy?.();
+
+    });
+
+  }
+
+
+  
   function mountPreviewHostNow(
   host
 ) {
 
+  
+  const page =
+    document.getElementById(
+      "lagoCollection"
+    );
+
   if (
     !host ||
-    !host.isConnected
+    !host.isConnected ||
+    !page?.classList.contains("active") ||
+    !page.contains(host)
   ) {
     return;
   }
+
 
 
   if (
@@ -1129,8 +1176,9 @@ function mountPreviewHosts(
       )
     ) {
 
-      lastHeroKey =
-        key;
+      releaseCollectionPreviews(visual);
+
+lastHeroKey = key;
 
 
       visual.innerHTML =
@@ -1274,9 +1322,9 @@ function mountPreviewHosts(
     }
 
 
-    lastCharactersKey =
-      key;
+    releaseCollectionPreviews(grid);
 
+lastCharactersKey = key;
 
     grid.innerHTML =
       catalog
@@ -1652,6 +1700,10 @@ function mountPreviewHosts(
 
 
   function hide() {
+
+        previewObserver?.disconnect();
+
+    releaseCollectionPreviews();
 
     document
       .getElementById(
