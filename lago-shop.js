@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
- const VERSION = 5;
+ const VERSION = 6;
 
 let lastRenderKey = "";
 
@@ -681,161 +681,125 @@ function mountPreviewHosts(
   }
 
 
-  function buyCharacter(
-    characterId
-  ) {
+  
+  /*
+   * R1.8B — Safe character shop purchase.
+   *
+   * SP unlocks game characters only.
+   * Paid AI access is a separate product.
+   */
+
+  function buyCharacter(characterId) {
+
+    const api = account();
+
+    if (
+      typeof api?.purchaseCharacter !== "function"
+    ) {
+
+      toast("SHOP TEMPORARILY UNAVAILABLE");
+
+      return false;
+
+    }
 
     const character =
       window.LAGO_CHARACTERS
-        ?.getById
-        ?.(
-          characterId
-        );
-
+        ?.getById?.(characterId);
 
     if (
       !character ||
-      character.shop
-        ?.enabled !== true
+      character.shop?.enabled !== true
     ) {
 
-      toast(
-        "CHARACTER NOT AVAILABLE"
-      );
+      toast("CHARACTER NOT AVAILABLE");
 
       return false;
+
     }
 
+    const result =
+      api.purchaseCharacter(character.id);
 
-    const owned =
-      ownedSet();
+    if (result?.ok !== true) {
 
+      const messages = {
 
-    if (
-      owned.has(
-        character.id
-      )
-    ) {
+        unavailable:
+          "CHARACTER NOT AVAILABLE",
+
+        insufficient_sp:
+          "NOT ENOUGH SP",
+
+        unsupported_currency:
+          "UNSUPPORTED CURRENCY",
+
+        invalid_price:
+          "INVALID CHARACTER PRICE",
+
+        storage_failed:
+          "PURCHASE COULD NOT BE SAVED"
+
+      };
+
+      toast(
+        messages[result?.reason] ||
+        "PURCHASE FAILED"
+      );
+
+      updateBalance();
+
+      updateAffordability();
+
+      return false;
+
+    }
+
+    if (result.alreadyOwned) {
 
       openCollection();
 
       return true;
+
     }
 
+    lastRenderKey = "";
 
-    const price =
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            character.shop
-              ?.price
-          ) || 0
-        )
-      );
-
-
-    if (
-      String(
-        character.shop
-          ?.currency || ""
-      ).toUpperCase() !==
-      "SP"
-    ) {
-
-      toast(
-        "UNSUPPORTED CURRENCY"
-      );
-
-      return false;
-    }
-
-
-    if (
-      !account()
-        ?.canSpendSP
-        ?.(
-          price
-        )
-    ) {
-
-      toast(
-        "NOT ENOUGH SP"
-      );
-
-      return false;
-    }
-
-
-    const spent =
-      account()
-        ?.spendSP
-        ?.(
-          price,
-          {
-            gameId:
-              "character-shop"
-          }
-        );
-
-
-    if (
-      spent !== true
-    ) {
-
-      toast(
-        "PURCHASE FAILED"
-      );
-
-      return false;
-    }
-
-
-    account()
-      ?.addSkin
-      ?.(
-        character.id
-      );
-
-
-    lastRenderKey =
-      "";
-
+    updateBalance();
 
     document.dispatchEvent(
+
       new CustomEvent(
         "lago:character-unlocked",
         {
           detail: {
-            id:
-              character.id,
 
-            name:
-              character.name,
+            id: character.id,
 
-            source:
-              "shop",
+            name: character.name,
 
-            currency:
-              "SP",
+            source: "shop",
 
-            price
+            currency: "SP",
+
+            price: result.spent
+
           }
         }
       )
-    );
 
+    );
 
     toast(
       `${character.name} UNLOCKED`
     );
 
-
     openCollection();
 
-
     return true;
+
   }
+
 
 
   /*
