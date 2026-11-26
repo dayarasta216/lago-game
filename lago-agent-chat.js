@@ -3,122 +3,137 @@
   "use strict";
 
   /*
-   * LAGO GAME 2.0
-   * R1.5A — PERSONAL AGENT CHAT CORE
+   * LAGO GAME
+   * R1.8J1 — Premium AI chat access.
    *
-   * Local dialogue prototype.
-   * No external AI requests.
-   * No financial operations.
+   * No scripted AI replies.
+   * No simulated intelligence.
+   * No free AI activation.
+   * Server-verified entitlement required.
    */
 
-  const VERSION = 1;
-  const MAX_MESSAGE_LENGTH = 500;
-  const MAX_MESSAGES = 60;
+  const VERSION = 2;
 
-  let activeScope = null;
-  let messages = [];
-  let sequence = 0;
+  const MAX_MESSAGE_LENGTH = 500;
+
+  let lastStateKey = "";
+
 
   function clean(value) {
-    return String(value ?? "").trim();
+
+    return String(
+      value ?? ""
+    ).trim();
+
   }
+
 
   function getContext() {
 
-    const account = window.LAGO_ACCOUNT;
-    const runtime = window.LAGO_MINIGAMES;
+    const account =
+      window.LAGO_ACCOUNT;
 
-    if (!account || !runtime?.getContext) {
+    const runtime =
+      window.LAGO_MINIGAMES;
+
+    if (
+      !account ||
+      !runtime?.getContext
+    ) {
       return null;
     }
 
-    const state = account.getState?.() || {};
-    const auth = account.getAuthIdentity?.() || {};
-    const context = runtime.getContext();
+    const state =
+      account.getState?.() || {};
+
+    const auth =
+      account.getAuthIdentity?.() || {};
+
+    const context =
+      runtime.getContext();
+
+    if (!context) {
+      return null;
+    }
 
     return {
+
       scope: JSON.stringify([
+
         clean(state.social?.userId),
+
         clean(auth.provider),
+
         clean(auth.telegramId),
+
         clean(auth.walletPublicKey),
+
         clean(context.characterId)
+
       ]),
 
       characterId:
-        clean(context.characterId) || "lago",
+        clean(context.characterId) ||
+        "lago",
 
       characterName:
-        clean(context.characterName) || "Lago",
+        clean(context.characterName) ||
+        "Lago",
 
       language:
-        clean(state.language) || "en"
+        clean(state.language) ||
+        "en"
+
     };
 
   }
 
-  function createMessage(role, text, context) {
-
-    return {
-      id: ++sequence,
-      role,
-      text,
-      characterId: context.characterId,
-      createdAt: Date.now()
-    };
-
-  }
-
-  function greeting(context) {
-
-    if (context.language === "ru") {
-      return `Я ${context.characterName}, твой персональный агент. Давай знакомиться. Мой AI-мозг пока загружается.`;
-    }
-
-    return `I'm ${context.characterName}, your personal agent. Let's get to know each other. My AI brain is still loading.`;
-
-  }
-
-  function syncContext() {
-
-    const context = getContext();
-
-    if (!context) {
-      activeScope = null;
-      messages = [];
-      return null;
-    }
-
-    if (activeScope !== context.scope) {
-
-      activeScope = context.scope;
-
-      messages = [
-        createMessage(
-          "agent",
-          greeting(context),
-          context
-        )
-      ];
-
-    }
-
-    return context;
-
-  }
 
   function getState() {
 
-    const context = syncContext();
+    const context = getContext();
+
+    const access =
+      window.LAGO_AGENT_ACCESS
+        ?.getState?.();
+
+    /*
+     * No AI backend is connected.
+     *
+     * The chat remains unavailable
+     * even if local state is modified.
+     */
+
+    const entitled =
+      Boolean(
+        context &&
+        access?.entitled === true &&
+        access?.serverVerified === true &&
+        access?.chatEnabled === true &&
+        access?.characterId ===
+          context.characterId
+      );
 
     return {
+
       version: VERSION,
 
-      ready: Boolean(context),
+      ready: false,
 
-      mode: "local-preview",
+      mode: "premium-locked",
 
       aiConnected: false,
+
+      entitled,
+
+      locked: true,
+
+      purchaseRequired: !entitled,
+
+      checkoutAvailable:
+        access?.checkoutAvailable === true,
+
+      currency: "LAGO",
 
       characterId:
         context?.characterId || null,
@@ -126,146 +141,91 @@
       characterName:
         context?.characterName || "",
 
-      messages:
-        messages.map(message => ({ ...message }))
+      reason:
+        !context
+          ? "agent_not_ready"
+          : !entitled
+            ? "purchase_required"
+            : "ai_service_unavailable",
+
+      messages: []
+
     };
 
   }
 
+
   function emit() {
 
     document.dispatchEvent(
-      new CustomEvent("lago:agent-chat-state", {
-        detail: getState()
-      })
+
+      new CustomEvent(
+        "lago:agent-chat-state",
+        {
+          detail: getState()
+        }
+      )
+
     );
 
   }
 
-  /*
-   * Temporary scripted replies.
-   * These are NOT AI-generated answers.
-   */
-
-  function localReply(text, context) {
-
-    const input = text.toLowerCase();
-
-    const isRussian = context.language === "ru";
-
-    if (
-      /trade|trading|crypto|bitcoin|profit|торг|крипт|прибыл|биткоин/i
-        .test(input)
-    ) {
-
-      return isRussian
-        ? "Торговый движок ещё не подключён. Пока мы можем только знакомиться и тренироваться."
-        : "My trading engine isn't connected yet. For now, we can train and get to know each other.";
-
-    }
-
-    if (
-      /hello|^hi\b|hey|привет|здравствуй/i
-        .test(input)
-    ) {
-
-      return isRussian
-        ? "Привет! Мой мозг ещё загружается. Но я уже здесь."
-        : "Hello! My brain is still loading. But I'm already here.";
-
-    }
-
-    if (
-      /train|play|game|игра|играть|тренир/i
-        .test(input)
-    ) {
-
-      return isRussian
-        ? "Готов к тренировке. Когда подключат мой AI-мозг, смогу учиться вместе с тобой."
-        : "Ready to train. Once my AI brain is connected, I'll be able to learn with you.";
-
-    }
-
-    if (
-      /name|who are|имя|кто ты/i
-        .test(input)
-    ) {
-
-      return isRussian
-        ? `Я ${context.characterName}, твой выбранный персонаж и будущий AI-агент.`
-        : `I'm ${context.characterName}, your selected character and future AI agent.`;
-
-    }
-
-    return isRussian
-      ? "Я получил сообщение. Полноценный AI пока не подключён."
-      : "I received your message. Full AI capabilities aren't connected yet.";
-
-  }
 
   function send(input) {
 
-    const context = syncContext();
+    const current = getState();
 
-    if (!context) {
+    if (!current.ready) {
+
       return {
+
         ok: false,
-        reason: "agent_not_ready"
+
+        reason: current.reason,
+
+        state: current
+
       };
+
     }
 
     const text = clean(input);
 
     if (!text) {
+
       return {
         ok: false,
         reason: "empty_message"
       };
+
     }
 
     if (text.length > MAX_MESSAGE_LENGTH) {
+
       return {
         ok: false,
         reason: "message_too_long"
       };
+
     }
 
-    messages.push(
-      createMessage("user", text, context),
-
-      createMessage(
-        "agent",
-        localReply(text, context),
-        context
-      )
-    );
-
-    messages = messages.slice(-MAX_MESSAGES);
-
-    emit();
+    /*
+     * No request is sent without
+     * a real authenticated AI backend.
+     */
 
     return {
-      ok: true,
-      state: getState()
+
+      ok: false,
+
+      reason: "ai_service_unavailable"
+
     };
 
   }
 
+
   function clear() {
-
-    const context = getContext();
-
-    activeScope = context?.scope || null;
-
-    messages = context
-      ? [
-          createMessage(
-            "agent",
-            greeting(context),
-            context
-          )
-        ]
-      : [];
 
     emit();
 
@@ -273,17 +233,41 @@
 
   }
 
+
   function handleContextChange() {
 
-    const previousScope = activeScope;
+    const context = getContext();
 
-    syncContext();
+    const state = getState();
 
-    if (previousScope !== activeScope) {
-      emit();
+    const key = JSON.stringify([
+
+      context?.scope || "",
+
+      state.characterId,
+
+      state.characterName,
+
+      state.entitled,
+
+      state.locked,
+
+      state.checkoutAvailable,
+
+      state.reason
+
+    ]);
+
+    if (key === lastStateKey) {
+      return;
     }
 
+    lastStateKey = key;
+
+    emit();
+
   }
+
 
   document.addEventListener(
     "lago:account-state",
@@ -295,22 +279,45 @@
     handleContextChange
   );
 
-  window.LAGO_AGENT_CHAT = Object.freeze({
+  document.addEventListener(
+    "lago:character-equipped",
+    handleContextChange
+  );
 
-    version: VERSION,
+  document.addEventListener(
+    "lago:agent-access-ready",
+    handleContextChange
+  );
 
-    getState,
+  document.addEventListener(
+    "lago:agent-access-state",
+    handleContextChange
+  );
 
-    send,
 
-    clear
+  window.LAGO_AGENT_CHAT =
+    Object.freeze({
 
-  });
+      version: VERSION,
+
+      getState,
+
+      send,
+
+      clear
+
+    });
+
 
   document.dispatchEvent(
-    new CustomEvent("lago:agent-chat-ready", {
-      detail: getState()
-    })
+
+    new CustomEvent(
+      "lago:agent-chat-ready",
+      {
+        detail: getState()
+      }
+    )
+
   );
 
 })();
