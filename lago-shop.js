@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
- const VERSION = 6;
+ const VERSION = 7;
 
 let lastRenderKey = "";
 
@@ -209,13 +209,57 @@ let previewObserver = null;
 
 }
 
+  
+/*
+ * R1.8E1 — Shop preview lifecycle.
+ */
+
+function releaseShopPreviews() {
+
+  previewObserver?.disconnect();
+
+  const page =
+    document.getElementById("lagoShop");
+
+  if (!page) return;
+
+  page.querySelectorAll(
+    "[data-lago-glb-preview]"
+  ).forEach(host => {
+
+    /*
+     * Preserve completed snapshots.
+     * Cancel only unfinished previews.
+     */
+
+    if (
+      host.querySelector(
+        ".lago-glb-preview-image"
+      )
+    ) return;
+
+    host._lago3dPreviewController
+      ?.destroy?.();
+
+  });
+
+}
+
+
+
 function mountPreviewHostNow(
   host
 ) {
 
+  
+  const page =
+    document.getElementById("lagoShop");
+
   if (
     !host ||
-    !host.isConnected
+    !host.isConnected ||
+    !page?.classList.contains("active") ||
+    !page.contains(host)
   ) {
     return;
   }
@@ -1177,8 +1221,9 @@ function mountPreviewHosts(
     }
 
 
-    lastRenderKey =
-      key;
+    releaseShopPreviews();
+
+lastRenderKey = key;
 
 
     if (
@@ -1240,6 +1285,8 @@ function mountPreviewHosts(
 
 
   function hide() {
+
+        releaseShopPreviews();
 
     document
       .getElementById(
