@@ -5068,6 +5068,155 @@ state.games[id].dumSpent =
    * =========================================================
    */
 
+
+  /*
+   * R1.8A — Atomic local character purchase.
+   *
+   * SP purchases unlock game characters only.
+   * AI agents require a separate paid license.
+   * No AI access is granted by this function.
+   */
+
+  function purchaseCharacter(characterId) {
+
+    const id = String(
+      characterId || ""
+    ).trim();
+
+    const character =
+      window.LAGO_CHARACTERS
+        ?.getById?.(id);
+
+    if (
+      !character ||
+      character.shop?.enabled !== true
+    ) {
+
+      return {
+        ok: false,
+        reason: "unavailable"
+      };
+
+    }
+
+    if (state.skins.includes(id)) {
+
+      return {
+        ok: true,
+        alreadyOwned: true,
+        characterId: id,
+        spent: 0
+      };
+
+    }
+
+    const currency = String(
+      character.shop.currency || ""
+    ).toUpperCase();
+
+    if (currency !== "SP") {
+
+      return {
+        ok: false,
+        reason: "unsupported_currency"
+      };
+
+    }
+
+    const price = Number(
+      character.shop.price
+    );
+
+    if (
+      !Number.isSafeInteger(price) ||
+      price <= 0
+    ) {
+
+      return {
+        ok: false,
+        reason: "invalid_price"
+      };
+
+    }
+
+    if (!canSpendSP(price)) {
+
+      return {
+        ok: false,
+        reason: "insufficient_sp"
+      };
+
+    }
+
+    const previous = snapshot();
+
+    try {
+
+      state.economy.sp =
+        roundSPAmount(
+          state.economy.sp - price
+        );
+
+      state.xp =
+        state.economy.sp;
+
+      state.lifetime.spSpent =
+        roundSPAmount(
+          (Number(state.lifetime.spSpent) || 0)
+          + price
+        );
+
+      const shopStats =
+        ensureGame("character-shop");
+
+      shopStats.spSpent =
+        roundSPAmount(
+          (Number(shopStats.spSpent) || 0)
+          + price
+        );
+
+      state.skins.push(id);
+
+      save({
+        emit: false
+      });
+
+    } catch (error) {
+
+      state = previous;
+
+      console.error(
+        "[LAGO ACCOUNT] Purchase failed:",
+        error
+      );
+
+      return {
+        ok: false,
+        reason: "storage_failed"
+      };
+
+    }
+
+    sync();
+
+    return {
+
+      ok: true,
+
+      alreadyOwned: false,
+
+      characterId: id,
+
+      spent: price,
+
+      balance: state.economy.sp
+
+    };
+
+  }
+
+
+  
   function addSkin(
     skinId
   ) {
@@ -5504,6 +5653,7 @@ function linkWalletIdentity(
  * Canonical progression
  */
 
+
 addSP,
 
 getSPState,
@@ -5512,7 +5662,10 @@ canSpendSP,
 
 spendSP,
 
+purchaseCharacter,
+
 spendGameplayResources,
+
 
 getDumEnergy,
 canSpendDum,
