@@ -716,14 +716,13 @@ export function createLagoRuntimeAccess({
       "runtime_authorization_unavailable"
     );
 
-  } finally {
+   } finally {
 
     deadline?.close();
 
   }
 
-
-  
+}
 
   return Object.freeze({
     version: RUNTIME_ACCESS_VERSION,
