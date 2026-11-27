@@ -102,6 +102,25 @@
 
   let refreshTimer = null;
 
+let pageSuspended = false;
+
+let networkOffline = false;
+
+function canRefreshPage() {
+
+  return (
+
+    document.hidden !== true &&
+
+    pageSuspended !== true &&
+
+    networkOffline !== true &&
+
+    window.navigator?.onLine !== false
+
+  );
+
+}
 
   /*
    * SERVER ACCOUNT IDENTITY
@@ -218,9 +237,10 @@
    * Ignore operational AI permissions.
    */
 
-  function normalizeSubscription(
+ function normalizeSubscription(
     state,
-    accountId
+    accountId,
+    requestStartedAt
   ) {
 
     if (
@@ -415,9 +435,7 @@
 
       checkedAt,
 
-      receivedAt:
-        monotonicTime()
-
+      requestStartedAt
     });
 
   }
@@ -429,9 +447,9 @@
 
   function getFreshSnapshot() {
 
-    if (!snapshot) {
-      return null;
-    }
+  if (!snapshot || !canRefreshPage()) {
+  return null;
+}
 
     const accountId =
       getAuthenticatedAccountId();
@@ -445,8 +463,8 @@
 
     }
 
-    const age =
-      monotonicTime() - snapshot.receivedAt;
+   const age =
+  monotonicTime() - snapshot.requestStartedAt;
 
     if (
 
@@ -774,272 +792,413 @@
    * visible clients.
    */
 
-  function scheduleRefresh() {
+ function scheduleRefresh() {
 
-    clearRefreshTimer();
+  clearRefreshTimer();
 
-    if (
+  if (
+    !getAuthenticatedAccountId() ||
+    !canRefreshPage() ||
+    typeof window.setTimeout !== "function"
+  ) {
 
-      !getAuthenticatedAccountId() ||
+    return;
 
-      document.hidden === true ||
+  }
 
-      typeof window.setTimeout !== "function"
+  refreshTimer = window.setTimeout(() => {
 
-    ) {
+    refreshTimer = null;
 
-      return;
-
+    if (canRefreshPage()) {
+      void refresh();
     }
 
-    refreshTimer = window.setTimeout(() => {
+  }, REFRESH_INTERVAL_MS);
 
-      refreshTimer = null;
+}
 
-      if (document.hidden !== true) {
 
-        void refresh();
+/*
+ * R2.7H1B
+ * Abortable asynchronous operation.
+ *
+ * Cancellation works even when
+ * the transport ignores its signal.
+ */
+
+async function awaitAbortable(
+  operation,
+  signal
+) {
+
+  if (signal.aborted) {
+    throw new Error("request_aborted");
+  }
+
+  let onAbort;
+
+  const cancelled = new Promise((_, reject) => {
+
+    onAbort = () => {
+
+      reject(
+        new Error("request_aborted")
+      );
+
+    };
+
+    signal.addEventListener(
+      "abort",
+      onAbort,
+      { once: true }
+    );
+
+  });
+
+  try {
+
+    const task = new Promise(resolve => {
+
+      resolve(operation());
+
+    });
+
+    return await Promise.race([
+      task,
+      cancelled
+    ]);
+
+  } finally {
+
+    signal.removeEventListener(
+      "abort",
+      onAbort
+    );
+
+  }
+
+}
+
+
+/*
+ * FETCH AND VALIDATE SERVER RESPONSE
+ */
+
+async function fetchSubscription(
+  accountId,
+  signal,
+  requestStartedAt
+) {
+
+  const response = await awaitAbortable(
+
+    () => window.fetch(
+
+      STATE_ENDPOINT,
+
+      {
+
+        method: "GET",
+
+        credentials: "same-origin",
+
+        cache: "no-store",
+
+        redirect: "error",
+
+        headers: {
+
+          Accept: "application/json"
+
+        },
+
+        signal
 
       }
 
-    }, REFRESH_INTERVAL_MS);
+    ),
+
+    signal
+
+  );
+
+  if (response.status === 401) {
+
+    return {
+
+      snapshot: null,
+
+      reason: "authentication_required"
+
+    };
+
+  }
+
+  if (!response.ok) {
+
+    return {
+
+      snapshot: null,
+
+      reason: "subscription_service_unavailable"
+
+    };
+
+  }
+
+  const contentType =
+    response.headers
+      .get("content-type") || "";
+
+  if (
+
+    contentType
+      .split(";")[0]
+      .trim()
+      .toLowerCase() !== "application/json"
+
+  ) {
+
+    return {
+
+      snapshot: null,
+
+      reason: "invalid_subscription_response"
+
+    };
+
+  }
+
+  const body = await awaitAbortable(
+
+    () => response.json(),
+
+    signal
+
+  );
+
+  const normalized =
+    body?.ok === true
+
+      ? normalizeSubscription(
+
+          body.subscription,
+
+          accountId,
+
+          requestStartedAt
+
+        )
+
+      : null;
+
+  if (!normalized) {
+
+    return {
+
+      snapshot: null,
+
+      reason: "invalid_subscription_response"
+
+    };
+
+  }
+
+  return {
+
+    snapshot: normalized,
+
+    reason: null
+
+  };
+
+}
+
+
+/*
+ * AUTHENTICATED SUBSCRIPTION REFRESH
+ */
+
+async function refresh() {
+
+  invalidate();
+
+  const accountId =
+    getAuthenticatedAccountId();
+
+  if (!accountId) {
+
+    reason = "authentication_required";
+
+    emit();
+
+    return getState();
+
+  }
+
+  if (!canRefreshPage()) {
+
+    reason = networkOffline ||
+      window.navigator?.onLine === false
+
+        ? "subscription_service_unavailable"
+
+        : "subscription_refresh_required";
+
+    emit();
+
+    return getState();
+
+  }
+
+  if (
+
+    typeof window.fetch !== "function" ||
+
+    typeof window.AbortController !==
+      "function" ||
+
+    typeof window.setTimeout !==
+      "function" ||
+
+    typeof window.clearTimeout !==
+      "function"
+
+  ) {
+
+    reason = "subscription_service_unavailable";
+
+    emit();
+
+    return getState();
 
   }
 
 
-  /*
-   * FETCH SERVER SUBSCRIPTION
-   *
-   * No accountId in URL or body.
-   * HttpOnly cookie is sent automatically.
-   */
+  const requestGeneration =
+    generation;
 
-  async function refresh() {
+  const requestController =
+    new window.AbortController();
 
-    invalidate();
+  const requestStartedAt =
+    monotonicTime();
 
-    const accountId =
-      getAuthenticatedAccountId();
+  controller = requestController;
 
-    if (!accountId) {
+  loading = true;
 
-      reason = "authentication_required";
-
-      emit();
-
-      return getState();
-
-    }
-
-    if (
-
-      typeof window.fetch !== "function" ||
-
-      typeof window.AbortController !==
-        "function" ||
-
-      typeof window.setTimeout !== "function"
-
-    ) {
-
-      reason = "subscription_service_unavailable";
-
-      emit();
-
-      return getState();
-
-    }
+  let timeout = null;
 
 
-    const requestGeneration =
-      generation;
+  try {
 
-    const requestController =
-      new window.AbortController();
+    timeout = window.setTimeout(() => {
 
-    controller =
-      requestController;
+      requestController.abort();
 
-    loading = true;
+    }, REQUEST_TIMEOUT_MS);
 
-    let timeout = null;
+    emit();
 
+    const result =
+      await fetchSubscription(
 
-    try {
+        accountId,
 
-      emit();
+        requestController.signal,
 
-      timeout = window.setTimeout(() => {
-
-        requestController.abort();
-
-      }, REQUEST_TIMEOUT_MS);
-
-
-      const response = await window.fetch(
-
-        STATE_ENDPOINT,
-
-        {
-
-          method: "GET",
-
-          credentials: "same-origin",
-
-          cache: "no-store",
-
-          redirect: "error",
-
-          headers: {
-
-            Accept: "application/json"
-
-          },
-
-          signal:
-            requestController.signal
-
-        }
+        requestStartedAt
 
       );
 
 
-      if (
+    /*
+     * Reject obsolete requests.
+     */
 
-        generation !== requestGeneration ||
+    if (generation === requestGeneration) {
 
-        getAuthenticatedAccountId() !==
-          accountId
-
-      ) {
-
-        return getState();
-
-      }
-
-
-      if (response.status === 401) {
-
-        reason = "authentication_required";
-
-        return getState();
-
-      }
-
-      if (!response.ok) {
-
-        reason = "subscription_service_unavailable";
-
-        return getState();
-
-      }
-
-
-      const contentType =
-        response.headers
-          .get("content-type") || "";
+      const elapsed =
+        monotonicTime() - requestStartedAt;
 
       if (
-
-        contentType
-          .split(";")[0]
-          .trim()
-          .toLowerCase() !== "application/json"
-
-      ) {
-
-        reason = "invalid_subscription_response";
-
-        return getState();
-
-      }
-
-
-      const body = await response.json();
-
-
-      /*
-       * Reject delayed responses
-       * belonging to an old session.
-       */
-
-      if (
-
-        generation !== requestGeneration ||
 
         getAuthenticatedAccountId() !==
           accountId ||
 
-        requestController.signal.aborted
+        !canRefreshPage()
 
-      ) {
-
-        return getState();
-
-      }
-
-
-      const normalized =
-        body?.ok === true
-
-          ? normalizeSubscription(
-
-              body.subscription,
-
-              accountId
-
-            )
-
-          : null;
-
-
-      if (!normalized) {
-
-        reason = "invalid_subscription_response";
-
-        return getState();
-
-      }
-
-
-      snapshot = normalized;
-
-      reason = null;
-
-    } catch {
-
-      if (
-        generation === requestGeneration
       ) {
 
         snapshot = null;
 
-        reason =
-          requestController.signal.aborted
+        reason = "subscription_refresh_required";
 
-            ? "subscription_request_timeout"
+      } else if (
 
-            : "subscription_service_unavailable";
+        requestController.signal.aborted ||
 
-      }
+        !Number.isFinite(elapsed) ||
 
-    } finally {
+        elapsed < 0 ||
 
-      if (timeout !== null) {
+        elapsed >= REQUEST_TIMEOUT_MS
 
-        window.clearTimeout(timeout);
-
-      }
-
-      if (
-        generation === requestGeneration
       ) {
 
-        controller = null;
+        snapshot = null;
 
-        loading = false;
+        reason = "subscription_request_timeout";
 
-        emit();
+      } else {
+
+        snapshot = result.snapshot;
+
+        reason = result.reason;
+
+      }
+
+    }
+
+  } catch {
+
+    if (generation === requestGeneration) {
+
+      snapshot = null;
+
+      reason =
+        requestController.signal.aborted
+
+          ? "subscription_request_timeout"
+
+          : "subscription_service_unavailable";
+
+    }
+
+  } finally {
+
+    if (timeout !== null) {
+
+      window.clearTimeout(timeout);
+
+    }
+
+    if (generation === requestGeneration) {
+
+      controller = null;
+
+      loading = false;
+
+      emit();
+
+      /*
+       * An event listener may start
+       * a newer refresh synchronously.
+       */
+
+      if (generation === requestGeneration) {
 
         scheduleRefresh();
 
@@ -1047,10 +1206,17 @@
 
     }
 
-    return getState();
-
   }
 
+
+  /*
+   * Return only the final state,
+   * after loading has been cleared.
+   */
+
+  return getState();
+
+}
 
   /*
    * AUTHENTICATION CHANGES
@@ -1123,46 +1289,71 @@
 
   );
 
-  window.addEventListener?.(
+ window.addEventListener?.(
 
-    "pageshow",
+  "pageshow",
 
-    handleVisibilityChange
+  () => {
 
-  );
+    pageSuspended = false;
 
-  window.addEventListener?.(
+    handleVisibilityChange();
 
-    "pagehide",
+  }
 
-    () => invalidate()
+);
 
-  );
+window.addEventListener?.(
 
-  window.addEventListener?.(
+  "pagehide",
 
-    "online",
+  () => {
 
-    () => void refresh()
+    pageSuspended = true;
 
-  );
+    invalidate();
 
-  window.addEventListener?.(
+    emit();
 
-    "offline",
+  }
 
-    () => {
+);
 
-      invalidate(
-        "subscription_service_unavailable"
-      );
+window.addEventListener?.(
 
-      emit();
+  "online",
+
+  () => {
+
+    networkOffline = false;
+
+    if (canRefreshPage()) {
+
+      void refresh();
 
     }
 
-  );
+  }
 
+);
+
+window.addEventListener?.(
+
+  "offline",
+
+  () => {
+
+    networkOffline = true;
+
+    invalidate(
+      "subscription_service_unavailable"
+    );
+
+    emit();
+
+  }
+
+);
 
   /*
    * PUBLIC CLIENT API
