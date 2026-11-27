@@ -10,13 +10,14 @@
    * Existing account data only.
    */
 
-  const VERSION = 2;
+  const VERSION = 3;
 
   let mounted = false;
   let scheduled = false;
   let hpCard = null;
   let xpCard = null;
   let energyBar = null;
+  let bondCard = null;
 
   function installStyles() {
 
@@ -410,6 +411,76 @@
       }
 
 
+      /* R2.5H — Individual agent bond */
+
+      .lg-bond-card .lg-progression-icon {
+
+        color: var(--lg-ai);
+
+      }
+
+      #lagoModern
+      .lg-bond-card
+      .lago-stat-value {
+
+        color: var(--lg-ai);
+
+      }
+
+      .lg-bond-card .lg-progression-fill {
+
+        background: var(--lg-ai);
+
+      }
+
+      .lg-bond-rank {
+
+        margin-top: 5px;
+
+        color: var(--lg-text-secondary);
+
+        font-size: 10px;
+
+        font-weight: 500;
+
+        line-height: 1.3;
+
+        overflow-wrap: anywhere;
+
+      }
+
+      @media (min-width: 761px) {
+
+        #lagoModern
+        .lago-statbar.lg-progression-active {
+
+          grid-template-columns:
+            repeat(6, minmax(0, 1fr));
+
+        }
+
+      }
+
+      @media (max-width: 760px) {
+
+        #lagoModern
+        .lago-statbar.lg-progression-active {
+
+          grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        }
+
+        .lg-bond-rank {
+
+          font-size: 9px;
+
+        }
+
+      }
+
+
+
       /* ACCESSIBILITY */
 
       @media (prefers-reduced-motion: reduce) {
@@ -543,6 +614,50 @@
 
     energyCard.after(xpCard);
 
+    
+    /*
+     * R2.5H — Bond progression card.
+     */
+
+    bondCard = createCard(
+
+      "bond",
+
+      "BOND",
+
+      `
+        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>
+        <path d="m8 12 3 3 5-6"/>
+      `
+
+    );
+
+
+    bondCard.querySelector(
+      ".lg-progression-track"
+    ).setAttribute(
+
+      "aria-label",
+
+      "Character bond progress"
+
+    );
+
+
+    const bondRank =
+      document.createElement("div");
+
+    bondRank.className =
+      "lg-bond-rank";
+
+    bondRank.textContent = "—";
+
+    bondCard.appendChild(bondRank);
+
+    statbar.appendChild(bondCard);
+
+
+
     energyBar = createTrack("lg-energy-track");
 
     energyBar.setAttribute(
@@ -634,6 +749,108 @@
     setTrack(
       energyBar,
       state.energy.percent
+      
+    /*
+     * R2.5H — Render persisted bond.
+     */
+
+    const bond =
+      state.agent?.bond;
+
+    const bondValue =
+      bondCard.querySelector(
+        ".lago-stat-value"
+      );
+
+    const bondTrack =
+      bondCard.querySelector(
+        ".lg-progression-track"
+      );
+
+    const bondRank =
+      bondCard.querySelector(
+        ".lg-bond-rank"
+      );
+
+
+    if (
+
+      bond &&
+
+      bond.characterId ===
+        state.characterId &&
+
+      Number.isFinite(bond.percent)
+
+    ) {
+
+      bondValue.textContent =
+        format(bond.percent) + "%";
+
+
+      bondRank.textContent =
+
+        "Lv. " +
+
+        bond.level +
+
+        " · " +
+
+        bond.title;
+
+
+      setTrack(
+        bondTrack,
+        bond.percent
+      );
+
+
+      bondTrack.setAttribute(
+
+        "aria-valuetext",
+
+        bond.points +
+
+        " of " +
+
+        bond.maxPoints +
+
+        " bond points"
+
+      );
+
+
+      bondCard.title =
+
+        bond.points +
+
+        " / " +
+
+        bond.maxPoints +
+
+        " BP";
+
+    } else {
+
+      bondValue.textContent = "—";
+
+      bondRank.textContent =
+        "Unavailable";
+
+      setTrack(bondTrack, 0);
+
+      bondTrack.setAttribute(
+
+        "aria-valuetext",
+
+        "Bond unavailable"
+
+      );
+
+      bondCard.removeAttribute("title");
+
+    }
+
     );
 
   }
@@ -671,7 +888,12 @@
 
     "lago:character-equipped",
 
+    "lago:agent-bond-state",
+
+    "lago:agent-bond-runtime-ready",
+
     "lago:language"
+
 
   ]) {
 
