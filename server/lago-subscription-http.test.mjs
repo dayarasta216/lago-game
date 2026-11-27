@@ -1,4 +1,5 @@
 import test from "node:test";
+import { request as httpRequest } from "node:http";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -1585,6 +1586,991 @@ test("preserves health wallet protection and unknown API behavior", async t => {
     "not_found"
 
   );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+/*
+ * LAGO GAME
+ * R2.7F3C — HTTP HARDENING TESTS
+ *
+ * Real HTTP transport.
+ * Bounded JSON parsing.
+ * Cookie ambiguity protection.
+ * Strict UTF-8 validation.
+ * Solana signature validation.
+ */
+
+const BODY_LIMIT = 32 * 1024;
+
+
+/*
+ * RAW HTTP REQUEST HELPER
+ *
+ * Supports binary request bodies
+ * and chunked transfer encoding.
+ */
+
+function rawPaymentRequest(
+  fx,
+  {
+    path = CONFIRM_PATH,
+    chunks = [],
+    headers = {}
+  } = {}
+) {
+
+  return new Promise((resolve, reject) => {
+
+    const target = new URL(
+      path,
+      fx.origin
+    );
+
+    const request = httpRequest(
+
+      target,
+
+      {
+
+        method: "POST",
+
+        headers: {
+
+          Cookie:
+            "lago_session=" + SESSION_TOKEN,
+
+          Origin: fx.origin,
+
+          "Sec-Fetch-Site": "same-origin",
+
+          "Content-Type": "application/json",
+
+          ...headers
+
+        }
+
+      },
+
+      response => {
+
+        const received = [];
+
+        response.on("data", chunk => {
+          received.push(chunk);
+        });
+
+        response.on("error", reject);
+
+        response.on("end", () => {
+
+          try {
+
+            resolve({
+
+              status: response.statusCode,
+
+              headers: new Headers(
+                response.headers
+              ),
+
+              data: JSON.parse(
+                Buffer.concat(received)
+                  .toString("utf8")
+              )
+
+            });
+
+          } catch (error) {
+
+            reject(error);
+
+          }
+
+        });
+
+      }
+
+    );
+
+    request.on("error", reject);
+
+    request.setTimeout(5000, () => {
+
+      request.destroy(
+        new Error("test_request_timeout")
+      );
+
+    });
+
+    for (const chunk of chunks) {
+
+      request.write(chunk);
+
+    }
+
+    request.end();
+
+  });
+
+}
+
+
+/*
+ * TEST 25 — SECURITY HEADERS
+ */
+
+test("applies security headers to subscription API responses", async t => {
+
+  const fx = await fixture(t);
+
+  const responses = [
+
+    await fx.state(),
+
+    await fx.quote(),
+
+    await fx.confirm(),
+
+    await fx.state({
+      authenticated: false
+    })
+
+  ];
+
+  for (const result of responses) {
+
+    assert.equal(
+      result.headers.get("cache-control"),
+      "no-store"
+    );
+
+    assert.equal(
+      result.headers.get("x-content-type-options"),
+      "nosniff"
+    );
+
+    assert.equal(
+      result.headers.get("x-frame-options"),
+      "DENY"
+    );
+
+    assert.equal(
+      result.headers.get("referrer-policy"),
+      "no-referrer"
+    );
+
+    assert.equal(
+      result.headers.get(
+        "cross-origin-resource-policy"
+      ),
+      "same-origin"
+    );
+
+  }
+
+});
+
+
+/*
+ * TEST 26 — DUPLICATE SESSION COOKIES
+ */
+
+test("rejects ambiguous duplicate session cookies", async t => {
+
+  const fx = await fixture(t);
+
+  const cookies = [
+
+    `lago_session=${SESSION_TOKEN}; lago_session=foreign`,
+
+    `lago_session=foreign; lago_session=${SESSION_TOKEN}`,
+
+    `lago_session=${SESSION_TOKEN}; lago_session=${SESSION_TOKEN}`,
+
+    `lago_session=foreign; lago_session=other; lago_session=${SESSION_TOKEN}`
+
+  ];
+
+  for (const Cookie of cookies) {
+
+    assertError(
+
+      await fx.state({
+        headers: { Cookie }
+      }),
+
+      401,
+
+      "authentication_required"
+
+    );
+
+  }
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 27 — MALFORMED COOKIE ENCODING
+ */
+
+test("rejects malformed session cookie encoding", async t => {
+
+  const fx = await fixture(t);
+
+  for (const value of [
+
+    "%",
+
+    "%ZZ",
+
+    "%E0%A4%A",
+
+    "%FF"
+
+  ]) {
+
+    assertError(
+
+      await fx.state({
+
+        headers: {
+
+          Cookie: "lago_session=" + value
+
+        }
+
+      }),
+
+      401,
+
+      "authentication_required"
+
+    );
+
+  }
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 28 — MALFORMED DUPLICATE COOKIE
+ */
+
+test("does not recover ambiguous sessions from duplicate malformed cookies", async t => {
+
+  const fx = await fixture(t);
+
+  for (const Cookie of [
+
+    `lago_session=%ZZ; lago_session=${SESSION_TOKEN}`,
+
+    `lago_session=${SESSION_TOKEN}; lago_session=%ZZ`
+
+  ]) {
+
+    assertError(
+
+      await fx.state({
+        headers: { Cookie }
+      }),
+
+      401,
+
+      "authentication_required"
+
+    );
+
+  }
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 29 — SPECIAL COOKIE PROPERTIES
+ */
+
+test("isolates session cookies from special object property names", async t => {
+
+  const fx = await fixture(t);
+
+  const result = await fx.state({
+
+    headers: {
+
+      Cookie: [
+
+        "__proto__=foreign",
+
+        "constructor=foreign",
+
+        "prototype=foreign",
+
+        "toString=foreign",
+
+        `lago_session=${SESSION_TOKEN}`
+
+      ].join("; ")
+
+    }
+
+  });
+
+  assert.equal(result.status, 200);
+
+  assert.deepEqual(fx.calls, [
+
+    {
+
+      operation: "state",
+
+      input: {
+        sessionToken: SESSION_TOKEN
+      }
+
+    }
+
+  ]);
+
+});
+
+
+/*
+ * TEST 30 — UNRELATED DUPLICATE COOKIES
+ */
+
+test("preserves valid sessions with unrelated duplicate cookies", async t => {
+
+  const fx = await fixture(t);
+
+  const result = await fx.state({
+
+    headers: {
+
+      Cookie:
+        `theme=dark; theme=light; lago_session=${SESSION_TOKEN}`
+
+    }
+
+  });
+
+  assert.equal(result.status, 200);
+
+  assert.equal(fx.calls.length, 1);
+
+});
+
+
+/*
+ * TEST 31 — ENCODED SESSION COOKIE
+ */
+
+test("decodes valid percent-encoded session cookies", async t => {
+
+  const fx = await fixture(t);
+
+  const encoded = Array.from(
+    SESSION_TOKEN,
+    character => "%" +
+      character.charCodeAt(0)
+        .toString(16)
+        .padStart(2, "0")
+  ).join("");
+
+  const result = await fx.state({
+
+    headers: {
+
+      Cookie: "lago_session=" + encoded
+
+    }
+
+  });
+
+  assert.equal(result.status, 200);
+
+  assert.equal(
+
+    fx.calls[0].input.sessionToken,
+
+    SESSION_TOKEN
+
+  );
+
+});
+
+
+/*
+ * TEST 32 — SESSION LENGTH LIMIT
+ */
+
+test("rejects oversized session cookies before service execution", async t => {
+
+  const fx = await fixture(t);
+
+  assertError(
+
+    await fx.state({
+
+      headers: {
+
+        Cookie:
+          "lago_session=" + "a".repeat(257)
+
+      }
+
+    }),
+
+    401,
+
+    "authentication_required"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 33 — CONTENT LENGTH LIMIT
+ */
+
+test("returns HTTP 413 for oversized JSON bodies", async t => {
+
+  const fx = await fixture(t);
+
+  const result = await fx.confirm({
+
+    body: {
+
+      ...PAYMENT_BODY,
+
+      padding: "x".repeat(BODY_LIMIT)
+
+    }
+
+  });
+
+  assertError(
+
+    result,
+
+    413,
+
+    "body_too_large"
+
+  );
+
+  assert.equal(
+
+    result.headers.get("connection"),
+
+    "close"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 34 — EXACT BODY SIZE LIMIT
+ */
+
+test("accepts valid JSON at the exact body size limit", async t => {
+
+  const fx = await fixture(t);
+
+  const json = JSON.stringify(
+    PAYMENT_BODY
+  );
+
+  const padding =
+    BODY_LIMIT - Buffer.byteLength(json);
+
+  const body =
+    json + " ".repeat(padding);
+
+  assert.equal(
+    Buffer.byteLength(body),
+    BODY_LIMIT
+  );
+
+  const result = await fx.confirm({
+    body
+  });
+
+  assert.equal(result.status, 200);
+
+  assert.equal(fx.calls.length, 1);
+
+});
+
+
+/*
+ * TEST 35 — ONE BYTE OVER LIMIT
+ */
+
+test("rejects JSON exceeding the body limit by one byte", async t => {
+
+  const fx = await fixture(t);
+
+  const json = JSON.stringify(
+    PAYMENT_BODY
+  );
+
+  const body = json + " ".repeat(
+
+    BODY_LIMIT -
+    Buffer.byteLength(json) +
+    1
+
+  );
+
+  assertError(
+
+    await fx.confirm({ body }),
+
+    413,
+
+    "body_too_large"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 36 — CHUNKED OVERSIZED REQUEST
+ */
+
+test("rejects oversized chunked request bodies without calling payment services", async t => {
+
+  const fx = await fixture(t);
+
+  const result = await rawPaymentRequest(
+
+    fx,
+
+    {
+
+      headers: {
+
+        "Transfer-Encoding": "chunked"
+
+      },
+
+      chunks: [
+
+        Buffer.alloc(
+          BODY_LIMIT / 2,
+          32
+        ),
+
+        Buffer.alloc(
+          BODY_LIMIT / 2,
+          32
+        ),
+
+        Buffer.from(" ")
+
+      ]
+
+    }
+
+  );
+
+  assertError(
+
+    result,
+
+    413,
+
+    "body_too_large"
+
+  );
+
+  assert.equal(
+
+    result.headers.get("connection"),
+
+    "close"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 37 — VALID CHUNKED JSON
+ */
+
+test("accepts valid JSON split across HTTP chunks", async t => {
+
+  const fx = await fixture(t);
+
+  const body = JSON.stringify(
+    PAYMENT_BODY
+  );
+
+  const result = await rawPaymentRequest(
+
+    fx,
+
+    {
+
+      headers: {
+
+        "Transfer-Encoding": "chunked"
+
+      },
+
+      chunks: [
+
+        Buffer.from(body.slice(0, 10)),
+
+        Buffer.from(body.slice(10, 30)),
+
+        Buffer.from(body.slice(30))
+
+      ]
+
+    }
+
+  );
+
+  assert.equal(result.status, 200);
+
+  assert.equal(
+    result.data.paymentRecorded,
+    true
+  );
+
+  assert.equal(fx.calls.length, 1);
+
+});
+
+
+/*
+ * TEST 38 — MALFORMED UTF-8
+ */
+
+test("rejects malformed UTF-8 in JSON bodies", async t => {
+
+  const fx = await fixture(t);
+
+  const body = Buffer.concat([
+
+    Buffer.from('{"quoteId":"'),
+
+    Buffer.from([0xc3, 0x28]),
+
+    Buffer.from('"}')
+
+  ]);
+
+  const result = await rawPaymentRequest(
+
+    fx,
+
+    {
+
+      headers: {
+
+        "Content-Length":
+          String(body.length)
+
+      },
+
+      chunks: [body]
+
+    }
+
+  );
+
+  assertError(
+
+    result,
+
+    400,
+
+    "invalid_json"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 39 — BYTE-BASED BODY LIMIT
+ */
+
+test("enforces request limits by bytes rather than character count", async t => {
+
+  const fx = await fixture(t);
+
+  const body = JSON.stringify({
+
+    ...PAYMENT_BODY,
+
+    padding: "🐌".repeat(9000)
+
+  });
+
+  assert.ok(body.length < BODY_LIMIT);
+
+  assert.ok(
+
+    Buffer.byteLength(body) >
+      BODY_LIMIT
+
+  );
+
+  assertError(
+
+    await fx.confirm({ body }),
+
+    413,
+
+    "body_too_large"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 40 — DECODED SIGNATURE LENGTH
+ */
+
+test("rejects base58 signatures that do not decode to 64 bytes", async t => {
+
+  const fx = await fixture(t);
+
+  const invalidSignatures = [
+
+    "1".repeat(63) + "z" + "z",
+
+    "1".repeat(65),
+
+    "1".repeat(88),
+
+    "z".repeat(88),
+
+    "2".repeat(64)
+
+  ];
+
+  for (const transactionSignature of invalidSignatures) {
+
+    assertError(
+
+      await fx.confirm({
+
+        body: {
+
+          ...PAYMENT_BODY,
+
+          transactionSignature
+
+        }
+
+      }),
+
+      400,
+
+      "invalid_payment_request"
+
+    );
+
+  }
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 41 — CANONICAL SIGNATURE
+ */
+
+test("accepts structurally valid 64-byte Solana signatures", async t => {
+
+  const fx = await fixture(t);
+
+  const signature =
+    "1".repeat(63) + "3";
+
+  const result = await fx.confirm({
+
+    body: {
+
+      quoteId: QUOTE_ID,
+
+      transactionSignature: signature
+
+    }
+
+  });
+
+  assert.equal(result.status, 200);
+
+  assert.equal(
+
+    fx.calls[0].input.transactionSignature,
+
+    signature
+
+  );
+
+});
+
+
+/*
+ * TEST 42 — RECOVERY AFTER OVERSIZED BODY
+ */
+
+test("continues serving valid requests after rejecting oversized JSON", async t => {
+
+  const fx = await fixture(t);
+
+  assertError(
+
+    await fx.confirm({
+
+      body: "x".repeat(
+        BODY_LIMIT + 1
+      )
+
+    }),
+
+    413,
+
+    "body_too_large"
+
+  );
+
+  assert.equal(fx.calls.length, 0);
+
+  const result = await fx.confirm();
+
+  assert.equal(result.status, 200);
+
+  assert.equal(fx.calls.length, 1);
+
+});
+
+
+/*
+ * TEST 43 — PROTOTYPE FIELD INJECTION
+ */
+
+test("rejects special JSON properties on payment routes", async t => {
+
+  const fx = await fixture(t);
+
+  for (const body of [
+
+    '{"__proto__":{"entitled":true}}',
+
+    '{"constructor":{"prototype":{"entitled":true}}}',
+
+    '{"prototype":{"serverVerified":true}}'
+
+  ]) {
+
+    assertError(
+
+      await fx.quote({ body }),
+
+      400,
+
+      "unexpected_payment_fields"
+
+    );
+
+  }
+
+  assert.equal(fx.calls.length, 0);
+
+});
+
+
+/*
+ * TEST 44 — PROTECTED ERROR RESPONSES
+ */
+
+test("applies security headers to oversized and malformed request errors", async t => {
+
+  const fx = await fixture(t);
+
+  const results = [
+
+    await fx.confirm({
+      body: "{invalid"
+    }),
+
+    await fx.confirm({
+
+      body: "x".repeat(
+        BODY_LIMIT + 1
+      )
+
+    })
+
+  ];
+
+  for (const result of results) {
+
+    assert.equal(
+
+      result.headers.get(
+        "x-content-type-options"
+      ),
+
+      "nosniff"
+
+    );
+
+    assert.equal(
+
+      result.headers.get(
+        "cross-origin-resource-policy"
+      ),
+
+      "same-origin"
+
+    );
+
+    assert.equal(
+
+      result.headers.get(
+        "cache-control"
+      ),
+
+      "no-store"
+
+    );
+
+  }
 
   assert.equal(fx.calls.length, 0);
 
