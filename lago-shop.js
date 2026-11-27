@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
- const VERSION = 8;
+ const VERSION = 9;
 
 let lastRenderKey = "";
 
@@ -560,7 +560,7 @@ function mountPreviewHosts(
         >
 
           <div class="lago-shop-ai-kicker">
-            PREMIUM INTELLIGENCE
+            MONTHLY AI SUBSCRIPTION
           </div>
 
           <div
@@ -604,13 +604,14 @@ function mountPreviewHosts(
             class="lago-shop-ai-title"
             id="lagoShopAITitle"
           >
-            PERSONAL AI AGENT
+            LAGO AI
           </h2>
 
           <p class="lago-shop-ai-description">
-            Give your character a mind of its own.
-            One player. One personal AI agent.
-          </p>
+  Give your character a mind of its own.
+  Unlock personal AI intelligence with a monthly
+  $LAGO subscription.
+</p>
 
           <div class="lago-shop-ai-features">
 
@@ -628,14 +629,21 @@ function mountPreviewHosts(
 
           </div>
 
+          
+          <!-- R1.10B — Monthly subscription plan -->
+
           <div class="lago-shop-ai-payment">
 
             <div class="lago-shop-ai-currency">
-              $LAGO
+              $LAGO / MONTH
             </div>
 
             <div class="lago-shop-ai-network">
-              SOLANA NETWORK
+              SOLANA · MONTHLY PLAN
+            </div>
+
+            <div class="lago-shop-ai-status">
+              Subscription price to be announced.
             </div>
 
           </div>
@@ -646,22 +654,38 @@ function mountPreviewHosts(
             type="button"
             disabled
           >
-            PURCHASE COMING SOON
+            SUBSCRIBE · COMING SOON
           </button>
 
           <div
             class="lago-shop-ai-status"
             id="lagoShopAIStatus"
+            role="status"
           >
-            Payment service not connected yet.
+            Subscription service not connected yet.
           </div>
 
           <div class="lago-shop-ai-policy">
-            Paid access only.
-            One active agent per account.
-            One purchase per 24 hours.
-            Trading requires separate authorization.
+
+            One subscription per account.
+            One active personal AI agent.
+            Monthly renewal.
+            No automatic charges.
+            No free trial.
+
           </div>
+
+          <div class="lago-shop-ai-policy">
+
+            Your character and game progress
+            remain available after subscription expiry.
+
+            AI memory is preserved for renewal.
+
+            Trading requires separate authorization.
+
+          </div>
+
 
         </section>
 
