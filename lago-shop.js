@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
- const VERSION = 9;
+ const VERSION = 10;
 
 let lastRenderKey = "";
 
@@ -665,6 +665,53 @@ function mountPreviewHosts(
             Subscription service not connected yet.
           </div>
 
+
+          <!-- R1.10D — Subscription management -->
+
+          <div
+            class="lago-shop-ai-policy"
+            id="lagoShopSubscriptionDetails"
+          >
+
+            <div>
+              STATUS:
+              <strong id="lagoShopSubscriptionState">
+                INACTIVE
+              </strong>
+            </div>
+
+            <div>
+              PLAN:
+              <strong>
+                MONTHLY
+              </strong>
+            </div>
+
+            <div>
+              VALID UNTIL:
+              <strong id="lagoShopSubscriptionEnd">
+                —
+              </strong>
+            </div>
+
+            <div>
+              DAYS REMAINING:
+              <strong id="lagoShopSubscriptionDays">
+                —
+              </strong>
+            </div>
+
+            <div>
+              AUTO RENEWAL:
+              <strong id="lagoShopSubscriptionAuto">
+                OFF
+              </strong>
+            </div>
+
+          </div>
+
+
+
           <div class="lago-shop-ai-policy">
 
             One subscription per account.
@@ -793,6 +840,257 @@ function mountPreviewHosts(
   }
 
 
+  /*
+   * R1.10D — Subscription management.
+   *
+   * Read-only server entitlement projection.
+   * No local subscription activation.
+   */
+
+  function updateSubscription() {
+
+    const section =
+      document.getElementById(
+        "lagoShopAI"
+      );
+
+    if (!section) return;
+
+    const access =
+      window.LAGO_AGENT_ACCESS
+        ?.getState?.();
+
+    const button =
+      document.getElementById(
+        "lagoShopAIPurchase"
+      );
+
+    const setText = (id, value) => {
+
+      const element =
+        document.getElementById(id);
+
+      if (
+        element &&
+        element.textContent !== String(value)
+      ) {
+
+        element.textContent = String(value);
+
+      }
+
+    };
+
+
+    const verified =
+      access?.serverVerified === true;
+
+    const periodEnd =
+      Date.parse(
+        access?.currentPeriodEnd || ""
+      );
+
+    const periodValid =
+      Number.isFinite(periodEnd) &&
+      periodEnd > Date.now();
+
+    const active =
+
+      verified &&
+
+      access?.entitled === true &&
+
+      access?.billingModel === "subscription" &&
+
+      access?.subscriptionStatus === "active" &&
+
+      periodValid;
+
+
+    let status = "INACTIVE";
+
+    let action =
+      "SUBSCRIBE · COMING SOON";
+
+    let message =
+      "Subscription service not connected yet.";
+
+
+    /* PAYMENT PENDING */
+
+    if (
+      access?.subscriptionStatus === "pending"
+    ) {
+
+      status = "PENDING";
+
+      action = "PAYMENT PENDING";
+
+      message =
+        "Waiting for server verification.";
+
+    }
+
+
+    /* ACTIVE SUBSCRIPTION */
+
+    else if (active) {
+
+      status = "ACTIVE";
+
+      action =
+        "SUBSCRIPTION ACTIVE";
+
+      message =
+        "Your monthly subscription is active.";
+
+    }
+
+
+    /* EXPIRED SUBSCRIPTION */
+
+    else if (
+
+      verified &&
+
+      (
+
+        access?.subscriptionStatus === "expired" ||
+
+        (
+
+          access?.subscriptionStatus === "active" &&
+
+          Number.isFinite(periodEnd) &&
+
+          !periodValid
+
+        )
+
+      )
+
+    ) {
+
+      status = "EXPIRED";
+
+      action =
+        "RENEW · COMING SOON";
+
+      message =
+        "Renew your subscription to restore AI access.";
+
+    }
+
+
+    /* SERVER DATA NOT VERIFIED */
+
+    else if (
+
+      access?.subscriptionStatus === "active" &&
+
+      !active
+
+    ) {
+
+      status = "UNVERIFIED";
+
+      action = "UNAVAILABLE";
+
+      message =
+        "Subscription could not be verified.";
+
+    }
+
+
+    section.dataset.subscriptionStatus =
+      status.toLowerCase();
+
+
+    setText(
+      "lagoShopSubscriptionState",
+      status
+    );
+
+    setText(
+      "lagoShopSubscriptionEnd",
+
+      verified && Number.isFinite(periodEnd)
+
+        ? new Intl.DateTimeFormat(
+
+            "en-GB",
+
+            {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              timeZone: "UTC"
+            }
+
+          ).format(periodEnd) + " UTC"
+
+        : "—"
+
+    );
+
+
+    setText(
+
+      "lagoShopSubscriptionDays",
+
+      active &&
+
+      typeof access?.daysRemaining === "number" &&
+
+      Number.isFinite(access.daysRemaining)
+
+        ? Math.max(
+            0,
+            Math.ceil(access.daysRemaining)
+          )
+
+        : "—"
+
+    );
+
+
+    setText(
+
+      "lagoShopSubscriptionAuto",
+
+      verified && access?.autoRenewal === true
+
+        ? "ON"
+
+        : "OFF"
+
+    );
+
+
+    setText(
+      "lagoShopAIStatus",
+      message
+    );
+
+
+    /*
+     * Checkout remains disabled until
+     * a verified payment backend exists.
+     */
+
+    if (button) {
+
+      button.disabled = true;
+
+      button.textContent = action;
+
+    }
+
+  }
+
+
+
+  
   function updateBalance() {
 
     const element =
@@ -1292,7 +1590,9 @@ function mountPreviewHosts(
 
     create();
 
-    updateBalance();
+updateBalance();
+
+updateSubscription();
 
 
     const dev =
@@ -1554,6 +1854,34 @@ lastRenderKey = key;
       }
     }
   );
+
+  
+  document.addEventListener(
+    "lago:agent-access-ready",
+    updateSubscription
+  );
+
+  document.addEventListener(
+    "lago:agent-access-state",
+    updateSubscription
+  );
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+
+      if (
+        document.visibilityState === "visible"
+      ) {
+
+        updateSubscription();
+
+      }
+
+    }
+  );
+
+
 
 
   window.LAGO_SHOP =
