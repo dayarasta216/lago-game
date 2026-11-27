@@ -1257,3 +1257,545 @@ test("enforces immutable account scoped runtime policy", async t => {
     true
   );
 });
+
+/*
+ * LAGO GAME
+ * R2.8A3 — AUTHORIZATION HARDENING REGRESSION
+ *
+ * Shared verification deadline.
+ * Monotonic timing.
+ * Provider cancellation.
+ * Late response isolation.
+ */
+
+function deferredRuntimeResult() {
+  let resolve;
+  let reject;
+
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
+
+/*
+ * TEST 30 — INITIAL SESSION DEADLINE
+ */
+
+test("includes initial session restoration in the verification deadline", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    sessionStore: {
+      async restoreSession(token) {
+        fx.advance(5000);
+        return fx.sessions.restoreSession(token);
+      }
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_verification_timeout"
+  );
+});
+
+
+/*
+ * TEST 31 — SHARED PROVIDER BUDGET
+ */
+
+test("uses one cumulative time budget across authorization providers", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    sessionStore: {
+      async restoreSession(token) {
+        fx.advance(1000);
+        return fx.sessions.restoreSession(token);
+      }
+    },
+
+    async getCharacterAccess(input) {
+      fx.advance(1000);
+      return fx.getCharacterAccess(input);
+    },
+
+    async getSubscription(input) {
+      fx.advance(1000);
+      return fx.entitlement.getSubscription(input);
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_verification_timeout"
+  );
+});
+
+
+/*
+ * TEST 32 — REMAINING DECISION LIFETIME
+ */
+
+test("subtracts verification latency from the authorization lifetime", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.advance(2000);
+
+      return fx.entitlement.getSubscription(input);
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertAllowed(result, fx.playerA);
+
+  const issuedAt = Date.parse(result.issuedAt);
+  const validUntil = Date.parse(result.validUntil);
+
+  assert.equal(issuedAt, START + 2000);
+
+  assert.ok(validUntil > issuedAt);
+
+  assert.ok(validUntil <= START + 5000);
+
+  assert.ok(validUntil - issuedAt <= 3000);
+});
+
+
+/*
+ * TEST 33 — SHARED ABORT SIGNAL
+ */
+
+test("passes the same cancellation signal to every verification provider", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const signals = [];
+
+  const runtime = fx.createRuntime({
+    sessionStore: {
+      async restoreSession(token, options) {
+        signals.push(options.signal);
+
+        return fx.sessions.restoreSession(token);
+      }
+    },
+
+    async getCharacterAccess(input, options) {
+      signals.push(options.signal);
+
+      return fx.getCharacterAccess(input);
+    },
+
+    async getSubscription(input, options) {
+      signals.push(options.signal);
+
+      return fx.entitlement.getSubscription(input);
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(signals.length, 5);
+
+  for (const signal of signals) {
+    assert.ok(signal instanceof AbortSignal);
+    assert.equal(signal, signals[0]);
+    assert.equal(signal.aborted, false);
+  }
+});
+
+
+/*
+ * TEST 34 — NO PROVIDER EXECUTION AFTER TIMEOUT
+ */
+
+test("does not invoke subsequent providers after the shared deadline", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  let characterCalls = 0;
+  let subscriptionCalls = 0;
+
+  const runtime = fx.createRuntime({
+    sessionStore: {
+      async restoreSession(token) {
+        fx.advance(5000);
+
+        return fx.sessions.restoreSession(token);
+      }
+    },
+
+    async getCharacterAccess(input) {
+      characterCalls++;
+
+      return fx.getCharacterAccess(input);
+    },
+
+    async getSubscription(input) {
+      subscriptionCalls++;
+
+      return fx.entitlement.getSubscription(input);
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_verification_timeout"
+  );
+
+  assert.equal(characterCalls, 0);
+  assert.equal(subscriptionCalls, 0);
+});
+
+
+/*
+ * TEST 35 — REAL TIMER AND STALLED PROVIDERS
+ */
+
+test("cancels stalled providers even when they ignore AbortSignal", {
+  timeout: 15000
+}, async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const pendingSession = deferredRuntimeResult();
+  const pendingCharacter = deferredRuntimeResult();
+  const pendingSubscription = deferredRuntimeResult();
+
+  const signals = [];
+
+  const sessionRuntime = fx.createRuntime({
+    sessionStore: {
+      restoreSession(token, options) {
+        signals.push(options.signal);
+
+        return pendingSession.promise;
+      }
+    }
+  });
+
+  const characterRuntime = fx.createRuntime({
+    getCharacterAccess(input, options) {
+      signals.push(options.signal);
+
+      return pendingCharacter.promise;
+    }
+  });
+
+  const subscriptionRuntime = fx.createRuntime({
+    getSubscription(input, options) {
+      signals.push(options.signal);
+
+      return pendingSubscription.promise;
+    }
+  });
+
+  /*
+   * Run three independent timeout scenarios
+   * concurrently.
+   */
+
+  const results = await Promise.all([
+    sessionRuntime.authorize(fx.input()),
+    characterRuntime.authorize(fx.input()),
+    subscriptionRuntime.authorize(fx.input())
+  ]);
+
+  for (const result of results) {
+    assertDenied(
+      result,
+      "runtime_verification_timeout"
+    );
+  }
+
+  assert.equal(signals.length, 3);
+
+  for (const signal of signals) {
+    assert.equal(signal.aborted, true);
+  }
+
+  assert.equal(new Set(signals).size, 3);
+
+  /*
+   * Late provider responses must not
+   * modify previously denied decisions.
+   */
+
+  pendingSession.resolve(
+    await fx.sessions.restoreSession(
+      fx.playerA.token
+    )
+  );
+
+  pendingCharacter.resolve(
+    await fx.getCharacterAccess({
+      accountId: fx.playerA.accountId,
+      characterId: CHARACTER
+    })
+  );
+
+  pendingSubscription.resolve(
+    fx.entitlement.getSubscription({
+      accountId: fx.playerA.accountId
+    })
+  );
+
+  await new Promise(resolve =>
+    setImmediate(resolve)
+  );
+
+  for (const result of results) {
+    assertDenied(
+      result,
+      "runtime_verification_timeout"
+    );
+  }
+
+  /*
+   * A new independent request may succeed.
+   */
+
+  assertAllowed(
+    await fx.authorize(),
+    fx.playerA
+  );
+});
+
+
+/*
+ * TEST 36 — COOPERATIVE PROVIDER CANCELLATION
+ */
+
+test("notifies cooperative providers when verification expires", {
+  timeout: 15000
+}, async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  let receivedAbort = false;
+
+  const runtime = fx.createRuntime({
+    getSubscription(input, options) {
+      return new Promise((resolve, reject) => {
+        options.signal.addEventListener(
+          "abort",
+
+          () => {
+            receivedAbort = true;
+
+            reject(
+              new Error("provider_cancelled")
+            );
+          },
+
+          { once: true }
+        );
+      });
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertDenied(
+    result,
+    "runtime_verification_timeout"
+  );
+
+  assert.equal(receivedAbort, true);
+});
+
+
+/*
+ * TEST 37 — CLOCK ROLLBACK DURING FIRST CALL
+ */
+
+test("rejects clock rollback during initial authentication", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    sessionStore: {
+      async restoreSession(token) {
+        fx.advance(-1);
+
+        return fx.sessions.restoreSession(token);
+      }
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "invalid_runtime_clock"
+  );
+});
+
+
+/*
+ * TEST 38 — SESSION EXPIRATION BOUNDARY
+ */
+
+test("limits runtime authorization to the remaining session lifetime", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.setTime(START + 3600000 - 1000);
+
+  const result = await fx.authorize();
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(
+    Date.parse(result.validUntil),
+    START + 3600000
+  );
+});
+
+
+/*
+ * TEST 39 — SESSION EXPIRATION DURING CHECKS
+ */
+
+test("rejects sessions expiring during asynchronous verification", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.setTime(START + 3600000 - 1000);
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.advance(1000);
+
+      return fx.entitlement.getSubscription(input);
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_session_changed"
+  );
+});
+
+
+/*
+ * TEST 40 — CONCURRENT ACCOUNT ISOLATION
+ */
+
+test("isolates concurrent runtime decisions for different accounts", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay(fx.playerA);
+  await fx.pay(fx.playerB);
+
+  const results = await Promise.all([
+    fx.runtime.authorize(
+      fx.input(fx.playerA)
+    ),
+
+    fx.runtime.authorize(
+      fx.input(fx.playerB, {
+        action: "market_analysis"
+      })
+    )
+  ]);
+
+  assertAllowed(
+    results[0],
+    fx.playerA
+  );
+
+  assertAllowed(
+    results[1],
+    fx.playerB,
+    CHARACTER,
+    "market_analysis"
+  );
+
+  assert.notEqual(
+    results[0].identity.agentId,
+    results[1].identity.agentId
+  );
+
+  assert.notEqual(
+    results[0].identity.accountId,
+    results[1].identity.accountId
+  );
+});
+
+
+/*
+ * TEST 41 — HARDENED SECURITY POLICY
+ */
+
+test("publishes the immutable shared deadline security policy", async t => {
+  const fx = await fixture(t);
+
+  const policy = fx.runtime.getPolicy();
+
+  assert.equal(
+    policy.verificationTimeoutMs,
+    5000
+  );
+
+  assert.equal(
+    policy.sharedVerificationDeadline,
+    true
+  );
+
+  assert.equal(
+    policy.monotonicClockRequired,
+    true
+  );
+
+  assert.equal(
+    policy.providerCancellationSupported,
+    true
+  );
+
+  assert.equal(
+    policy.verificationLatencyConsumesDecisionLifetime,
+    true
+  );
+
+  assert.equal(
+    policy.memoryAuthorizationSeparate,
+    true
+  );
+
+  assert.equal(
+    policy.tradingAuthorizationSeparate,
+    true
+  );
+
+  assert.equal(policy.failClosed, true);
+
+  assert.equal(Object.isFrozen(policy), true);
+});
