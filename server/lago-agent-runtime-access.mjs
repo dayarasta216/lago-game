@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import {
   createMemoryIdentity,
   validAccountId,
@@ -44,7 +45,12 @@ const POLICY = Object.freeze({
   externalModelTrainingEnabled: false,
   clientPermissionsTrusted: false,
   maxDecisionAgeMs: MAX_DECISION_AGE_MS,
-  failClosed: true
+verificationTimeoutMs: MAX_DECISION_AGE_MS,
+sharedVerificationDeadline: true,
+monotonicClockRequired: true,
+providerCancellationSupported: true,
+verificationLatencyConsumesDecisionLifetime: true,
+failClosed: true
 });
 
 function deny(reason) {
@@ -181,6 +187,176 @@ function normalizeSubscription(
   });
 }
 
+/*
+ * R2.8A2 — VERIFICATION DEADLINE
+ *
+ * One shared time budget for all providers.
+ * Independent monotonic clock.
+ * Abortable provider waiting.
+ */
+
+const VERIFICATION_TIMEOUT = Symbol(
+  "runtime_verification_timeout"
+);
+
+const INVALID_RUNTIME_CLOCK = Symbol(
+  "invalid_runtime_clock"
+);
+
+function createVerificationDeadline(
+  now,
+  startedAt
+) {
+
+  const monotonicStart = performance.now();
+
+  const controller = new AbortController();
+
+  let lastCheckedAt = startedAt;
+
+  const timer = setTimeout(() => {
+
+    controller.abort();
+
+  }, MAX_DECISION_AGE_MS);
+
+
+  function check() {
+
+    const current = now();
+
+    if (
+      !validClock(current) ||
+      current < lastCheckedAt
+    ) {
+
+      throw INVALID_RUNTIME_CLOCK;
+
+    }
+
+    lastCheckedAt = current;
+
+    const elapsed =
+      performance.now() - monotonicStart;
+
+    if (
+      controller.signal.aborted ||
+      current - startedAt >= MAX_DECISION_AGE_MS ||
+      !Number.isFinite(elapsed) ||
+      elapsed < 0 ||
+      elapsed >= MAX_DECISION_AGE_MS
+    ) {
+
+      controller.abort();
+
+      throw VERIFICATION_TIMEOUT;
+
+    }
+
+    return current;
+
+  }
+
+
+  async function run(operation) {
+
+    check();
+
+    const signal = controller.signal;
+
+    let onAbort;
+
+    const cancelled = new Promise((_, reject) => {
+
+      onAbort = () => {
+
+        reject(VERIFICATION_TIMEOUT);
+
+      };
+
+      signal.addEventListener(
+        "abort",
+        onAbort,
+        { once: true }
+      );
+
+    });
+
+    try {
+
+      const task = Promise.resolve().then(() => {
+
+        check();
+
+        return operation(signal);
+
+      });
+
+      const result = await Promise.race([
+        task,
+        cancelled
+      ]);
+
+      check();
+
+      return result;
+
+    } finally {
+
+      signal.removeEventListener(
+        "abort",
+        onAbort
+      );
+
+    }
+
+  }
+
+
+  function getRemainingTime() {
+
+    const current = check();
+
+    const monotonicElapsed =
+      performance.now() - monotonicStart;
+
+    return Math.max(
+
+      0,
+
+      Math.floor(
+
+        Math.min(
+
+          MAX_DECISION_AGE_MS -
+            (current - startedAt),
+
+          MAX_DECISION_AGE_MS -
+            monotonicElapsed
+
+        )
+
+      )
+
+    );
+
+  }
+
+
+  function close() {
+
+    clearTimeout(timer);
+
+  }
+
+  return Object.freeze({
+    check,
+    run,
+    getRemainingTime,
+    close
+  });
+
+}
 
 /*
  * SERVER RUNTIME ACCESS FACTORY
@@ -227,6 +403,326 @@ export function createLagoRuntimeAccess({
    */
 
   async function authorize(input = {}) {
+
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
+    return deny("invalid_runtime_request");
+  }
+
+  const {
+    sessionToken,
+    characterId,
+    action
+  } = input;
+
+  if (!ACTIONS.includes(action)) {
+    return deny("runtime_action_not_allowed");
+  }
+
+  if (!validCharacterId(characterId)) {
+    return deny("invalid_character");
+  }
+
+  if (
+    typeof sessionToken !== "string" ||
+    sessionToken.trim().length === 0 ||
+    sessionToken.length > 256
+  ) {
+    return deny("authentication_required");
+  }
+
+  if (!runtimeEnabled) {
+    return deny("runtime_disabled");
+  }
+
+  if (
+    typeof getCharacterAccess !== "function"
+  ) {
+    return deny("character_access_unavailable");
+  }
+
+  if (
+    typeof getSubscription !== "function"
+  ) {
+    return deny("subscription_service_unavailable");
+  }
+
+  let deadline = null;
+
+  try {
+
+    /*
+     * 1. Start verification deadline
+     * before the first provider call.
+     */
+
+    const startedAt = now();
+
+    if (!validClock(startedAt)) {
+      return deny("invalid_runtime_clock");
+    }
+
+    deadline = createVerificationDeadline(
+      now,
+      startedAt
+    );
+
+
+    /*
+     * 2. Authenticate server session.
+     */
+
+    const initialSession = await deadline.run(
+      signal => sessionStore.restoreSession(
+        sessionToken,
+        { signal }
+      )
+    );
+
+    const session = normalizeSession(
+      initialSession,
+      deadline.check()
+    );
+
+    if (!session) {
+      return deny("authentication_required");
+    }
+
+    const accountId = session.accountId;
+
+
+    /*
+     * 3. Verify active character ownership.
+     */
+
+    const characterAccess = await deadline.run(
+      signal => getCharacterAccess(
+        {
+          accountId,
+          characterId
+        },
+        { signal }
+      )
+    );
+
+    if (
+      !characterAllowed(
+        characterAccess,
+        accountId,
+        characterId
+      )
+    ) {
+      return deny("character_access_denied");
+    }
+
+
+    /*
+     * 4. Verify account subscription.
+     */
+
+    const subscription = await deadline.run(
+      signal => getSubscription(
+        { accountId },
+        { signal }
+      )
+    );
+
+    const checkedAt = deadline.check();
+
+    const billing = normalizeSubscription(
+      subscription,
+      accountId,
+      checkedAt
+    );
+
+    if (!billing) {
+      return deny("active_subscription_required");
+    }
+
+
+    /*
+     * 5. Recheck active character.
+     */
+
+    const currentAccess = await deadline.run(
+      signal => getCharacterAccess(
+        {
+          accountId,
+          characterId
+        },
+        { signal }
+      )
+    );
+
+    if (
+      !characterAllowed(
+        currentAccess,
+        accountId,
+        characterId
+      )
+    ) {
+      return deny("character_context_changed");
+    }
+
+
+    /*
+     * 6. Recheck session after verification.
+     */
+
+    const restoredSession = await deadline.run(
+      signal => sessionStore.restoreSession(
+        sessionToken,
+        { signal }
+      )
+    );
+
+    const finishedAt = deadline.check();
+
+    const currentSession = normalizeSession(
+      restoredSession,
+      finishedAt
+    );
+
+    if (
+      !currentSession ||
+      currentSession.accountId !== accountId ||
+      session.expiresAt <= finishedAt
+    ) {
+      return deny("runtime_session_changed");
+    }
+
+    if (
+      finishedAt < billing.start ||
+      finishedAt >= billing.end
+    ) {
+      return deny("subscription_expired");
+    }
+
+
+    /*
+     * 7. Create canonical agent identity.
+     */
+
+    const identity = createMemoryIdentity(
+      accountId,
+      characterId
+    );
+
+    if (!identity) {
+      return deny("invalid_agent_identity");
+    }
+
+
+    /*
+     * 8. Limit decision lifetime.
+     *
+     * Verification latency consumes
+     * the shared authorization budget.
+     */
+
+    const remainingTime =
+      deadline.getRemainingTime();
+
+    if (remainingTime <= 0) {
+      return deny("runtime_verification_timeout");
+    }
+
+    const validUntil = Math.min(
+
+      session.expiresAt,
+
+      currentSession.expiresAt,
+
+      billing.end,
+
+      startedAt + MAX_DECISION_AGE_MS,
+
+      finishedAt + remainingTime
+
+    );
+
+    if (validUntil <= finishedAt) {
+      return deny("runtime_verification_timeout");
+    }
+
+
+    /*
+     * 9. Return scoped authorization.
+     */
+
+    return Object.freeze({
+
+      ok: true,
+
+      version: RUNTIME_ACCESS_VERSION,
+
+      authorized: true,
+
+      runtimeAuthorized: true,
+
+      action,
+
+      identity,
+
+      sessionVerified: true,
+
+      characterVerified: true,
+
+      subscriptionVerified: true,
+
+      issuedAt:
+        new Date(finishedAt).toISOString(),
+
+      validUntil:
+        new Date(validUntil).toISOString(),
+
+      currentPeriodEnd:
+        new Date(billing.end).toISOString(),
+
+      memoryAuthorized: false,
+
+      learningAuthorized: false,
+
+      tradingAuthorized: false,
+
+      externalModelTrainingAuthorized: false,
+
+      reason: null
+
+    });
+
+  } catch (error) {
+
+    if (error === VERIFICATION_TIMEOUT) {
+
+      return deny(
+        "runtime_verification_timeout"
+      );
+
+    }
+
+    if (error === INVALID_RUNTIME_CLOCK) {
+
+      return deny(
+        "invalid_runtime_clock"
+      );
+
+    }
+
+    return deny(
+      "runtime_authorization_unavailable"
+    );
+
+  } finally {
+
+    deadline?.close();
+
+  }
+
+}
 
     if (
       !input ||
