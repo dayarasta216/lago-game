@@ -791,7 +791,6 @@ const findPaymentClaims = db.prepare(`
    * account, quote and signature match.
    */
 
-  <CodeBlock language="javascript" editable>
 function checkReplay(request) {
 
 
@@ -909,8 +908,6 @@ return reject(
 );
 
 }
-</CodeBlock>
-
   /*
    * RECORD VERIFIED PAYMENT
    *
@@ -1435,7 +1432,6 @@ return reject(
 
         uniqueTransactionSignature: true,
 
-       <CodeBlock language="javascript" editable>
 uniqueQuoteId: true,
 
 
@@ -1448,7 +1444,6 @@ sharedPaymentDatabaseRequired: true,
 atomicPaymentClaim: true,
 
 immutablePaymentHistory: true,
-</CodeBlock>
 
         preserveBillingHistory: true,
 
