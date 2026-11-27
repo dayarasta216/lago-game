@@ -26,6 +26,9 @@ import {
   verifyTelegramInitData
 } from "./telegram-initdata.mjs";
 
+import {
+  validSolanaSignature
+} from "./lago-solana-payment-verifier.mjs";
 
 const SESSION_COOKIE =
   "lago_session";
@@ -108,119 +111,133 @@ function json(
   headers = {}
 ) {
 
-  const data =
-    JSON.stringify(
-      body
-    );
+  const data = JSON.stringify(body);
 
+  const responseHeaders = {
+
+    ...headers,
+
+    "Content-Type":
+      "application/json; charset=utf-8",
+
+    "Content-Length":
+      Buffer.byteLength(data),
+
+    "Cache-Control":
+      "no-store",
+
+    "X-Content-Type-Options":
+      "nosniff",
+
+    "X-Frame-Options":
+      "DENY",
+
+    "Referrer-Policy":
+      "no-referrer",
+
+    "Cross-Origin-Resource-Policy":
+      "same-origin"
+
+  };
+
+  /*
+   * Close oversized request connections
+   * after returning the HTTP response.
+   */
+
+  if (status === 413) {
+
+    responseHeaders.Connection = "close";
+
+  }
 
   response.writeHead(
     status,
-    {
-
-      "Content-Type":
-        "application/json; charset=utf-8",
-
-      "Content-Length":
-        Buffer.byteLength(
-          data
-        ),
-
-      "Cache-Control":
-        "no-store",
-
-      ...headers
-
-    }
+    responseHeaders
   );
 
-
-  response.end(
-    data
-  );
+  response.end(data);
 
 }
 
 
-function parseCookies(
-  request
-) {
+function parseCookies(request) {
 
-  const header =
-    clean(
-      request.headers.cookie
-    );
+  const header = clean(
+    request.headers.cookie
+  );
 
+  /*
+   * Null prototype prevents special
+   * property names from affecting
+   * cookie storage.
+   */
 
-  const result =
-    {};
+  const result = Object.create(null);
 
+  const duplicates = new Set();
 
   if (!header) {
-
     return result;
-
   }
 
+  for (const part of header.split(";")) {
 
-  for (
-    const part
-    of header.split(";")
-  ) {
+    const index = part.indexOf("=");
 
-    const index =
-      part.indexOf("=");
+    if (index <= 0) {
+      continue;
+    }
 
+    const key = part
+      .slice(0, index)
+      .trim();
+
+    const value = part
+      .slice(index + 1)
+      .trim();
 
     if (
-      index <= 0
+      !key ||
+      !/^[A-Za-z0-9_.-]+$/.test(key)
+    ) {
+      continue;
+    }
+
+    /*
+     * Reject ambiguous duplicate cookies.
+     * Never silently select one session.
+     */
+
+    if (
+      duplicates.has(key) ||
+      Object.hasOwn(result, key)
     ) {
 
-      continue;
+      duplicates.add(key);
 
-    }
-
-
-    const key =
-      part
-        .slice(
-          0,
-          index
-        )
-        .trim();
-
-
-    const value =
-      part
-        .slice(
-          index + 1
-        )
-        .trim();
-
-
-    if (!key) {
+      delete result[key];
 
       continue;
 
     }
-
 
     try {
 
       result[key] =
-        decodeURIComponent(
-          value
-        );
+        decodeURIComponent(value);
 
     } catch {
 
-      result[key] =
-        value;
+      /*
+       * Invalid encoding is not trusted.
+       */
+
+      duplicates.add(key);
 
     }
 
   }
-
 
   return result;
 
@@ -293,100 +310,163 @@ function clearSessionCookie(
 }
 
 
-async function readJSON(
-  request
-) {
+async function readJSON(request) {
 
-  let size =
-    0;
+  /*
+   * R2.7F3B — Bounded JSON body reader.
+   *
+   * Maximum body size: 32 KiB.
+   *
+   * Preserve the connection long enough
+   * to send HTTP 413 when possible.
+   */
 
+  const contentLength =
+    request.headers["content-length"];
 
-  const chunks =
-    [];
-
-
-  for await (
-    const chunk
-    of request
-  ) {
-
-    size +=
-      chunk.length;
-
+  if (contentLength !== undefined) {
 
     if (
-      size >
-      MAX_JSON_BODY_BYTES
+
+      typeof contentLength !== "string" ||
+
+      !/^[0-9]+$/.test(contentLength)
+
     ) {
 
       return {
-
-        ok:
-          false,
-
-        reason:
-          "body_too_large"
-
+        ok: false,
+        reason: "invalid_json"
       };
 
     }
 
+    const declaredSize =
+      Number(contentLength);
 
-    chunks.push(
-      chunk
-    );
+    if (
 
-  }
+      !Number.isSafeInteger(declaredSize) ||
 
+      declaredSize > MAX_JSON_BODY_BYTES
 
-  if (
-    chunks.length ===
-    0
-  ) {
+    ) {
 
-    return {
+      return {
+        ok: false,
+        reason: "body_too_large"
+      };
 
-      ok:
-        true,
-
-      value:
-        {}
-
-    };
+    }
 
   }
+
+
+  let size = 0;
+
+  const chunks = [];
 
 
   try {
 
-    const value =
-      JSON.parse(
-        Buffer
-          .concat(
-            chunks
-          )
-          .toString(
-            "utf8"
-          )
-      );
+    /*
+     * Node.js stream iterator.
+     *
+     * Do not automatically destroy
+     * the stream when returning early.
+     */
+
+    const iterator = request.iterator({
+
+      destroyOnReturn: false
+
+    });
+
+
+    for await (const chunk of iterator) {
+
+      size += chunk.length;
+
+      if (size > MAX_JSON_BODY_BYTES) {
+
+        return {
+
+          ok: false,
+
+          reason: "body_too_large"
+
+        };
+
+      }
+
+      chunks.push(chunk);
+
+    }
+
+
+    if (!request.complete) {
+
+      return {
+
+        ok: false,
+
+        reason: "invalid_json"
+
+      };
+
+    }
+
+
+    if (chunks.length === 0) {
+
+      return {
+
+        ok: true,
+
+        value: {}
+
+      };
+
+    }
+
+
+    /*
+     * Reject malformed UTF-8 instead
+     * of replacing invalid characters.
+     */
+
+    const decoder = new TextDecoder(
+
+      "utf-8",
+
+      { fatal: true }
+
+    );
+
+    const decoded = decoder.decode(
+
+      Buffer.concat(chunks, size)
+
+    );
+
+    const value = JSON.parse(decoded);
 
 
     if (
+
       !value ||
-      typeof value !==
-        "object" ||
-      Array.isArray(
-        value
-      )
+
+      typeof value !== "object" ||
+
+      Array.isArray(value)
+
     ) {
 
       return {
 
-        ok:
-          false,
+        ok: false,
 
-        reason:
-          "invalid_json"
+        reason: "invalid_json"
 
       };
 
@@ -395,8 +475,7 @@ async function readJSON(
 
     return {
 
-      ok:
-        true,
+      ok: true,
 
       value
 
@@ -406,11 +485,9 @@ async function readJSON(
 
     return {
 
-      ok:
-        false,
+      ok: false,
 
-      reason:
-        "invalid_json"
+      reason: "invalid_json"
 
     };
 
@@ -1550,9 +1627,9 @@ export function createLagoHttpServer(
                 !/^[a-f0-9]{32}$/.test(body.quoteId) ||
                 typeof body.transactionSignature !==
                   "string" ||
-                !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(
-                  body.transactionSignature
-                )
+                !validSolanaSignature(
+  body.transactionSignature
+)
               ) {
 
                 json(
