@@ -1214,3 +1214,721 @@ test("keeps operational permissions locked despite server response flags", async
   assert.equal(Object.isFrozen(fx.state()), true);
 
 });
+/*
+ * LAGO GAME
+ * R2.7H1C — CLIENT RELIABILITY REGRESSION TESTS
+ *
+ * Request cancellation.
+ * Network latency accounting.
+ * Browser lifecycle protection.
+ * Final asynchronous state consistency.
+ */
+
+
+/*
+ * TEST 21 — FINAL ERROR STATE
+ */
+
+test("returns final state after unsuccessful subscription refresh", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const cases = [
+
+    [
+      async () => new Response("{}", {
+        status: 401
+      }),
+      "authentication_required"
+    ],
+
+    [
+      async () => new Response("{}", {
+        status: 503
+      }),
+      "subscription_service_unavailable"
+    ],
+
+    [
+      async () => new Response("<html>Error</html>", {
+        headers: {
+          "Content-Type": "text/html"
+        }
+      }),
+      "invalid_subscription_response"
+    ],
+
+    [
+      async () => response(
+        subscription(ACCOUNT_B)
+      ),
+      "invalid_subscription_response"
+    ]
+
+  ];
+
+  for (const [provider, expectedReason] of cases) {
+
+    fx.setProvider(provider);
+
+    const returned = await fx.api.refresh();
+
+    assert.equal(returned.loading, false);
+
+    assert.equal(
+      returned.reason,
+      expectedReason
+    );
+
+    assert.equal(
+      returned.subscriptionStateAvailable,
+      false
+    );
+
+    assert.equal(returned.entitled, false);
+
+    assert.deepEqual(returned, fx.state());
+
+    assertUnavailable(fx);
+
+  }
+
+});
+
+
+/*
+ * TEST 22 — FINAL SUCCESS STATE
+ */
+
+test("returns completed subscription state after successful refresh", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const returned = await fx.api.refresh();
+
+  assert.equal(returned.loading, false);
+
+  assert.equal(
+    returned.subscriptionStateAvailable,
+    true
+  );
+
+  assert.equal(returned.entitled, true);
+
+  assert.deepEqual(returned, fx.state());
+
+  assertRuntimeLocked(fx);
+
+});
+
+
+/*
+ * TEST 23 — UNCOOPERATIVE NETWORK TRANSPORT
+ */
+
+test("completes timeout even when network transport ignores abort signals", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  assert.equal(fx.state().loading, true);
+
+  const signal =
+    fx.calls.at(-1).options.signal;
+
+  fx.fireTimer(10000);
+
+  const result = await pending;
+
+  assert.equal(signal.aborted, true);
+
+  assert.equal(result.loading, false);
+
+  assert.equal(
+    result.reason,
+    "subscription_request_timeout"
+  );
+
+  assertUnavailable(fx);
+
+  transport.resolve(response());
+
+  await flush();
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 24 — STALLED JSON RESPONSE
+ */
+
+test("cancels stalled response body parsing", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const body = deferred();
+
+  let parsingStarted = false;
+
+  fx.setProvider(async () => ({
+
+    ok: true,
+
+    status: 200,
+
+    headers: new Headers({
+      "Content-Type": "application/json"
+    }),
+
+    json() {
+
+      parsingStarted = true;
+
+      return body.promise;
+
+    }
+
+  }));
+
+  const pending = fx.api.refresh();
+
+  await flush();
+
+  assert.equal(parsingStarted, true);
+  assert.equal(fx.state().loading, true);
+
+  fx.fireTimer(10000);
+
+  const result = await pending;
+
+  assert.equal(result.loading, false);
+
+  assert.equal(
+    result.reason,
+    "subscription_request_timeout"
+  );
+
+  body.resolve({
+    ok: true,
+    subscription: subscription()
+  });
+
+  await flush();
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 25 — DEADLINE WITHOUT TIMER EXECUTION
+ */
+
+test("rejects responses arriving after the request deadline", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  /*
+   * Simulate delayed browser timers.
+   */
+
+  fx.advance(10000);
+
+  transport.resolve(response());
+
+  const result = await pending;
+
+  assert.equal(result.loading, false);
+
+  assert.equal(
+    result.reason,
+    "subscription_request_timeout"
+  );
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 26 — NETWORK LATENCY ACCOUNTING
+ */
+
+test("includes network latency in subscription freshness calculation", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  fx.advance(5000);
+
+  transport.resolve(response());
+
+  await pending;
+
+  assert.equal(fx.state().entitled, true);
+
+  fx.advance(54999);
+
+  assert.equal(fx.state().entitled, true);
+
+  fx.advance(1);
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 27 — EXPIRATION DURING TRANSPORT
+ */
+
+test("does not display entitlement that expires during network transit", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  const checkedAt = new Date(
+    Date.parse(END) - 1000
+  ).toISOString();
+
+  fx.advance(1000);
+
+  transport.resolve(
+
+    response(
+      subscription(ACCOUNT_A, {
+        checkedAt
+      })
+    )
+
+  );
+
+  const returned = await pending;
+
+  assert.equal(returned.loading, false);
+
+  assert.equal(returned.entitled, false);
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 28 — INVALID MONOTONIC CLOCK
+ */
+
+test("fails closed when the request clock moves backwards", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  fx.advance(-100);
+
+  transport.resolve(response());
+
+  const returned = await pending;
+
+  assert.equal(
+    returned.reason,
+    "subscription_request_timeout"
+  );
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 29 — HIDDEN PAGE REFRESH
+ */
+
+test("does not start manual refreshes in a hidden page", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.visibility(true);
+
+  const previousCalls = fx.calls.length;
+
+  const result = await fx.api.refresh();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls
+  );
+
+  assert.equal(result.loading, false);
+
+  assert.equal(fx.timers.size, 0);
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 30 — HIDDEN AUTHENTICATION
+ */
+
+test("does not request subscriptions when login occurs in a hidden page", async () => {
+
+  const fx = fixture();
+
+  fx.visibility(true);
+
+  await fx.login();
+
+  assert.equal(fx.calls.length, 0);
+
+  assertUnavailable(fx);
+
+  fx.visibility(false);
+
+  await flush();
+
+  assert.equal(fx.calls.length, 1);
+
+  assert.equal(fx.state().entitled, true);
+
+});
+
+
+/*
+ * TEST 31 — PAGE SUSPENSION
+ */
+
+test("suspends subscription refreshes after pagehide", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.windowEvent("pagehide");
+
+  assertUnavailable(fx);
+
+  assert.equal(fx.timers.size, 0);
+
+  const previousCalls = fx.calls.length;
+
+  await fx.api.refresh();
+
+  fx.windowEvent("online");
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls
+  );
+
+  fx.windowEvent("pageshow");
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls + 1
+  );
+
+  assert.equal(fx.state().entitled, true);
+
+});
+
+
+/*
+ * TEST 32 — PAGEHIDE DURING REQUEST
+ */
+
+test("cancels pending subscriptions when the page is suspended", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const pending = fx.api.refresh();
+
+  const signal =
+    fx.calls.at(-1).options.signal;
+
+  fx.windowEvent("pagehide");
+
+  await pending;
+
+  assert.equal(signal.aborted, true);
+
+  transport.resolve(response());
+
+  await flush();
+
+  assertUnavailable(fx);
+
+  assert.equal(fx.timers.size, 0);
+
+});
+
+
+/*
+ * TEST 33 — OFFLINE REFRESH BLOCK
+ */
+
+test("does not perform subscription requests while offline", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.windowEvent("offline");
+
+  const previousCalls = fx.calls.length;
+
+  await fx.api.refresh();
+
+  fx.setAuth({
+    lastError: ""
+  });
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls
+  );
+
+  assertUnavailable(fx);
+
+  fx.windowEvent("online");
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls + 1
+  );
+
+  assert.equal(fx.state().entitled, true);
+
+});
+
+
+/*
+ * TEST 34 — ONLINE WHILE HIDDEN
+ */
+
+test("does not refresh hidden subscriptions on network reconnect", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.visibility(true);
+
+  fx.windowEvent("offline");
+
+  const previousCalls = fx.calls.length;
+
+  fx.windowEvent("online");
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls
+  );
+
+  assertUnavailable(fx);
+
+  fx.visibility(false);
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls + 1
+  );
+
+});
+
+
+/*
+ * TEST 35 — CANCELLED REQUEST ISOLATION
+ */
+
+test("allows superseded requests to settle without waiting for their transport", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  const transport = deferred();
+
+  fx.setProvider(() => transport.promise);
+
+  const older = fx.api.refresh();
+
+  const signal =
+    fx.calls.at(-1).options.signal;
+
+  fx.setProvider(async () =>
+    response(subscription())
+  );
+
+  const newer = fx.api.refresh();
+
+  await newer;
+  await older;
+
+  assert.equal(signal.aborted, true);
+
+  assert.equal(fx.state().loading, false);
+
+  assert.equal(fx.state().entitled, true);
+
+  /*
+   * The older transport completes later.
+   */
+
+  transport.resolve(
+
+    response(subscription(ACCOUNT_A, {
+
+      serverVerified: false,
+
+      entitled: false,
+
+      subscriptionEntitlementGranted: false
+
+    }))
+
+  );
+
+  await flush();
+
+  assert.equal(fx.state().entitled, true);
+
+  assertRuntimeLocked(fx);
+
+});
+
+
+/*
+ * TEST 36 — MISSING TIMER API
+ */
+
+test("fails closed when required browser timer support is unavailable", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.sandbox.clearTimeout = undefined;
+
+  const returned = await fx.api.refresh();
+
+  assert.equal(returned.loading, false);
+
+  assert.equal(
+
+    returned.reason,
+
+    "subscription_service_unavailable"
+
+  );
+
+  assertUnavailable(fx);
+
+});
+
+
+/*
+ * TEST 37 — BROWSER NETWORK STATUS
+ */
+
+test("honors the browser offline status without an offline event", async () => {
+
+  const fx = fixture();
+
+  await fx.login();
+
+  fx.sandbox.navigator = {
+
+    onLine: false
+
+  };
+
+  assertUnavailable(fx);
+
+  const previousCalls = fx.calls.length;
+
+  await fx.api.refresh();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls
+  );
+
+  fx.sandbox.navigator.onLine = true;
+
+  fx.windowEvent("online");
+
+  await flush();
+
+  assert.equal(
+    fx.calls.length,
+    previousCalls + 1
+  );
+
+  assert.equal(fx.state().entitled, true);
+
+});
