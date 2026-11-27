@@ -1324,7 +1324,18 @@ test(
     const { api } = fixture();
 
 
-    delete api.LAGO_AGENT_DNA;
+   
+runInContext(
+  "window.LAGO_AGENT_DNA = undefined;",
+  api
+);
+
+assert.equal(
+  api.LAGO_AGENT_CONTEXT
+    .validateDependencies().ready,
+  false
+);
+
 
 
     const result =
