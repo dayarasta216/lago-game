@@ -11,7 +11,7 @@
    * No additional storage.
    */
 
-  const VERSION = 1;
+  const VERSION = 2;
 
   function number(value, fallback = 0) {
 
@@ -80,6 +80,65 @@
     const character =
       runtime?.getContext?.();
 
+    /*
+     * R2.5G — Individual agent bond.
+     *
+     * Read persisted gameplay progress.
+     * Never generate artificial values.
+     */
+
+    const characterId =
+      character?.characterId || "lago";
+
+    let bond = null;
+
+    try {
+
+      const bondState =
+        window.LAGO_AGENT_BOND_RUNTIME
+          ?.getState?.(characterId);
+
+      if (
+
+        bondState?.ready === true &&
+
+        bondState.characterId ===
+          characterId &&
+
+        bondState.progression
+
+      ) {
+
+        bond = Object.freeze({
+
+          ...bondState.progression,
+
+          scope: "account_character",
+
+          persistence:
+            bondState.persistence,
+
+          serverVerified:
+            bondState.serverVerified === true
+
+        });
+
+      }
+
+    } catch (error) {
+
+      console.warn(
+
+        "[LAGO PROGRESSION] Bond unavailable.",
+
+        error
+
+      );
+
+    }
+
+
+    
     /*
      * Health and stamina are separate.
      */
@@ -217,9 +276,9 @@
 
       agent: {
 
-        bond: null,
+  bond,
 
-        memoryConnected: false,
+  memoryConnected: false,
 
         aiConnected:
           window.LAGO_AGENT_CHAT
