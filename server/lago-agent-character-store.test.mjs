@@ -1262,3 +1262,619 @@ test("enforces the account scoped character ownership policy", async t => {
   assert.equal(Object.isFrozen(policy), true);
   assert.equal(Object.isFrozen(fx.store), true);
 });
+
+/*
+ * LAGO GAME
+ * R2.8B2A — CHARACTER HARDENING REGRESSION
+ *
+ * Database replacement protection.
+ * History integrity.
+ * Live profile verification.
+ * Atomic initialization.
+ * Acquisition clock protection.
+ *
+ * All database mutations below are
+ * performed on isolated test fixtures.
+ */
+
+function withCharacterDatabase(fx, operation) {
+  const db = new DatabaseSync(fx.file, {
+    enableForeignKeyConstraints: true
+  });
+
+  try {
+    return operation(db);
+  } finally {
+    db.close();
+  }
+}
+
+
+/*
+ * TEST 29 — OWNERSHIP REPLACEMENT
+ */
+
+test("blocks INSERT OR REPLACE against existing ownership records", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  const before = fx.state();
+
+  withCharacterDatabase(fx, db => {
+    db.exec("PRAGMA recursive_triggers = OFF");
+
+    assert.throws(
+      () => db.prepare(`
+        INSERT OR REPLACE INTO character_ownership (
+          account_id,
+          character_id,
+          acquired_at,
+          acquisition_source
+        ) VALUES (?, ?, ?, ?)
+      `).run(
+        ACCOUNT_A,
+        SOLA,
+        new Date(START + 1000).toISOString(),
+        "trusted_grant"
+      ),
+
+      /character_ownership_immutable/
+    );
+  });
+
+  assert.deepEqual(
+    fx.state(),
+    before
+  );
+});
+
+
+/*
+ * TEST 30 — PROFILE REPLACEMENT
+ */
+
+test("blocks replacement of an existing character profile", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  fx.select(SOLA);
+
+  const before = fx.state();
+
+  withCharacterDatabase(fx, db => {
+    assert.throws(
+      () => db.prepare(`
+        INSERT OR REPLACE INTO character_profiles (
+          account_id,
+          active_character_id,
+          created_at,
+          updated_at,
+          selection_revision
+        ) VALUES (?, ?, ?, ?, ?)
+      `).run(
+        ACCOUNT_A,
+        STARTER,
+        before.createdAt,
+        before.updatedAt,
+        1
+      ),
+
+      /character_profile_already_exists/
+    );
+  });
+
+  assert.deepEqual(
+    fx.state(),
+    before
+  );
+});
+
+
+/*
+ * TEST 31 — HISTORY REPLACEMENT
+ */
+
+test("blocks replacement of existing selection history", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  fx.select(SOLA);
+
+  const before = fx.history();
+
+  withCharacterDatabase(fx, db => {
+    db.exec("PRAGMA recursive_triggers = OFF");
+
+    assert.throws(
+      () => db.prepare(`
+        INSERT OR REPLACE INTO character_selection_history
+        SELECT *
+        FROM character_selection_history
+        WHERE account_id = ?
+          AND selection_revision = 2
+      `).run(ACCOUNT_A),
+
+      /character_history_immutable/
+    );
+  });
+
+  assert.deepEqual(
+    fx.history(),
+    before
+  );
+});
+
+
+/*
+ * TEST 32 — UNEXPECTED FUTURE REVISION
+ */
+
+test("rejects history entries that do not match the current profile revision", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  withCharacterDatabase(fx, db => {
+    assert.throws(
+      () => db.prepare(`
+        INSERT INTO character_selection_history (
+          account_id,
+          selection_revision,
+          previous_character_id,
+          character_id,
+          selected_at
+        ) VALUES (?, ?, ?, ?, ?)
+      `).run(
+        ACCOUNT_A,
+        2,
+        STARTER,
+        SOLA,
+        new Date(START).toISOString()
+      ),
+
+      /character_history_profile_mismatch/
+    );
+  });
+
+  assert.equal(
+    fx.history().items.length,
+    1
+  );
+
+  assert.equal(
+    fx.state().selectionRevision,
+    1
+  );
+});
+
+
+/*
+ * TEST 33 — INVALID HISTORY SEQUENCE
+ */
+
+test("rejects history entries with an incorrect previous character", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  assert.equal(
+    fx.grant(MIKI).granted,
+    true
+  );
+
+  withCharacterDatabase(fx, db => {
+    db.exec("BEGIN IMMEDIATE");
+
+    try {
+      db.prepare(`
+        UPDATE character_profiles
+        SET
+          active_character_id = ?,
+          selection_revision = 2
+        WHERE account_id = ?
+      `).run(SOLA, ACCOUNT_A);
+
+      assert.throws(
+        () => db.prepare(`
+          INSERT INTO character_selection_history (
+            account_id,
+            selection_revision,
+            previous_character_id,
+            character_id,
+            selected_at
+          ) VALUES (?, ?, ?, ?, ?)
+        `).run(
+          ACCOUNT_A,
+          2,
+          MIKI,
+          SOLA,
+          new Date(START).toISOString()
+        ),
+
+        /character_history_sequence_invalid/
+      );
+
+    } finally {
+      db.exec("ROLLBACK");
+    }
+  });
+
+  assert.equal(
+    fx.state().activeCharacterId,
+    STARTER
+  );
+
+  assert.equal(
+    fx.state().selectionRevision,
+    1
+  );
+
+  assert.equal(
+    fx.history().items.length,
+    1
+  );
+});
+
+
+/*
+ * TEST 34 — LIVE PROFILE INTEGRITY
+ */
+
+test("denies character access when the profile diverges from selection history", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  withCharacterDatabase(fx, db => {
+    db.prepare(`
+      UPDATE character_profiles
+      SET active_character_id = ?
+      WHERE account_id = ?
+    `).run(SOLA, ACCOUNT_A);
+  });
+
+  assertDenied(
+    fx.state(),
+    "character_state_unavailable"
+  );
+
+  assertDenied(
+    fx.access(STARTER),
+    "character_access_unavailable"
+  );
+
+  assertDenied(
+    fx.access(SOLA),
+    "character_access_unavailable"
+  );
+
+  assertDenied(
+    fx.select(STARTER),
+    "character_selection_unavailable"
+  );
+
+  assertDenied(
+    fx.grant(MIKI),
+    "character_grant_unavailable"
+  );
+});
+
+
+/*
+ * TEST 35 — STARTUP PROFILE AUDIT
+ */
+
+test("rejects a database with mismatched profile and history during startup", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  fx.store.close();
+
+  withCharacterDatabase(fx, db => {
+    db.prepare(`
+      UPDATE character_profiles
+      SET active_character_id = ?
+      WHERE account_id = ?
+    `).run(SOLA, ACCOUNT_A);
+  });
+
+  assert.throws(
+    () => fx.open(),
+
+    /character_database_integrity_failed/
+  );
+});
+
+
+/*
+ * TEST 36 — ORPHANED OWNERSHIP
+ */
+
+test("rejects orphaned ownership during startup integrity audit", async t => {
+  const fx = await fixture(t);
+
+  fx.initialize();
+
+  fx.store.close();
+
+  withCharacterDatabase(fx, db => {
+    db.prepare(`
+      INSERT INTO character_ownership (
+        account_id,
+        character_id,
+        acquired_at,
+        acquisition_source
+      ) VALUES (?, ?, ?, ?)
+    `).run(
+      ACCOUNT_B,
+      SOLA,
+      new Date(START).toISOString(),
+      "trusted_grant"
+    );
+  });
+
+  assert.throws(
+    () => fx.open(),
+
+    /character_database_integrity_failed/
+  );
+});
+
+
+/*
+ * TEST 37 — MISSING INTERMEDIATE REVISION
+ */
+
+test("detects gaps in persistent selection history during startup", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  assert.equal(
+    fx.select(SOLA).changed,
+    true
+  );
+
+  assert.equal(
+    fx.select(STARTER).changed,
+    true
+  );
+
+  fx.store.close();
+
+  /*
+   * Simulate privileged database damage.
+   */
+
+  withCharacterDatabase(fx, db => {
+    db.exec(`
+      DROP TRIGGER
+        character_history_immutable_delete
+    `);
+
+    db.prepare(`
+      DELETE FROM character_selection_history
+      WHERE account_id = ?
+        AND selection_revision = 2
+    `).run(ACCOUNT_A);
+  });
+
+  assert.throws(
+    () => fx.open(),
+
+    /character_database_integrity_failed/
+  );
+});
+
+
+/*
+ * TEST 38 — ACQUISITION CLOCK ROLLBACK
+ */
+
+test("rejects grants and selection before the latest acquisition timestamp", async t => {
+  const fx = await fixture(t);
+
+  fx.initialize();
+
+  fx.advance(2000);
+
+  assert.equal(
+    fx.grant(SOLA).granted,
+    true
+  );
+
+  fx.setTime(START + 1000);
+
+  assertDenied(
+    fx.grant(MIKI),
+    "character_clock_rollback"
+  );
+
+  assertDenied(
+    fx.select(SOLA),
+    "character_clock_rollback"
+  );
+
+  assertCollection(
+    fx.state(),
+    ACCOUNT_A,
+    STARTER,
+    [STARTER, SOLA]
+  );
+
+  assert.equal(
+    fx.state().selectionRevision,
+    1
+  );
+
+  /*
+   * Resume after the clock catches up.
+   */
+
+  fx.setTime(START + 2000);
+
+  assert.equal(
+    fx.select(SOLA).changed,
+    true
+  );
+
+  assert.equal(
+    fx.state().selectionRevision,
+    2
+  );
+});
+
+
+/*
+ * TEST 39 — INVALID SERVER CLOCK
+ */
+
+test("rejects writes when the character server clock is invalid", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  const before = fx.state();
+
+  for (const invalidTime of [
+    NaN,
+    Infinity,
+    1.5
+  ]) {
+    fx.setTime(invalidTime);
+
+    assertDenied(
+      fx.grant(MIKI),
+      "character_grant_unavailable"
+    );
+
+    assertDenied(
+      fx.select(SOLA),
+      "character_selection_unavailable"
+    );
+
+    assertDenied(
+      fx.initialize(ACCOUNT_B),
+      "character_initialization_unavailable"
+    );
+  }
+
+  assert.deepEqual(
+    fx.state(),
+    before
+  );
+
+  assertDenied(
+    fx.state(ACCOUNT_B),
+    "character_profile_not_initialized"
+  );
+});
+
+
+/*
+ * TEST 40 — INVALID STORED ACQUISITION
+ */
+
+test("rejects collection projection containing invalid acquisition timestamps", async t => {
+  const fx = await fixture(t);
+
+  initializeAndGrant(fx);
+
+  withCharacterDatabase(fx, db => {
+    db.prepare(`
+      INSERT INTO character_ownership (
+        account_id,
+        character_id,
+        acquired_at,
+        acquisition_source
+      ) VALUES (?, ?, ?, ?)
+    `).run(
+      ACCOUNT_A,
+      MIKI,
+      "invalid-timestamp",
+      "trusted_grant"
+    );
+  });
+
+  assertDenied(
+    fx.state(),
+    "character_state_unavailable"
+  );
+
+  assertDenied(
+    fx.select(SOLA),
+    "character_selection_unavailable"
+  );
+});
+
+
+/*
+ * TEST 41 — ATOMIC INITIALIZATION
+ */
+
+test("rolls back starter ownership when initial history persistence fails", async t => {
+  const fx = await fixture(t);
+
+  withCharacterDatabase(fx, db => {
+    db.exec(`
+      CREATE TRIGGER synthetic_initial_history_failure
+      BEFORE INSERT ON character_selection_history
+      WHEN NEW.selection_revision = 1
+      BEGIN
+        SELECT RAISE(
+          ABORT,
+          'synthetic_initial_history_failure'
+        );
+      END;
+    `);
+  });
+
+  assertDenied(
+    fx.initialize(),
+    "character_initialization_unavailable"
+  );
+
+  assertDenied(
+    fx.state(),
+    "character_profile_not_initialized"
+  );
+
+  withCharacterDatabase(fx, db => {
+    const ownership = db.prepare(`
+      SELECT COUNT(*) AS total
+      FROM character_ownership
+      WHERE account_id = ?
+    `).get(ACCOUNT_A);
+
+    const profiles = db.prepare(`
+      SELECT COUNT(*) AS total
+      FROM character_profiles
+      WHERE account_id = ?
+    `).get(ACCOUNT_A);
+
+    const history = db.prepare(`
+      SELECT COUNT(*) AS total
+      FROM character_selection_history
+      WHERE account_id = ?
+    `).get(ACCOUNT_A);
+
+    assert.equal(ownership.total, 0);
+    assert.equal(profiles.total, 0);
+    assert.equal(history.total, 0);
+
+    db.exec(`
+      DROP TRIGGER synthetic_initial_history_failure
+    `);
+  });
+
+  assertCollection(
+    fx.initialize(),
+    ACCOUNT_A,
+    STARTER,
+    [STARTER]
+  );
+});
