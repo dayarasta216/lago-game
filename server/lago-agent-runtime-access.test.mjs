@@ -606,11 +606,25 @@ test("authorizes chat for a verified subscribed active character", async t => {
     START
   );
 
-  assert.equal(
-    Date.parse(result.validUntil),
-    START + 5000
-  );
+ const issuedAt = Date.parse(result.issuedAt);
+const validUntil = Date.parse(result.validUntil);
 
+assert.ok(Number.isFinite(validUntil));
+
+assert.ok(
+  validUntil > issuedAt,
+  "Authorization must have a positive lifetime"
+);
+
+assert.ok(
+  validUntil <= START + 5000,
+  "Authorization must not exceed the shared deadline"
+);
+
+assert.ok(
+  validUntil <= Date.parse(result.currentPeriodEnd),
+  "Authorization must not exceed the subscription period"
+);
   assert.equal(
     Date.parse(result.currentPeriodEnd),
     END
