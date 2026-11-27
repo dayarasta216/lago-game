@@ -8,7 +8,7 @@
    * Borderless interface
    */
 
-  const VERSION = 2;
+  const VERSION = 3;
 
   let panel = null;
   let opened = false;
@@ -23,412 +23,631 @@
 
     style.id = "lgAgentChatStyles";
 
+    
     style.textContent = `
 
-      #lagoModern .lg-agent-chat {
-        box-sizing: border-box;
-        flex: 0 0 auto;
+      /* =================================================
+         R1.9D — RESPONSIVE PREMIUM AI CHAT
+         ================================================= */
 
-        width: min(94%, 520px);
-        min-width: 0;
+      #lagoModern.lg-chat-docked {
 
-        margin: 8px auto 0;
-
-        color: var(--lg-text);
-        font-family: var(--lg-font);
-        text-align: left;
-
-        background: transparent;
-        border: none;
-        box-shadow: none;
-      }
-
-      #lagoModern .lg-agent-chat [hidden] {
-        display: none !important;
-      }
-
-      .lg-agent-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .lg-agent-heading {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .lg-agent-name {
-        color: var(--lg-ai);
-        font-size: 12px;
-        font-weight: 750;
-        overflow-wrap: anywhere;
-      }
-
-      .lg-agent-status {
-        margin-top: 3px;
-        color: var(--lg-text-secondary);
-        font-size: 9px;
-        letter-spacing: .06em;
-      }
-
-      .lg-agent-toggle {
-        min-height: 44px;
-        padding: 8px 14px;
-
-        background: var(--lg-ai-soft);
-        color: var(--lg-ai);
-
-        border: 1px solid rgba(169,151,255,.24);
-        border-radius: var(--lg-radius-md);
-
-        font: 700 11px var(--lg-font);
-        cursor: pointer;
-        touch-action: manipulation;
-      }
-
-      .lg-agent-body {
-        margin-top: 10px;
-      }
-
-      .lg-agent-messages {
         display: flex;
         flex-direction: column;
 
-        gap: 12px;
-        height: 180px;
-        padding: 4px 2px;
+        height: 100vh;
+        height: 100dvh;
 
+        overflow: hidden;
+
+      }
+
+      #lagoModern.lg-chat-docked
+      > .lago-game-area {
+
+        flex: 1 1 0;
+
+        min-height: 0;
+
+        overflow-x: hidden;
         overflow-y: auto;
+
         overscroll-behavior: contain;
 
-        scrollbar-width: thin;
-        scrollbar-color: var(--lg-border) transparent;
       }
 
-      .lg-agent-message {
-        box-sizing: border-box;
 
-        max-width: 90%;
-        min-width: 0;
+      /* CHAT CONTAINER */
 
-        font-size: 12px;
-        line-height: 1.5;
+      #lagoModern.lg-chat-docked
+      > .lg-agent-chat {
 
-        overflow-wrap: anywhere;
-        white-space: pre-wrap;
-      }
+        position: relative;
 
-      .lg-agent-message.agent {
-        align-self: flex-start;
-        color: var(--lg-text);
-      }
+        z-index: 6;
 
-      .lg-agent-message.user {
-        align-self: flex-end;
-        padding: 8px 12px;
-
-        color: var(--lg-accent);
-        background: var(--lg-accent-soft);
-
-        border-radius: 14px 14px 4px 14px;
-      }
-
-      .lg-agent-message-label {
         display: block;
 
-        margin-bottom: 3px;
+        box-sizing: border-box;
+
+        flex: 0 0 auto;
+
+        width: min(calc(100% - 32px), 620px);
+
+        min-width: 0;
+
+        margin: 0 auto;
+
+        padding: 8px 0 12px;
+
+        color: var(--lg-text);
+
+        font-family: var(--lg-font);
+
+        text-align: left;
+
+        background: transparent;
+
+        border: none;
+
+        box-shadow: none;
+
+      }
+
+      #lagoModern
+      .lg-agent-chat [hidden] {
+
+        display: none !important;
+
+      }
+
+
+      /* HEADER */
+
+      .lg-agent-header {
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+
+        gap: 12px;
+
+        min-width: 0;
+
+      }
+
+      .lg-agent-heading {
+
+        flex: 1 1 auto;
+
+        min-width: 0;
+
+      }
+
+      .lg-agent-name {
 
         color: var(--lg-ai);
 
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: .06em;
+        font-size: 12px;
+        font-weight: 750;
+
+        line-height: 1.3;
+
+        overflow-wrap: anywhere;
+
       }
 
-      .lg-agent-form {
+      .lg-agent-status {
+
+        margin-top: 4px;
+
+        color: var(--lg-text-secondary);
+
+        font-size: 10px;
+
+        line-height: 1.3;
+
+        letter-spacing: .04em;
+
+      }
+
+
+      /* PREMIUM ACCESS BUTTON */
+
+      .lg-agent-toggle {
+
+        flex: 0 0 auto;
+
+        max-width: 52%;
+
+        min-height: 44px;
+
+        padding: 8px 14px;
+
+        border:
+          1px solid rgba(169,151,255,.28);
+
+        border-radius: var(--lg-radius-md);
+
+        background: var(--lg-ai-soft);
+
+        color: var(--lg-ai);
+
+        font-family: var(--lg-font);
+
+        font-size: 11px;
+        font-weight: 750;
+
+        line-height: 1.35;
+
+        text-align: center;
+
+        white-space: normal;
+
+        cursor: pointer;
+
+        touch-action: manipulation;
+
+      }
+
+      .lg-agent-toggle:disabled {
+
+        opacity: .5;
+
+        cursor: not-allowed;
+
+      }
+
+      .lg-agent-toggle:focus-visible,
+
+      .lg-agent-send:focus-visible {
+
+        outline: 2px solid var(--lg-ai);
+
+        outline-offset: 3px;
+
+      }
+
+
+      /* CHAT BODY */
+
+      .lg-agent-body {
+
+        margin-top: 6px;
+
+        min-width: 0;
+
+        overflow: visible;
+
+      }
+
+      .lg-agent-messages {
+
         display: flex;
+
+        flex-direction: column;
+
+        gap: 12px;
+
+        height: clamp(90px, 20vh, 180px);
+        height: clamp(90px, 20dvh, 180px);
+
+        min-width: 0;
+
+        padding: 6px 2px;
+
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        overscroll-behavior: contain;
+
+        scrollbar-width: thin;
+
+        scrollbar-color:
+          var(--lg-border) transparent;
+
+      }
+
+
+      /* CHAT MESSAGES */
+
+      .lg-agent-message {
+
+        box-sizing: border-box;
+
+        max-width: 90%;
+
+        min-width: 0;
+
+        font-size: 13px;
+
+        line-height: 1.5;
+
+        overflow-wrap: anywhere;
+
+        white-space: pre-wrap;
+
+      }
+
+      .lg-agent-message.agent {
+
+        align-self: flex-start;
+
+        color: var(--lg-text);
+
+      }
+
+      .lg-agent-message.user {
+
+        align-self: flex-end;
+
+        padding: 8px 12px;
+
+        color: var(--lg-accent);
+
+        background: var(--lg-accent-soft);
+
+        border-radius: 14px 14px 4px 14px;
+
+      }
+
+      .lg-agent-message-label {
+
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: var(--lg-ai);
+
+        font-size: 10px;
+
+        font-weight: 700;
+
+      }
+
+
+      /* MESSAGE COMPOSER */
+
+      .lg-agent-form {
+
+        display: flex;
+
         align-items: center;
 
+        flex-shrink: 0;
+
+        width: 100%;
+
+        min-height: 44px;
+
         gap: 8px;
-        margin-top: 10px;
+
+        margin-top: 5px;
+
       }
 
       .lg-agent-input {
+
         box-sizing: border-box;
 
-        flex: 1;
+        display: block;
+
+        flex: 1 1 auto;
+
         min-width: 0;
+
+        width: 100%;
+
         height: 44px;
 
         padding: 10px 12px;
 
         border: none;
+
         border-radius: var(--lg-radius-md);
 
         background: var(--lg-surface);
+
         color: var(--lg-text);
 
         font-family: var(--lg-font);
+
         font-size: 16px;
 
         outline: none;
+
         box-shadow: none;
+
       }
 
       .lg-agent-input::placeholder {
+
+        color: var(--lg-text-secondary);
+
+        opacity: 1;
+
+      }
+
+      .lg-agent-input:disabled {
+
+        opacity: 1;
+
         color: var(--lg-text-muted);
+
+        -webkit-text-fill-color:
+          var(--lg-text-muted);
+
+        cursor: not-allowed;
+
       }
 
       .lg-agent-input:focus-visible {
+
         outline: 2px solid var(--lg-ai);
+
         outline-offset: -2px;
+
       }
 
+
+      /* SPIRAL SEND BUTTON */
+
       .lg-agent-send {
+
+        display: grid;
+
+        place-items: center;
+
         flex: 0 0 44px;
 
         width: 44px;
         height: 44px;
 
-        display: grid;
-        place-items: center;
-
         padding: 0;
 
         border: 1px solid var(--lg-accent);
+
         border-radius: var(--lg-radius-md);
 
         background: var(--lg-accent);
+
         color: var(--lg-on-accent);
 
         cursor: pointer;
+
         touch-action: manipulation;
+
+      }
+
+      .lg-agent-send svg {
+
+        display: block;
+
+        width: 28px;
+        height: 28px;
+
+        pointer-events: none;
+
       }
 
       .lg-agent-send:disabled {
+
         opacity: .4;
-        cursor: default;
+
+        cursor: not-allowed;
+
       }
 
+      .lg-agent-send:active:not(:disabled) {
+
+        transform: scale(.95);
+
+      }
+
+
+      /* STATUS AND ACCESS INFORMATION */
+
       .lg-agent-error {
-        margin-top: 6px;
+
+        margin-top: 5px;
 
         color: var(--lg-danger);
+
         font-size: 11px;
+
+        line-height: 1.4;
+
+      }
+
+      .lg-agent-error:empty {
+
+        display: none;
+
       }
 
       .lg-agent-note {
-        margin-top: 7px;
+
+        margin-top: 6px;
 
         color: var(--lg-text-secondary);
+
         font-size: 10px;
+
         line-height: 1.4;
+
       }
 
-      /* Keep the chat within the game screen. */
+      .lg-agent-note:empty {
 
-      
-/* R1.5D — Always accessible composer */
+        display: none;
 
-#lagoModern .lago-game-area {
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-}
-
-#lagoModern .lago-game-area > .lago-center {
-  height: auto;
-  min-height: 0;
-  overflow: visible;
-}
-
-#lagoModern .lg-agent-chat {
-  display: block;
-  flex-shrink: 0;
-  overflow: visible;
-  padding-bottom: 10px;
-}
-
-#lagoModern .lg-agent-body {
-  display: block;
-  overflow: visible;
-}
-
-#lagoModern .lg-agent-form {
-  display: flex;
-  flex-shrink: 0;
-  width: 100%;
-  min-height: 44px;
-  overflow: visible;
-}
-
-#lagoModern .lg-agent-input {
-  display: block;
-  visibility: visible;
-  opacity: 1;
-  min-width: 0;
-  font-size: 16px;
-}
-
-#lagoModern .lg-agent-send {
-  display: grid;
-  place-items: center;
-  visibility: visible;
-  flex-shrink: 0;
-}
-
-#lagoModern .lg-agent-send svg {
-  display: block;
-  width: 28px;
-  height: 28px;
-  pointer-events: none;
-}
-
-#lagoModern .lg-agent-send:disabled {
-  opacity: .5;
-}
-
-#lagoModern .lg-agent-send:active:not(:disabled) {
-  transform: scale(.94);
-}
-
-#lagoModern.lg-agent-open .lago-center {
-  justify-content: flex-start;
-}
-
-@media (max-width: 899px) {
-
-  #lagoModern .lago-game-area {
-    grid-template-rows: auto;
-  }
-
-  #lagoModern .lago-game-area > .lago-center {
-    flex: 0 0 auto;
-    width: 100%;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
-
-  #lagoModern .lg-agent-chat {
-    width: 94%;
-    margin-top: 5px;
-  }
-
-  #lagoModern .lg-agent-messages {
-    height: clamp(90px, 20dvh, 140px);
-  }
-
-}
+      }
 
 
-/* R1.6E2 — Docked chat layout */
+      /* LOCKED AI STATE */
 
-#lagoModern.lg-chat-docked {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
-}
+      .lg-agent-chat[data-ai-locked="true"]
+      .lg-agent-status {
 
-#lagoModern.lg-chat-docked .lago-game-area {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
+        color: var(--lg-ai);
 
-#lagoModern.lg-chat-docked .lago-center {
-  min-height: 0;
-  height: 100%;
-  justify-content: center;
-}
+      }
 
-#lagoModern.lg-chat-docked #modernSnailArea {
-  min-height: 0;
-  flex-shrink: 1;
-  height: clamp(100px, 28dvh, 340px);
-}
+      .lg-agent-chat[data-ai-locked="true"]
+      .lg-agent-send {
 
-#lagoModern.lg-chat-docked > .lg-agent-chat {
-  position: relative;
-  z-index: 6;
+        border-color: transparent;
 
-  flex: 0 0 auto;
+        background: var(--lg-surface);
 
-  width: min(calc(100% - 24px), 620px);
+        color: var(--lg-text-muted);
 
-  margin: 0 auto;
-  padding: 6px 0 10px;
+        opacity: 1;
 
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
+      }
 
-#lagoModern.lg-chat-docked .lg-agent-form {
-  flex-shrink: 0;
-  margin-top: 5px;
-}
+      .lg-agent-chat[data-ai-locked="true"]
+      .lg-agent-note {
 
-#lagoModern.lg-chat-docked .lg-agent-messages {
-  height: clamp(64px, 18dvh, 150px);
-  overflow-y: auto;
-}
+        display: block;
 
-#lagoModern.lg-chat-docked .lg-agent-note {
-  font-size: 9px;
-}
+      }
 
-#lagoModern.lg-chat-docked:not(.lg-agent-open)
-.lg-agent-note {
-  display: none;
-}
 
-#lagoModern.lg-chat-docked .lago-bottom {
-  flex-shrink: 0;
-}
+      /* TABLET AND PHONE */
 
-@media (max-width: 899px) {
+      @media (max-width: 899px) {
 
-  #lagoModern.lg-chat-docked .lago-center {
-    flex: 1 0 auto;
-    height: auto;
-    min-height: 0;
-  }
+        #lagoModern.lg-chat-docked
+        > .lg-agent-chat {
 
-  #lagoModern.lg-chat-docked #modernSnailArea {
-    height: clamp(90px, 24dvh, 240px);
-  }
+          width: calc(100% - 24px);
 
-}
+          padding: 6px 0 8px;
 
-@media (max-height: 600px) {
+        }
 
-  #lagoModern.lg-chat-docked .lg-agent-messages {
-    height: 64px;
-  }
+        .lg-agent-header {
 
-  #lagoModern.lg-chat-docked .lg-agent-note {
-    display: none;
-  }
+          gap: 8px;
 
-}
+        }
 
+        .lg-agent-messages {
+
+          height: clamp(80px, 18vh, 150px);
+          height: clamp(80px, 18dvh, 150px);
+
+        }
+
+      }
+
+
+      /* SMALL PHONES */
+
+      @media (max-width: 380px) {
+
+        .lg-agent-name {
+
+          font-size: 11px;
+
+        }
+
+        .lg-agent-status {
+
+          font-size: 9px;
+
+        }
+
+        .lg-agent-toggle {
+
+          padding: 6px 9px;
+
+          font-size: 10px;
+
+        }
+
+        .lg-agent-note {
+
+          font-size: 9px;
+
+        }
+
+      }
+
+
+      /* SHORT DISPLAYS */
+
+      @media (max-height: 600px) {
+
+        #lagoModern.lg-chat-docked
+        > .lg-agent-chat {
+
+          padding-top: 4px;
+
+          padding-bottom: 4px;
+
+        }
+
+        .lg-agent-messages {
+
+          height: 64px;
+
+        }
+
+        .lg-agent-body {
+
+          margin-top: 3px;
+
+        }
+
+        .lg-agent-note {
+
+          font-size: 9px;
+
+        }
+
+      }
+
+
+      /* POINTER DEVICES */
+
+      @media (hover: hover) and (pointer: fine) {
+
+        .lg-agent-toggle:not(:disabled):hover {
+
+          background: rgba(169,151,255,.18);
+
+        }
+
+      }
+
+
+      /* ACCESSIBILITY */
 
       @media (prefers-reduced-motion: reduce) {
 
         .lg-agent-chat * {
+
           transition: none;
+
           scroll-behavior: auto;
+
+        }
+
+        .lg-agent-send:active:not(:disabled) {
+
+          transform: none;
+
         }
 
       }
 
     `;
+
+
 
     document.head.appendChild(style);
 
