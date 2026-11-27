@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = 6;
+  const VERSION = 7;
 
   const VALID_STATUSES =
     new Set([
@@ -18,6 +18,34 @@
 
   let runSequence =
     0;
+
+  
+  /*
+   * R2.5F — Private bond session context.
+   */
+
+  let activeBondContext = null;
+
+  function getBondContext() {
+
+    try {
+
+      return window.LAGO_AGENT_BOND_RUNTIME
+        ?.getContext?.() || null;
+
+    } catch (error) {
+
+      console.warn(
+        "[LAGO BOND] Context unavailable.",
+        error
+      );
+
+      return null;
+
+    }
+
+  }
+
 
 
   function clean(value) {
@@ -620,6 +648,7 @@
 
     }
 
+    const bondContext = getBondContext();
 
     if (
       game.dumCost > 0
@@ -695,6 +724,7 @@
 
       });
 
+    activeBondContext = bondContext;
 
     document.dispatchEvent(
       new CustomEvent(
@@ -788,6 +818,42 @@
 
     }
 
+    
+    /*
+     * Prevent completion under another
+     * account or character.
+     */
+
+    if (activeBondContext) {
+
+      const currentBondContext =
+        getBondContext();
+
+      if (
+
+        !currentBondContext ||
+
+        currentBondContext.scope !==
+          activeBondContext.scope ||
+
+        currentBondContext.characterId !==
+          activeBondContext.characterId
+
+      ) {
+
+        return {
+
+          ok: false,
+
+          reason: "context_mismatch"
+
+        };
+
+      }
+
+    }
+
+
 
     const safeScore =
       Math.max(
@@ -841,8 +907,79 @@
       });
 
 
-    activeRun =
-      null;
+  
+    /*
+     * R2.5F — Completed mini-game bond reward.
+     */
+
+    const completedBondContext =
+      activeBondContext;
+
+    activeRun = null;
+
+    activeBondContext = null;
+
+
+    try {
+
+      const bondRuntime =
+        window.LAGO_AGENT_BOND_RUNTIME;
+
+      if (
+
+        completedBondContext &&
+
+        completedBondContext.characterId ===
+          session.characterId &&
+
+        typeof bondRuntime?.recordEvent ===
+          "function"
+
+      ) {
+
+        const bondResult =
+          bondRuntime.recordEvent({
+
+            eventId:
+              "mini-game:" + session.sessionId,
+
+            eventType:
+              "game_completed",
+
+            scope:
+              completedBondContext.scope,
+
+            characterId:
+              completedBondContext.characterId
+
+          });
+
+
+        if (bondResult?.ok !== true) {
+
+          console.warn(
+
+            "[LAGO BOND] Game reward not saved:",
+
+            bondResult?.reason
+
+          );
+
+        }
+
+      }
+
+    } catch (error) {
+
+      console.warn(
+
+        "[LAGO BOND] Game reward unavailable.",
+
+        error
+
+      );
+
+    }
 
 
     const detail = {
@@ -909,8 +1046,9 @@
       { ...activeRun };
 
 
-    activeRun =
-      null;
+    activeRun = null;
+
+activeBondContext = null;
 
 
     /*
