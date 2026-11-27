@@ -1565,3 +1565,1057 @@ test("gracefully closes HTTP and subscription services on shutdown", {
   }
 
 });
+
+/*
+ * LAGO GAME
+ * R2.7I — FINAL SUBSCRIPTION INTEGRATION
+ *
+ * Real frontend authentication.
+ * Real frontend subscription module.
+ * Real HTTP server.
+ * Real account sessions.
+ * Real SQLite storage.
+ *
+ * Synthetic browser environment.
+ * No real blockchain payments.
+ */
+
+import { readFileSync } from "node:fs";
+import { createContext, runInContext } from "node:vm";
+
+const AUTH_CLIENT_SOURCE = readFileSync(
+  new URL("../lago-auth-backend.js", import.meta.url),
+  "utf8"
+);
+
+const ACCESS_CLIENT_SOURCE = readFileSync(
+  new URL("../lago-agent-access.js", import.meta.url),
+  "utf8"
+);
+
+
+/*
+ * INTEGRATED BROWSER FIXTURE
+ */
+
+async function createIntegratedBrowser(
+  t,
+  server,
+  initialToken = ""
+) {
+
+  let cookieToken = initialToken;
+
+  let character = {
+    characterId: "lago",
+    characterName: "Lago"
+  };
+
+  const calls = [];
+  const accessEvents = [];
+
+  const document = new EventTarget();
+  const windowEvents = new EventTarget();
+
+  document.hidden = false;
+
+  class SyntheticCustomEvent extends Event {
+
+    constructor(type, options = {}) {
+
+      super(type);
+
+      this.detail = options.detail;
+
+    }
+
+  }
+
+  document.addEventListener(
+    "lago:agent-access-state",
+    event => accessEvents.push(event.detail)
+  );
+
+
+  /*
+   * Browser transport adapter.
+   *
+   * Simulates automatic same-origin
+   * HttpOnly cookie transport.
+   *
+   * Response data comes exclusively
+   * from the real HTTP server.
+   */
+
+  async function browserFetch(
+    path,
+    options = {}
+  ) {
+
+    const url = new URL(
+      path,
+      server.origin
+    );
+
+    assert.equal(
+      url.origin,
+      server.origin
+    );
+
+    const method =
+      options.method || "GET";
+
+    const headers =
+      new Headers(options.headers || {});
+
+    if (
+
+      cookieToken &&
+
+      (
+        options.credentials === "include" ||
+        options.credentials === "same-origin"
+      )
+
+    ) {
+
+      headers.set(
+        "Cookie",
+        "lago_session=" + cookieToken
+      );
+
+    }
+
+    if (method === "POST") {
+
+      headers.set(
+        "Origin",
+        server.origin
+      );
+
+      headers.set(
+        "Sec-Fetch-Site",
+        "same-origin"
+      );
+
+    }
+
+    calls.push({
+
+      path: url.pathname,
+
+      method,
+
+      credentials: options.credentials
+
+    });
+
+    const result = await fetch(
+
+      url,
+
+      {
+
+        ...options,
+
+        method,
+
+        headers,
+
+        redirect: "error",
+
+        signal: options.signal ||
+          AbortSignal.timeout(5000)
+
+      }
+
+    );
+
+    const setCookie =
+      result.headers.get("set-cookie");
+
+    if (
+
+      setCookie &&
+
+      /^lago_session=;/.test(setCookie)
+
+    ) {
+
+      cookieToken = "";
+
+    }
+
+    return result;
+
+  }
+
+
+  /*
+   * Isolated client runtime.
+   */
+
+  const sandbox = {
+
+    console,
+
+    document,
+
+    CustomEvent: SyntheticCustomEvent,
+
+    AbortController,
+
+    performance,
+
+    setTimeout,
+
+    clearTimeout,
+
+    navigator: {
+      onLine: true
+    },
+
+    fetch: browserFetch,
+
+    addEventListener(type, handler) {
+
+      windowEvents.addEventListener(
+        type,
+        handler
+      );
+
+    },
+
+    LAGO_MINIGAMES: {
+
+      getContext() {
+        return { ...character };
+      }
+
+    },
+
+    localStorage: {
+
+      getItem() {
+
+        throw new Error(
+          "unexpected_persistent_storage_read"
+        );
+
+      },
+
+      setItem() {
+
+        throw new Error(
+          "unexpected_persistent_storage_write"
+        );
+
+      },
+
+      removeItem() {
+
+        throw new Error(
+          "unexpected_persistent_storage_mutation"
+        );
+
+      }
+
+    }
+
+  };
+
+  sandbox.window = sandbox;
+
+  const runtime =
+    createContext(sandbox);
+
+  t.after(() => {
+
+    windowEvents.dispatchEvent(
+      new Event("pagehide")
+    );
+
+  });
+
+
+  /*
+   * Load actual authentication client.
+   */
+
+  const initialAuthEvent = once(
+
+    document,
+
+    "lago:backend-auth-state"
+
+  );
+
+  runInContext(
+
+    AUTH_CLIENT_SOURCE,
+
+    runtime,
+
+    {
+
+      filename: "lago-auth-backend.js",
+
+      timeout: 5000
+
+    }
+
+  );
+
+  await within(initialAuthEvent);
+
+  const auth =
+    sandbox.LAGO_AUTH_BACKEND;
+
+
+  /*
+   * Load actual subscription client.
+   */
+
+  runInContext(
+
+    ACCESS_CLIENT_SOURCE,
+
+    runtime,
+
+    {
+
+      filename: "lago-agent-access.js",
+
+      timeout: 5000
+
+    }
+
+  );
+
+  const access =
+    sandbox.LAGO_AGENT_ACCESS;
+
+  await within(access.refresh());
+
+
+  return {
+
+    auth,
+
+    access,
+
+    calls,
+
+    accessEvents,
+
+    state() {
+
+      return access.getState();
+
+    },
+
+    async refresh() {
+
+      return within(access.refresh());
+
+    },
+
+    async switchAccount(token) {
+
+      cookieToken = token;
+
+      const result = await within(
+        auth.restoreSession()
+      );
+
+      assert.equal(result.ok, true);
+
+      return within(access.refresh());
+
+    },
+
+    select(characterId, characterName) {
+
+      character = {
+
+        characterId,
+
+        characterName
+
+      };
+
+      document.dispatchEvent(
+
+        new Event(
+          "lago:character-equipped"
+        )
+
+      );
+
+      return access.getState();
+
+    },
+
+    async logout() {
+
+      await within(auth.logout());
+
+      return access.getState();
+
+    }
+
+  };
+
+}
+
+
+/*
+ * INTEGRATION ASSERTIONS
+ */
+
+function assertClientLocked(browser) {
+
+  const state = browser.state();
+
+  assertLocked(state);
+
+  assert.equal(state.checkoutAvailable, false);
+  assert.equal(state.renewalAvailable, false);
+
+  assert.equal(state.autoRenewal, false);
+
+  assert.equal(
+    browser.access.canUseAI(),
+    false
+  );
+
+  assert.equal(
+    browser.access.canTrade(),
+    false
+  );
+
+}
+
+
+/*
+ * TEST 14 — PRODUCTION SCRIPT CONTRACT
+ */
+
+test("loads the updated subscription module after authentication", () => {
+
+  const html = readFileSync(
+
+    new URL("../index.html", import.meta.url),
+
+    "utf8"
+
+  );
+
+  const authPosition =
+    html.indexOf(
+      'src="lago-auth-backend.js?v=2"'
+    );
+
+  const accessPosition =
+    html.indexOf(
+      'src="lago-agent-access.js?v=3"'
+    );
+
+  const contextPosition =
+    html.indexOf(
+      'src="lago-agent-context.js?v=1"'
+    );
+
+  const chatPosition =
+    html.indexOf(
+      'src="lago-agent-chat.js?v=3"'
+    );
+
+  assert.ok(authPosition >= 0);
+
+  assert.ok(
+    accessPosition > authPosition
+  );
+
+  assert.ok(
+    contextPosition > accessPosition
+  );
+
+  assert.ok(
+    chatPosition > accessPosition
+  );
+
+  assert.equal(
+
+    (
+      html.match(
+        /src="lago-agent-access\.js(?:\?[^"]*)?"/g
+      ) || []
+    ).length,
+
+    1
+
+  );
+
+});
+
+
+/*
+ * TEST 15 — UNAUTHENTICATED BROWSER
+ */
+
+test("keeps an unauthenticated browser outside the subscription API", async t => {
+
+  const fx = await fixture(t);
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server
+
+    );
+
+  assert.equal(
+
+    browser.auth.getState().authenticated,
+
+    false
+
+  );
+
+  assert.equal(
+    browser.state().accountId,
+    null
+  );
+
+  assert.equal(
+
+    browser.state().subscriptionStateAvailable,
+
+    false
+
+  );
+
+  assert.equal(
+
+    browser.calls.filter(
+      call => call.path === STATE_PATH
+    ).length,
+
+    0
+
+  );
+
+  assertClientLocked(browser);
+
+});
+
+
+/*
+ * TEST 16 — REAL ACCOUNT RESTORATION
+ */
+
+test("restores authenticated account and inactive subscription through real HTTP", async t => {
+
+  const fx = await fixture(t);
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  const auth =
+    browser.auth.getState();
+
+  const state =
+    browser.state();
+
+  assert.equal(auth.authenticated, true);
+
+  assert.equal(
+    auth.accountId,
+    fx.playerA.accountId
+  );
+
+  assert.equal(
+    state.accountId,
+    fx.playerA.accountId
+  );
+
+  assert.equal(
+    state.subscriptionStatus,
+    "inactive"
+  );
+
+  assert.equal(
+    state.subscriptionStateAvailable,
+    true
+  );
+
+  assert.equal(state.loading, false);
+
+  assert.equal(
+
+    state.reason,
+
+    "subscription_entitlement_disabled"
+
+  );
+
+  assertClientLocked(browser);
+
+});
+
+
+/*
+ * TEST 17 — ACTIVE BILLING STATE
+ */
+
+test("displays real recorded billing periods without enabling AI or trading", async t => {
+
+  const fx = await fixture(t);
+
+  const payment =
+    await fx.seedPayment();
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  const state = browser.state();
+
+  assert.equal(
+    state.subscriptionStatus,
+    "active"
+  );
+
+  assert.equal(
+
+    state.currentPeriodStart,
+
+    payment.period.currentPeriodStart
+
+  );
+
+  assert.equal(
+
+    state.currentPeriodEnd,
+
+    payment.period.currentPeriodEnd
+
+  );
+
+  assert.ok(state.daysRemaining > 0);
+
+  assert.equal(
+    state.subscriptionStateAvailable,
+    true
+  );
+
+  assertClientLocked(browser);
+
+
+  /*
+   * Character selection must not
+   * change account billing state.
+   */
+
+  const requestCount =
+    browser.calls.length;
+
+  const selected = browser.select(
+
+    "comic_pink_snail",
+
+    "Sola"
+
+  );
+
+  assert.equal(
+    selected.characterName,
+    "Sola"
+  );
+
+  assert.equal(
+    selected.characterId,
+    "comic_pink_snail"
+  );
+
+  assert.equal(
+    selected.accountId,
+    fx.playerA.accountId
+  );
+
+  assert.equal(
+
+    selected.currentPeriodEnd,
+
+    state.currentPeriodEnd
+
+  );
+
+  assert.equal(
+    browser.calls.length,
+    requestCount
+  );
+
+  assertClientLocked(browser);
+
+});
+
+
+/*
+ * TEST 18 — ACCOUNT ISOLATION
+ */
+
+test("never transfers subscription history between real authenticated accounts", async t => {
+
+  const fx = await fixture(t);
+
+  await fx.seedPayment(
+    fx.playerA
+  );
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  assert.equal(
+
+    browser.state().subscriptionStatus,
+
+    "active"
+
+  );
+
+  const second =
+    await browser.switchAccount(
+      fx.playerB.token
+    );
+
+  assert.equal(
+    second.accountId,
+    fx.playerB.accountId
+  );
+
+  assert.equal(
+    second.subscriptionStatus,
+    "inactive"
+  );
+
+  assert.equal(
+    second.currentPeriodStart,
+    null
+  );
+
+  assert.equal(
+    second.currentPeriodEnd,
+    null
+  );
+
+  assertClientLocked(browser);
+
+
+  /*
+   * Return to the original account.
+   */
+
+  const restored =
+    await browser.switchAccount(
+      fx.playerA.token
+    );
+
+  assert.equal(
+    restored.accountId,
+    fx.playerA.accountId
+  );
+
+  assert.equal(
+    restored.subscriptionStatus,
+    "active"
+  );
+
+  assert.ok(
+    restored.currentPeriodEnd
+  );
+
+  assertClientLocked(browser);
+
+});
+
+
+/*
+ * TEST 19 — REAL LOGOUT
+ */
+
+test("clears client billing state and revokes the real server session on logout", async t => {
+
+  const fx = await fixture(t);
+
+  await fx.seedPayment();
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  assert.equal(
+
+    browser.state().subscriptionStatus,
+
+    "active"
+
+  );
+
+  const state = await browser.logout();
+
+  assert.equal(
+
+    browser.auth.getState().authenticated,
+
+    false
+
+  );
+
+  assert.equal(state.accountId, null);
+
+  assert.equal(
+    state.currentPeriodEnd,
+    null
+  );
+
+  assert.equal(
+
+    state.subscriptionStateAvailable,
+
+    false
+
+  );
+
+  assertClientLocked(browser);
+
+
+  /*
+   * Verify actual server revocation.
+   */
+
+  assertError(
+
+    await server.request(
+
+      STATE_PATH,
+
+      {
+
+        token: fx.playerA.token
+
+      }
+
+    ),
+
+    401,
+
+    "authentication_required"
+
+  );
+
+});
+
+
+/*
+ * TEST 20 — EXTERNAL SESSION REVOCATION
+ */
+
+test("removes subscription state after server-side session revocation", async t => {
+
+  const fx = await fixture(t);
+
+  await fx.seedPayment();
+
+  const server = await fx.launch();
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  const revoked = await server.request(
+
+    "/api/auth/logout",
+
+    {
+
+      method: "POST",
+
+      token: fx.playerA.token
+
+    }
+
+  );
+
+  assert.equal(revoked.status, 200);
+
+  const state =
+    await browser.refresh();
+
+  assert.equal(
+
+    state.subscriptionStateAvailable,
+
+    false
+
+  );
+
+  assert.equal(
+
+    state.reason,
+
+    "authentication_required"
+
+  );
+
+  assert.equal(
+    state.currentPeriodEnd,
+    null
+  );
+
+  assertClientLocked(browser);
+
+
+  /*
+   * Restore authentication again
+   * to synchronize the account module.
+   */
+
+  const authResult = await within(
+
+    browser.auth.restoreSession()
+
+  );
+
+  assert.equal(authResult.ok, false);
+
+  assert.equal(
+
+    browser.auth.getState().authenticated,
+
+    false
+
+  );
+
+  assert.equal(
+    browser.state().accountId,
+    null
+  );
+
+});
+
+
+/*
+ * TEST 21 — DISABLED BACKEND
+ */
+
+test("fails closed when the real subscription backend is not configured", async t => {
+
+  const fx = await fixture(t);
+
+  const server = await fx.launch({
+
+    directory: ""
+
+  });
+
+  const browser =
+    await createIntegratedBrowser(
+
+      t,
+
+      server,
+
+      fx.playerA.token
+
+    );
+
+  assert.equal(
+
+    browser.auth.getState().authenticated,
+
+    true
+
+  );
+
+  const state = browser.state();
+
+  assert.equal(
+
+    state.subscriptionStateAvailable,
+
+    false
+
+  );
+
+  assert.equal(
+
+    state.subscriptionStatus,
+
+    "unavailable"
+
+  );
+
+  assert.equal(
+
+    state.reason,
+
+    "subscription_service_unavailable"
+
+  );
+
+  assert.equal(state.loading, false);
+
+  assertClientLocked(browser);
+
+});
