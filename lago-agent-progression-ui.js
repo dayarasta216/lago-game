@@ -10,7 +10,7 @@
    * Existing account data only.
    */
 
-  const VERSION = 1;
+  const VERSION = 2;
 
   let mounted = false;
   let scheduled = false;
@@ -28,61 +28,163 @@
 
     style.id = "lgProgressionStyles";
 
+    
     style.textContent = `
 
-      #lagoModern .lago-statbar.lg-progression-active {
+      /* R1.9C — Responsive progression UI */
+
+      #lagoModern
+      .lago-statbar.lg-progression-active {
+
+        display: grid;
+
         grid-template-columns:
           repeat(5, minmax(0, 1fr));
 
-        gap: 10px;
+        align-items: stretch;
+
+        flex: 0 0 auto;
+
+        width: min(1180px, calc(100% - 32px));
+
+        min-width: 0;
+
+        margin: 0 auto;
+
+        gap: 12px;
+
       }
 
       #lagoModern .lg-progression-active
       .lago-stat-card {
+
+        display: flex;
+        flex-direction: column;
+
+        justify-content: flex-start;
+
         min-width: 0;
+        min-height: 0;
+
+        padding: 8px 10px;
 
         background: transparent;
+
         border: none;
+        border-radius: 0;
+
         box-shadow: none;
+
+        contain: none;
+
       }
+
+
+      /* STAT LABELS */
 
       #lagoModern .lg-progression-active
       .lago-stat-label {
-        font-size: 10px;
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 6px;
+
+        min-width: 0;
+
+        color: var(--lg-text-secondary);
+
+        font-family: var(--lg-font);
+
+        font-size: 11px;
         font-weight: 650;
-        letter-spacing: .04em;
+
+        line-height: 1.3;
+
+        letter-spacing: .035em;
+
       }
 
       #lagoModern .lg-progression-active
-      .lago-stat-value {
-        font-size: clamp(16px, 2vw, 24px);
-        font-weight: 750;
-        font-variant-numeric: tabular-nums;
+      .lago-stat-label > span {
+
+        min-width: 0;
 
         overflow-wrap: anywhere;
+
       }
 
+
+      /* NUMERIC VALUES */
+
+      #lagoModern .lg-progression-active
+      .lago-stat-value {
+
+        min-width: 0;
+
+        margin-top: 5px;
+
+        color: var(--lg-text);
+
+        font-family: var(--lg-font);
+
+        font-size: clamp(17px, 2vw, 26px);
+        font-weight: 750;
+
+        font-variant-numeric: tabular-nums;
+
+        line-height: 1.2;
+
+        letter-spacing: -.035em;
+
+        overflow-wrap: anywhere;
+
+        white-space: normal;
+
+      }
+
+
+      /* ICONS */
+
+      #lagoModern .lg-progression-active
+      .lago-icon-slot,
+
+      #lagoModern .lg-progression-active
       .lg-progression-icon {
+
         width: 16px;
         height: 16px;
+
         flex: 0 0 16px;
+
       }
 
+
+      /* PROGRESS TRACKS */
+
       .lg-progression-track {
+
         box-sizing: border-box;
 
         width: 100%;
         height: 4px;
 
-        margin-top: 7px;
+        margin-top: 8px;
 
-        background: var(--lg-surface-raised);
+        background:
+          var(--lg-surface-raised);
+
         border: none;
+
         border-radius: 999px;
+
         overflow: hidden;
+
       }
 
       .lg-progression-fill {
+
         display: block;
 
         width: 0;
@@ -90,76 +192,239 @@
 
         border-radius: inherit;
 
-        transition:
-          width var(--lg-motion-normal);
+        transition: width 120ms ease-out;
+
       }
 
+
+      /* HEALTH */
+
       .lg-hp-card .lg-progression-icon {
+
         color: var(--lg-success);
+
       }
 
       .lg-hp-card .lg-progression-fill {
+
         background: var(--lg-success);
+
       }
 
+      #lagoModern
+      .lg-hp-card[data-low="true"]
+      .lg-progression-fill {
+
+        background: var(--lg-danger);
+
+      }
+
+      #lagoModern
+      .lg-hp-card[data-low="true"]
+      .lago-stat-value {
+
+        color: var(--lg-danger);
+
+      }
+
+
+      /* EXPERIENCE */
+
       .lg-xp-card .lg-progression-icon {
+
         color: var(--lg-ai);
+
       }
 
       .lg-xp-card .lg-progression-fill {
+
         background: var(--lg-ai);
+
       }
 
-      .lg-energy-track .lg-progression-fill {
-        background: var(--lg-accent);
-      }
 
-      #lagoModern .lg-hp-card[data-low="true"]
+      /* ENERGY */
+
+      .lg-energy-track
       .lg-progression-fill {
-        background: var(--lg-danger);
+
+        background: var(--lg-accent);
+
       }
+
+
+      /* TABLETS */
 
       @media (max-width: 899px) {
 
-        #lagoModern .lago-statbar.lg-progression-active {
-          grid-template-columns:
-            repeat(3, minmax(0, 1fr));
+        #lagoModern
+        .lago-statbar.lg-progression-active {
 
-          column-gap: 8px;
-          row-gap: 3px;
+          grid-template-columns:
+            repeat(5, minmax(0, 1fr));
+
+          width: calc(100% - 24px);
+
+          gap: 6px;
+
         }
 
         #lagoModern .lg-progression-active
         .lago-stat-card {
-          padding: 5px 7px;
+
+          padding: 5px;
+
         }
 
         #lagoModern .lg-progression-active
         .lago-stat-label {
-          font-size: 9px;
+
+          font-size: 10px;
+
         }
 
         #lagoModern .lg-progression-active
         .lago-stat-value {
-          font-size: 17px;
-        }
 
-        .lg-progression-track {
-          margin-top: 4px;
-          height: 3px;
+          font-size: 18px;
+
         }
 
       }
 
+
+      /* PHONES */
+
+      @media (max-width: 600px) {
+
+        #lagoModern
+        .lago-statbar.lg-progression-active {
+
+          grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+          column-gap: 8px;
+          row-gap: 4px;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-stat-card {
+
+          padding: 4px 5px;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-stat-label {
+
+          font-size: 10px;
+
+          letter-spacing: 0;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-stat-value {
+
+          font-size: clamp(14px, 4vw, 18px);
+
+          margin-top: 3px;
+
+        }
+
+        .lg-progression-track {
+
+          margin-top: 5px;
+
+          height: 3px;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-icon-slot,
+
+        #lagoModern .lg-progression-active
+        .lg-progression-icon {
+
+          width: 14px;
+          height: 14px;
+
+          flex-basis: 14px;
+
+        }
+
+      }
+
+
+      /* EXTRA SMALL PHONES */
+
+      @media (max-width: 340px) {
+
+        #lagoModern
+        .lago-statbar.lg-progression-active {
+
+          width: calc(100% - 16px);
+
+          gap: 4px;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-stat-label {
+
+          font-size: 9px;
+
+          gap: 3px;
+
+        }
+
+        #lagoModern .lg-progression-active
+        .lago-stat-value {
+
+          font-size: 14px;
+
+        }
+
+      }
+
+
+      /* SHORT DISPLAYS */
+
+      @media (max-height: 650px) {
+
+        #lagoModern .lg-progression-active
+        .lago-stat-card {
+
+          padding-top: 3px;
+          padding-bottom: 3px;
+
+        }
+
+        .lg-progression-track {
+
+          margin-top: 4px;
+
+        }
+
+      }
+
+
+      /* ACCESSIBILITY */
+
       @media (prefers-reduced-motion: reduce) {
 
         .lg-progression-fill {
+
           transition: none;
+
         }
 
       }
 
     `;
+
+
 
     document.head.appendChild(style);
 
