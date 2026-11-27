@@ -646,6 +646,33 @@ function tap(
    * =========================================================
    */
 
+
+  /*
+   * R2.5E — Capture bond context
+   * before committing the tap.
+   */
+
+  const bondRuntime =
+    window.LAGO_AGENT_BOND_RUNTIME;
+
+  let bondContext = null;
+
+  try {
+
+    bondContext =
+      bondRuntime?.getContext?.() || null;
+
+  } catch (error) {
+
+    console.warn(
+      "[LAGO BOND] Context unavailable.",
+      error
+    );
+
+  }
+
+
+  
   const result =
     account.applyTapReward(
       gain,
@@ -703,6 +730,85 @@ function tap(
     return publishState();
 
   }
+
+  
+  /*
+   * R2.5E — Reward an accepted manual tap.
+   *
+   * Account Core already committed SP,
+   * DUM and the canonical click counter.
+   *
+   * AUTO does not receive bond points.
+   * Failed taps do not receive points.
+   */
+
+  try {
+
+    const clickId =
+      result.clicks;
+
+    if (
+
+      bondContext &&
+
+      Number.isSafeInteger(clickId) &&
+
+      clickId > 0 &&
+
+      typeof bondRuntime?.recordEvent ===
+        "function"
+
+    ) {
+
+      const bondResult =
+        bondRuntime.recordEvent({
+
+          eventId:
+            "tap-lago:" + clickId,
+
+          eventType:
+            "tap_accepted",
+
+          scope:
+            bondContext.scope,
+
+          characterId:
+            bondContext.characterId
+
+        });
+
+      if (bondResult?.ok !== true) {
+
+        console.warn(
+
+          "[LAGO BOND] Reward not saved:",
+
+          bondResult?.reason
+
+        );
+
+      }
+
+    }
+
+  } catch (error) {
+
+    /*
+     * Bond failure must never interrupt
+     * the existing successful tap.
+     */
+
+    console.warn(
+
+      "[LAGO BOND] Tap reward unavailable.",
+
+      error
+
+    );
+
+  }
+
+
 
   /*
    * =========================================================
@@ -831,8 +937,8 @@ function tap(
  * level
  * game stats
  *
- * No second localStorage write here.
- */
+ * No second Account Core save here.
+ * Bond Runtime persists separately.
 
 return publishState();
 
@@ -2080,7 +2186,7 @@ return publishState();
 
 
     version:
-      6,
+      7,
 
 
     tap,
