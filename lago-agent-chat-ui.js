@@ -8,7 +8,7 @@
    * Borderless interface
    */
 
-  const VERSION = 3;
+  const VERSION = 4;
 
   let panel = null;
   let opened = false;
@@ -839,7 +839,10 @@ id="lgAgentChatMessages"
       const current =
         window.LAGO_AGENT_CHAT.getState();
 
-      if (current.purchaseRequired === true) {
+    if (
+  current.subscriptionRequired === true &&
+  current.subscriptionStatus !== "pending"
+) {
 
         const shop = window.LAGO_SHOP;
 
@@ -955,72 +958,190 @@ setOpened(true);
       `${current.characterName || "LAGO"} CHAT`;
 
   
-    const purchaseRequired =
-      current.purchaseRequired === true;
+    
+    /*
+     * R1.10C2
+     * Monthly subscription interface.
+     */
+
+    const subscriptionRequired =
+      current.subscriptionRequired === true;
+
+    const renewalRequired =
+      current.renewalRequired === true;
+
+    const pending =
+      current.subscriptionStatus === "pending";
 
     const locked =
       current.locked === true ||
       current.ready !== true;
 
+    const subscriptionAction =
+      subscriptionRequired && !pending;
+
+
     panel.dataset.aiLocked =
       String(locked);
 
+    panel.dataset.subscriptionStatus =
+      current.subscriptionStatus || "inactive";
+
+
+    let statusText = "";
+
+    let noteText = "";
+
+    let actionText = "";
+
+
+    /* PAYMENT PENDING */
+
+    if (pending) {
+
+      statusText = ru
+        ? "ОЖИДАНИЕ ПОДТВЕРЖДЕНИЯ"
+        : "PAYMENT PENDING";
+
+      noteText = ru
+        ? "Ожидается подтверждение подписки сервером."
+        : "Waiting for server verification.";
+
+      actionText = ru
+        ? "ОЖИДАНИЕ"
+        : "PENDING";
+
+    }
+
+
+    /* EXPIRED SUBSCRIPTION */
+
+    else if (renewalRequired) {
+
+      statusText = ru
+        ? "ПОДПИСКА ИСТЕКЛА"
+        : "SUBSCRIPTION EXPIRED";
+
+      noteText = ru
+        ? "Продлите подписку для восстановления AI."
+        : "Renew your subscription to restore AI access.";
+
+      actionText = ru
+        ? "ПРОДЛИТЬ · $LAGO"
+        : "RENEW · $LAGO";
+
+    }
+
+
+    /* NO SUBSCRIPTION */
+
+    else if (subscriptionRequired) {
+
+      statusText = ru
+        ? "ТРЕБУЕТСЯ ПОДПИСКА"
+        : "SUBSCRIPTION REQUIRED";
+
+      noteText = ru
+        ? "Персональный AI доступен по ежемесячной подписке за $LAGO."
+        : "Personal AI requires a monthly $LAGO subscription.";
+
+      actionText = ru
+        ? "ПОДПИСАТЬСЯ · $LAGO"
+        : "SUBSCRIBE · $LAGO";
+
+    }
+
+
+    /* SUBSCRIPTION ACTIVE */
+
+    else {
+
+      statusText = ru
+        ? "ПОДПИСКА АКТИВНА"
+        : "SUBSCRIPTION ACTIVE";
+
+      if (locked) {
+
+        noteText = ru
+          ? "AI-сервис пока недоступен."
+          : "AI service is not available yet.";
+
+        actionText = ru
+          ? "НЕДОСТУПНО"
+          : "UNAVAILABLE";
+
+      } else {
+
+        const days =
+          current.daysRemaining;
+
+        if (
+          typeof days === "number" &&
+          Number.isFinite(days) &&
+          days >= 0
+        ) {
+
+          noteText = ru
+            ? `До продления: ${days} дн.`
+            : `${days} days remaining.`;
+
+        }
+
+        actionText = opened
+          ? (ru ? "ЗАКРЫТЬ" : "CLOSE")
+          : (ru ? "ОБЩАТЬСЯ" : "CHAT");
+
+      }
+
+    }
+
+
     panel.querySelector(
       ".lg-agent-status"
-    ).textContent = locked
-      ? (
-          purchaseRequired
-            ? (ru ? "AI ЗАБЛОКИРОВАН" : "AI LOCKED")
-            : (ru ? "AI НЕДОСТУПЕН" : "AI UNAVAILABLE")
-        )
-      : (ru ? "AI АКТИВЕН" : "AI ACTIVE");
+    ).textContent = statusText;
+
 
     panel.querySelector(
       ".lg-agent-note"
-    ).textContent = purchaseRequired
-      ? (
-          ru
-            ? "Персональный AI доступен только после покупки за $LAGO."
-            : "Personal AI requires a verified $LAGO purchase."
-        )
-      : locked
-        ? (
-            ru
-              ? "AI-сервис пока недоступен."
-              : "AI service is not available yet."
-          )
-        : "";
+    ).textContent = noteText;
+
+
+    /* LOCKED INTERFACE */
 
     if (locked) {
 
       opened = false;
 
-      document.getElementById("lagoModern")
-        ?.classList.remove("lg-agent-open");
+      document.getElementById(
+        "lagoModern"
+      )?.classList.remove(
+        "lg-agent-open"
+      );
 
       log.hidden = true;
 
       input.value = "";
 
-      toggle.removeAttribute("aria-expanded");
+      toggle.removeAttribute(
+        "aria-expanded"
+      );
 
-      toggle.removeAttribute("aria-controls");
+      toggle.removeAttribute(
+        "aria-controls"
+      );
 
-      toggle.disabled = !purchaseRequired;
+      toggle.disabled =
+        !subscriptionAction;
 
-      toggle.textContent = purchaseRequired
-        ? (
-            ru
-              ? "ПОЛУЧИТЬ AI · $LAGO"
-              : "GET AI · $LAGO"
-          )
-        : (
-            ru
-              ? "НЕДОСТУПНО"
-              : "UNAVAILABLE"
-          );
+      toggle.textContent =
+        actionText;
 
-    } else {
+    }
+
+
+    /* ACTIVE CHAT */
+
+    else {
 
       toggle.disabled = false;
 
@@ -1034,13 +1155,14 @@ setOpened(true);
         "lgAgentChatMessages"
       );
 
-      toggle.textContent = opened
-        ? (ru ? "ЗАКРЫТЬ" : "CLOSE")
-        : (ru ? "ОБЩАТЬСЯ" : "CHAT");
+      toggle.textContent =
+        actionText;
 
       log.hidden = !opened;
 
     }
+
+
 
     input.placeholder = locked
       ? (
