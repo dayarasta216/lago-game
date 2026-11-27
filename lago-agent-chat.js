@@ -12,7 +12,7 @@
    * Server-verified entitlement required.
    */
 
-  const VERSION = 2;
+  const VERSION = 3;
 
   const MAX_MESSAGE_LENGTH = 500;
 
@@ -89,6 +89,11 @@
   }
 
 
+ 
+  /*
+   * R1.10C1 — Subscription-aware AI chat.
+   */
+
   function getState() {
 
     const context = getContext();
@@ -97,22 +102,50 @@
       window.LAGO_AGENT_ACCESS
         ?.getState?.();
 
-    /*
-     * No AI backend is connected.
-     *
-     * The chat remains unavailable
-     * even if local state is modified.
-     */
+    const subscriptionStatus =
+      access?.subscriptionStatus ||
+      "inactive";
 
-    const entitled =
-      Boolean(
-        context &&
-        access?.entitled === true &&
-        access?.serverVerified === true &&
-        access?.chatEnabled === true &&
-        access?.characterId ===
-          context.characterId
+    const periodEnd =
+      Date.parse(
+        access?.currentPeriodEnd || ""
       );
+
+    const periodValid =
+      Number.isFinite(periodEnd) &&
+      periodEnd > Date.now();
+
+    const entitled = Boolean(
+
+      context &&
+
+      access?.billingModel ===
+        "subscription" &&
+
+      access?.subscriptionStatus ===
+        "active" &&
+
+      access?.serverVerified === true &&
+
+      access?.entitled === true &&
+
+      access?.chatEnabled === true &&
+
+      access?.characterId ===
+        context.characterId &&
+
+      periodValid
+
+    );
+
+
+    /*
+     * A valid subscription alone does
+     * not mean that an AI backend exists.
+     *
+     * Chat remains locked until the real
+     * authenticated AI service is ready.
+     */
 
     return {
 
@@ -120,7 +153,7 @@
 
       ready: false,
 
-      mode: "premium-locked",
+      mode: "subscription-locked",
 
       aiConnected: false,
 
@@ -128,10 +161,42 @@
 
       locked: true,
 
+      billingModel: "subscription",
+
+      billingInterval: "month",
+
+      subscriptionStatus,
+
+      subscriptionRequired: !entitled,
+
+      renewalRequired:
+        subscriptionStatus === "expired" ||
+        (
+          subscriptionStatus === "active" &&
+          !periodValid
+        ),
+
+      /*
+       * Temporary compatibility field
+       * for the existing chat interface.
+       */
+
       purchaseRequired: !entitled,
+
+      currentPeriodEnd:
+        access?.currentPeriodEnd || null,
+
+      daysRemaining:
+        access?.daysRemaining ?? null,
+
+      autoRenewal:
+        access?.autoRenewal === true,
 
       checkoutAvailable:
         access?.checkoutAvailable === true,
+
+      renewalAvailable:
+        access?.renewalAvailable === true,
 
       currency: "LAGO",
 
@@ -145,7 +210,7 @@
         !context
           ? "agent_not_ready"
           : !entitled
-            ? "purchase_required"
+            ? "subscription_required"
             : "ai_service_unavailable",
 
       messages: []
@@ -153,6 +218,7 @@
     };
 
   }
+
 
 
   function emit() {
@@ -248,13 +314,29 @@
 
       state.characterName,
 
+      
       state.entitled,
 
       state.locked,
 
+      state.subscriptionStatus,
+
+      state.subscriptionRequired,
+
+      state.renewalRequired,
+
+      state.currentPeriodEnd,
+
+      state.daysRemaining,
+
+      state.autoRenewal,
+
       state.checkoutAvailable,
 
+      state.renewalAvailable,
+
       state.reason
+
 
     ]);
 
