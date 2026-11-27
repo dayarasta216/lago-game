@@ -13986,3 +13986,459 @@ and (max-width: 1100px) {
 }
 
 /* END R1.9B */
+
+
+/* =========================================================
+   LAGO GAME — R1.9E
+   RESPONSIVE NAVIGATION & SAFE AREAS
+   ========================================================= */
+
+#lagoModern {
+
+  --lg-nav-edge: max(
+    12px,
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
+
+}
+
+
+/* HEADER */
+
+#lagoModern .lago-modern-header {
+
+  box-sizing: border-box;
+
+  flex: 0 0 auto;
+
+  width: min(
+    1180px,
+    calc(
+      100% -
+      var(--lg-nav-edge) -
+      var(--lg-nav-edge)
+    )
+  );
+
+  min-width: 0;
+
+  margin: 0 auto;
+
+  padding:
+    calc(10px + env(safe-area-inset-top, 0px))
+    0
+    10px;
+
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+
+  align-items: center;
+
+  gap: 16px;
+
+  background: transparent;
+
+  border: none;
+
+  box-shadow: none;
+
+}
+
+
+/* BRAND */
+
+#lagoModern .lago-brand {
+
+  min-width: 0;
+
+  flex-shrink: 0;
+
+  gap: 8px;
+
+}
+
+#lagoModern .lago-brand-name {
+
+  font-size: clamp(24px, 3vw, 30px);
+
+  line-height: 1.1;
+
+  white-space: nowrap;
+
+}
+
+
+/* PROFILE BUTTON */
+
+#lagoModern .lago-profile {
+
+  min-width: 44px;
+
+  min-height: 44px;
+
+  max-width: 180px;
+
+  padding: 6px 9px;
+
+  flex-shrink: 0;
+
+  touch-action: manipulation;
+
+}
+
+#lagoModern .lago-profile-icon {
+
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 32px;
+
+}
+
+#lagoModern .lago-profile-text {
+
+  min-width: 0;
+
+}
+
+#lagoModern .lago-profile-level {
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+}
+
+
+/* DESKTOP NAVIGATION */
+
+#lagoModern .lago-main-nav {
+
+  min-width: 0;
+
+  max-width: 100%;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+}
+
+#lagoModern .lago-nav-btn {
+
+  min-height: 44px;
+
+  min-width: 0;
+
+  padding: 0 12px;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+
+  touch-action: manipulation;
+
+}
+
+
+/* MOBILE NAVIGATION */
+
+#lagoModern .lago-bottom {
+
+  box-sizing: border-box;
+
+  position: relative;
+
+  flex: 0 0 auto;
+
+  width: min(
+    720px,
+    calc(
+      100% -
+      var(--lg-nav-edge) -
+      var(--lg-nav-edge)
+    )
+  );
+
+  min-width: 0;
+
+  margin:
+    0
+    auto
+    calc(6px + env(safe-area-inset-bottom, 0px));
+
+  padding: 4px 0;
+
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+
+  gap: 5px;
+
+  background: transparent;
+
+  border: none;
+
+  box-shadow: none;
+
+}
+
+#lagoModern .lago-bottom-btn {
+
+  box-sizing: border-box;
+
+  min-width: 0;
+
+  min-height: 52px;
+
+  padding: 5px 2px 9px;
+
+  gap: 4px;
+
+  font-family: var(--lg-font);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  text-align: center;
+
+  white-space: normal;
+
+  touch-action: manipulation;
+
+}
+
+#lagoModern
+.lago-bottom-btn > span {
+
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+
+}
+
+#lagoModern
+.lago-bottom-btn .lago-icon-slot {
+
+  width: 21px;
+  height: 21px;
+
+  flex: 0 0 21px;
+
+}
+
+
+/* KEYBOARD ACCESSIBILITY */
+
+#lagoModern .lago-nav-btn:focus-visible,
+
+#lagoModern .lago-bottom-btn:focus-visible,
+
+#lagoModern .lago-profile:focus-visible {
+
+  outline: 2px solid var(--lg-accent);
+
+  outline-offset: 2px;
+
+}
+
+
+/* COMPACT DESKTOP */
+
+@media (min-width: 900px)
+and (max-width: 1100px) {
+
+  #lagoModern .lago-modern-header {
+
+    gap: 8px;
+
+  }
+
+  #lagoModern .lago-brand-tag {
+
+    display: none;
+
+  }
+
+  #lagoModern .lago-nav-btn {
+
+    padding: 0 9px;
+
+    font-size: 10px;
+
+  }
+
+  #lagoModern .lago-profile {
+
+    max-width: 130px;
+
+  }
+
+}
+
+
+/* TABLETS AND PHONES */
+
+@media (max-width: 899px) {
+
+  #lagoModern .lago-modern-header {
+
+    grid-template-columns:
+      minmax(0, 1fr) auto;
+
+    gap: 8px;
+
+    padding:
+      calc(6px + env(safe-area-inset-top, 0px))
+      0
+      6px;
+
+  }
+
+  #lagoModern .lago-main-nav {
+
+    display: none;
+
+  }
+
+  #lagoModern .lago-bottom {
+
+    display: grid;
+
+  }
+
+  #lagoModern .lago-brand-tag,
+
+  #lagoModern .lago-profile-text {
+
+    display: none;
+
+  }
+
+  #lagoModern .lago-profile {
+
+    padding: 5px;
+
+  }
+
+}
+
+
+/* DESKTOP VISIBILITY */
+
+@media (min-width: 900px) {
+
+  #lagoModern .lago-main-nav {
+
+    display: flex;
+
+  }
+
+  #lagoModern .lago-bottom {
+
+    display: none;
+
+  }
+
+}
+
+
+/* SMALL PHONES */
+
+@media (max-width: 380px) {
+
+  #lagoModern {
+
+    --lg-nav-edge: max(
+      8px,
+      env(safe-area-inset-left, 0px),
+      env(safe-area-inset-right, 0px)
+    );
+
+  }
+
+  #lagoModern .lago-bottom {
+
+    gap: 3px;
+
+  }
+
+  #lagoModern .lago-bottom-btn {
+
+    min-height: 48px;
+
+    font-size: 8px;
+
+    gap: 3px;
+
+  }
+
+  #lagoModern
+  .lago-bottom-btn .lago-icon-slot {
+
+    width: 19px;
+    height: 19px;
+
+    flex-basis: 19px;
+
+  }
+
+}
+
+
+/* SHORT SCREENS */
+
+@media (max-width: 899px)
+and (max-height: 600px) {
+
+  #lagoModern .lago-bottom {
+
+    padding: 2px 0;
+
+    margin-bottom:
+      calc(3px + env(safe-area-inset-bottom, 0px));
+
+  }
+
+  #lagoModern .lago-bottom-btn {
+
+    min-height: 44px;
+
+    padding: 3px 2px 7px;
+
+    gap: 2px;
+
+  }
+
+}
+
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+
+  #lagoModern .lago-nav-btn,
+
+  #lagoModern .lago-bottom-btn,
+
+  #lagoModern .lago-profile {
+
+    transition: none;
+
+  }
+
+}
+
+/* END R1.9E */
