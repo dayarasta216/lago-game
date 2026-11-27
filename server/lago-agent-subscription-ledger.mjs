@@ -1,5 +1,11 @@
 
+
 import { DatabaseSync } from "node:sqlite";
+
+import {
+  installGlobalPaymentRegistry
+} from "./lago-payment-registry.mjs";
+
 
 import {
   mkdirSync,
@@ -586,7 +592,20 @@ export function createLagoSubscriptionLedger({
 
       );
 
+   
     `);
+
+    /*
+     * R2.7E1 — Install shared payment registry.
+     *
+     * Migrate existing payment history.
+     * Register atomic payment claims.
+     * Abort startup on integrity failure.
+     */
+
+    db.exec("PRAGMA busy_timeout = 5000");
+
+    installGlobalPaymentRegistry(db);
 
   } catch (error) {
 
@@ -595,6 +614,7 @@ export function createLagoSubscriptionLedger({
     throw error;
 
   }
+
 
 
   let closed = false;
@@ -615,15 +635,27 @@ export function createLagoSubscriptionLedger({
   `);
 
 
-  const findQuote = db.prepare(`
+ 
+const findPaymentClaims = db.prepare(`
 
     SELECT *
 
-    FROM subscription_payments
+    FROM payment_claims
 
-    WHERE quote_id = ?
+    WHERE chain = ?
+
+      AND network = ?
+
+      AND (
+
+        transaction_signature = ?
+
+        OR quote_id = ?
+
+      )
 
   `);
+
 
 
   const latestPeriod = db.prepare(`
@@ -759,61 +791,125 @@ export function createLagoSubscriptionLedger({
    * account, quote and signature match.
    */
 
-  function checkReplay(request) {
-
-    const signatureRow =
-      findSignature.get(
-        request.transactionSignature
-      );
+  <CodeBlock language="javascript" editable>
+function checkReplay(request) {
 
 
-    const quoteRow =
-      findQuote.get(
-        request.quoteId
-      );
+/*
+* One query checks both unique
+* identifiers across all products.
+*/
 
+const claims = findPaymentClaims.all(
 
-    if (!signatureRow && !quoteRow) {
+POLICY.chain,
 
-      return null;
+POLICY.network,
 
-    }
+request.transactionSignature,
 
+request.quoteId
 
-    if (
+);
 
-      signatureRow &&
+/*
+* Payment has not been registered.
+*/
 
-      quoteRow &&
+if (claims.length === 0) {
 
-      signatureRow.account_id ===
-        request.accountId &&
+return null;
 
-      signatureRow.quote_id ===
-        request.quoteId &&
+}
 
-      quoteRow.transaction_signature ===
-        request.transactionSignature
+/*
+* Only an exact retry for the same
+* account, product, signature and
+* quote may return an existing credit.
+*/
 
-    ) {
+if (claims.length === 1) {
 
-      return paymentResult(
+const claim = claims[0];
 
-        signatureRow,
+if (
 
-        true
+claim.product ===
+POLICY.product &&
 
-      );
+claim.account_id ===
+request.accountId &&
 
-    }
+claim.quote_id ===
+request.quoteId &&
 
+claim.transaction_signature ===
+request.transactionSignature
 
-    return reject(
-      "payment_already_used"
-    );
+) {
 
-  }
+const row = findSignature.get(
 
+request.transactionSignature
+
+);
+
+/*
+* Global registry and subscription
+* ledger must agree.
+*/
+
+if (
+
+!row ||
+
+row.account_id !==
+claim.account_id ||
+
+row.quote_id !==
+claim.quote_id ||
+
+row.transaction_signature !==
+claim.transaction_signature ||
+
+row.paid_at !==
+claim.recorded_at
+
+) {
+
+throw new Error(
+
+"payment_registry_integrity_failed"
+
+);
+
+}
+
+return paymentResult(
+
+row,
+
+true
+
+);
+
+}
+
+}
+
+/*
+* Used by another product, account
+* or payment quote.
+*/
+
+return reject(
+
+"payment_already_used"
+
+);
+
+}
+</CodeBlock>
 
   /*
    * RECORD VERIFIED PAYMENT
@@ -1339,7 +1435,20 @@ export function createLagoSubscriptionLedger({
 
         uniqueTransactionSignature: true,
 
-        uniqueQuoteId: true,
+       <CodeBlock language="javascript" editable>
+uniqueQuoteId: true,
+
+
+globalPaymentRegistryEnabled: true,
+
+crossProductReplayProtection: true,
+
+sharedPaymentDatabaseRequired: true,
+
+atomicPaymentClaim: true,
+
+immutablePaymentHistory: true,
+</CodeBlock>
 
         preserveBillingHistory: true,
 
