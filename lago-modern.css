@@ -13580,3 +13580,409 @@ and
 }
 
 /* END R1.4D */
+
+
+/* =========================================================
+   LAGO GAME — R1.9B
+   RESPONSIVE GAME STAGE
+   ========================================================= */
+
+#lagoModern.lg-chat-docked {
+
+  width: 100%;
+
+  height: 100vh;
+  height: 100dvh;
+
+  max-width: 100%;
+
+  overflow: hidden;
+
+}
+
+
+/* MAIN GAME AREA */
+
+#lagoModern.lg-chat-docked
+> .lago-game-area {
+
+  flex: 1 1 0;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(160px, 210px)
+    minmax(0, 1fr)
+    minmax(160px, 210px);
+
+  grid-template-rows: auto;
+
+  align-items: center;
+
+  width: min(1180px, calc(100% - 32px));
+
+  min-width: 0;
+  min-height: 0;
+
+  margin: 0 auto;
+
+  padding: 12px 0;
+
+  gap: clamp(12px, 2vw, 24px);
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+
+}
+
+
+/* CHARACTER SCENE */
+
+#lagoModern.lg-chat-docked
+.lago-game-area > .lago-center {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+
+  height: auto;
+
+  min-width: 0;
+  min-height: 0;
+
+  padding: 8px 0;
+
+  overflow: visible;
+
+  border: none;
+
+  background: transparent;
+
+  box-shadow: none;
+
+}
+
+
+/* CHARACTER IDENTITY */
+
+#lagoModern
+.lago-center-title {
+
+  max-width: 100%;
+
+  font-size: clamp(26px, 4vw, 48px);
+
+  line-height: 1.12;
+
+  text-align: center;
+
+  overflow-wrap: anywhere;
+
+}
+
+#lagoModern
+.lago-center-sub {
+
+  max-width: 100%;
+
+  font-size: 10px;
+
+  line-height: 1.4;
+
+  text-align: center;
+
+}
+
+
+/* 3D CHARACTER STAGE */
+
+#lagoModern.lg-chat-docked
+#modernSnailArea {
+
+  position: relative;
+
+  flex: 0 0 auto;
+
+  width: min(100%, 430px);
+
+  height: clamp(120px, 32vh, 340px);
+  height: clamp(120px, 32dvh, 340px);
+
+  min-width: 0;
+  min-height: 0;
+
+  margin: 6px auto;
+
+  border: none;
+
+  background: transparent;
+
+  box-shadow: none;
+
+  touch-action: manipulation;
+
+}
+
+
+/* CHARACTER DIALOGUE */
+
+#lagoModern
+.lago-speech {
+
+  flex: 0 0 auto;
+
+  width: auto;
+
+  max-width: min(100%, 360px);
+
+  min-height: 28px;
+
+  padding: 6px 8px;
+
+  font-size: 12px;
+
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+
+}
+
+#lagoModern
+.lago-tap-hint {
+
+  flex: 0 0 auto;
+
+  min-height: 24px;
+
+  font-size: 11px;
+
+  line-height: 1.4;
+
+  text-align: center;
+
+}
+
+
+/* DESKTOP SIDE PANELS */
+
+#lagoModern
+.lago-game-area > .lago-side {
+
+  min-width: 0;
+
+}
+
+#lagoModern
+.lago-action {
+
+  min-width: 0;
+  min-height: 44px;
+
+}
+
+
+/* COMPACT DESKTOP */
+
+@media (min-width: 900px)
+and (max-width: 1100px) {
+
+  #lagoModern.lg-chat-docked
+  > .lago-game-area {
+
+    grid-template-columns:
+      minmax(140px, 175px)
+      minmax(0, 1fr)
+      minmax(140px, 175px);
+
+    gap: 12px;
+
+  }
+
+}
+
+
+/* TABLET AND PHONE */
+
+@media (max-width: 899px) {
+
+  #lagoModern.lg-chat-docked
+  > .lago-game-area {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    justify-content: flex-start;
+
+    width: calc(100% - 24px);
+
+    gap: 10px;
+
+    padding: 6px 0 12px;
+
+  }
+
+  #lagoModern.lg-chat-docked
+  .lago-game-area > .lago-center {
+
+    order: 1;
+
+    flex: 0 0 auto;
+
+    width: 100%;
+
+    height: auto;
+
+    min-height: 0;
+
+    padding: 8px 0;
+
+  }
+
+  #lagoModern.lg-chat-docked
+  #modernSnailArea {
+
+    width: min(80vw, 350px);
+
+    height: clamp(110px, 30vh, 280px);
+    height: clamp(110px, 30dvh, 280px);
+
+  }
+
+  #lagoModern
+  .lago-game-area > .lago-side:first-of-type {
+
+    order: 2;
+
+    flex: 0 0 auto;
+
+    width: 100%;
+
+    min-width: 0;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+
+  }
+
+  #lagoModern
+  .lago-game-area > .lago-right-dashboard {
+
+    order: 3;
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    flex: 0 0 auto;
+
+    width: 100%;
+
+    gap: 8px;
+
+  }
+
+}
+
+
+/* SMALL PHONES */
+
+@media (max-width: 480px) {
+
+  #lagoModern
+  .lago-center-title {
+
+    font-size: clamp(24px, 7vw, 34px);
+
+  }
+
+  #lagoModern
+  .lago-center-sub {
+
+    font-size: 9px;
+
+  }
+
+  #lagoModern.lg-chat-docked
+  #modernSnailArea {
+
+    width: min(78vw, 300px);
+
+    height: clamp(100px, 27vh, 245px);
+    height: clamp(100px, 27dvh, 245px);
+
+  }
+
+  #lagoModern
+  .lago-speech {
+
+    font-size: 11px;
+
+  }
+
+}
+
+
+/* SHORT SCREENS AND LANDSCAPE */
+
+@media (max-height: 650px) {
+
+  #lagoModern.lg-chat-docked
+  #modernSnailArea {
+
+    height: clamp(90px, 24vh, 200px);
+    height: clamp(90px, 24dvh, 200px);
+
+  }
+
+  #lagoModern.lg-chat-docked
+  .lago-game-area > .lago-center {
+
+    padding: 4px 0;
+
+  }
+
+  #lagoModern
+  .lago-center-title {
+
+    font-size: clamp(22px, 4vw, 32px);
+
+  }
+
+}
+
+
+/* ULTRA-NARROW SCREENS */
+
+@media (max-width: 340px) {
+
+  #lagoModern.lg-chat-docked
+  > .lago-game-area {
+
+    width: calc(100% - 16px);
+
+  }
+
+  #lagoModern
+  .lago-game-area > .lago-right-dashboard {
+
+    grid-template-columns:
+      minmax(0, 1fr);
+
+  }
+
+}
+
+/* END R1.9B */
