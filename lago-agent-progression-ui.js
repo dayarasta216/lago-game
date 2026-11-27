@@ -746,13 +746,16 @@
       state.experience.progressPercent
     );
 
+   
     setTrack(
       energyBar,
       state.energy.percent
-      
+    );
+
     /*
      * R2.5H — Render persisted bond.
      */
+
 
     const bond =
       state.agent?.bond;
@@ -847,13 +850,13 @@
 
       );
 
+      
       bondCard.removeAttribute("title");
 
     }
 
-    );
-
   }
+
 
   /*
    * Batch frequent account updates.
