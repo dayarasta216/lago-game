@@ -4,27 +4,24 @@
 
   /*
    * LAGO GAME
-   * R1.8H — Premium AI access foundation.
+   * R1.10A — Monthly AI subscription.
    *
-   * Fail-closed access policy.
-   *
-   * Game characters and AI licenses
-   * are separate products.
-   *
-   * AI can only be activated after
-   * server-verified $LAGO payment.
-   *
-   * No localStorage licenses.
-   * No free activation.
-   * No XP-based activation.
-   * No client-side payment bypass.
+   * Free gameplay.
+   * Paid AI intelligence.
+   * Server-verified subscription.
    */
 
-  const VERSION = 1;
+  const VERSION = 2;
 
   const POLICY = Object.freeze({
 
     product: "personal-ai-agent",
+
+    billingModel: "subscription",
+
+    billingInterval: "month",
+
+    billingIntervalCount: 1,
 
     currency: "LAGO",
 
@@ -33,10 +30,13 @@
     tokenMint:
       "J9BmsKsS6PH7QGxDWA43YVbsmTxavgFmu5ScSDzWpump",
 
+    subscriptionScope: "account",
+
     maxActiveAgents: 1,
 
-    purchaseCooldownMs:
-      24 * 60 * 60 * 1000,
+    autoRenewal: false,
+
+    freeTrial: false,
 
     freeAccess: false,
 
@@ -44,7 +44,15 @@
 
     unlockWithSP: false,
 
-    serverVerificationRequired: true
+    preserveCharacterOnExpiry: true,
+
+    preserveMemoryOnExpiry: true,
+
+    preserveProgressOnExpiry: true,
+
+    serverVerificationRequired: true,
+
+    separateTradingAuthorization: true
 
   });
 
@@ -57,15 +65,13 @@
 
     return {
 
-      id:
-        String(
-          context?.characterId || "lago"
-        ),
+      id: String(
+        context?.characterId || "lago"
+      ),
 
-      name:
-        String(
-          context?.characterName || "Lago"
-        )
+      name: String(
+        context?.characterName || "Lago"
+      )
 
     };
 
@@ -81,6 +87,33 @@
       version: VERSION,
 
       product: POLICY.product,
+
+      billingModel: POLICY.billingModel,
+
+      billingInterval: POLICY.billingInterval,
+
+      billingIntervalCount: 1,
+
+      subscriptionScope:
+        POLICY.subscriptionScope,
+
+      subscriptionStatus: "inactive",
+
+      subscriptionId: null,
+
+      subscriptionStartedAt: null,
+
+      currentPeriodStart: null,
+
+      currentPeriodEnd: null,
+
+      nextBillingAt: null,
+
+      daysRemaining: null,
+
+      autoRenewal: false,
+
+      renewalAvailable: false,
 
       status: "locked",
 
@@ -131,9 +164,14 @@
   function canUseAI() {
 
     /*
-     * Access remains locked until a
-     * trusted backend verifies payment
-     * and provides an active entitlement.
+     * Future backend requirements:
+     *
+     * Verified account identity.
+     * Verified $LAGO payment.
+     * Active subscription.
+     * Valid server-side expiry date.
+     *
+     * No local activation.
      */
 
     return false;
@@ -144,11 +182,8 @@
   function canTrade() {
 
     /*
-     * Paid AI access alone does not
-     * authorize financial operations.
-     *
-     * Separate trading authorization
-     * and risk controls are required.
+     * Requires active subscription
+     * and separate trading authorization.
      */
 
     return false;
