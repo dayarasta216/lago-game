@@ -1,0 +1,1245 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import {
+  RUNTIME_ACCESS_VERSION,
+  createLagoRuntimeAccess
+} from "./lago-agent-runtime-access.mjs";
+
+import {
+  createLagoAccountSessionStore
+} from "./lago-account-session-store.mjs";
+
+import {
+  createLagoSubscriptionLedger
+} from "./lago-agent-subscription-ledger.mjs";
+
+import {
+  createLagoSubscriptionEntitlement
+} from "./lago-agent-subscription-entitlement.mjs";
+
+import {
+  SUBSCRIPTION_POLICY
+} from "./lago-agent-subscription-contract.mjs";
+
+import {
+  createMemoryIdentity
+} from "./lago-agent-memory-contract.mjs";
+
+/*
+ * LAGO GAME
+ * R2.8A1 — RUNTIME AUTHORIZATION SECURITY TESTS
+ *
+ * Real account sessions.
+ * Real subscription ledger.
+ * Real entitlement engine.
+ * Synthetic character ownership.
+ *
+ * No real payments.
+ * No AI execution.
+ * No trading.
+ */
+
+const POLICY = SUBSCRIPTION_POLICY;
+
+const START = Date.parse(
+  "2027-01-31T12:00:00.000Z"
+);
+
+const END = Date.parse(
+  "2027-02-28T12:00:00.000Z"
+);
+
+const PAYER = "1".repeat(31) + "2";
+const TREASURY = "1".repeat(31) + "3";
+
+const CHARACTER = "lago";
+const OTHER_CHARACTER = "comic_pink_snail";
+
+
+/*
+ * REAL SERVER INTEGRATION FIXTURE
+ */
+
+async function fixture(t) {
+  const root = await mkdtemp(
+    join(tmpdir(), "lago-runtime-access-")
+  );
+
+  const projectRoot = join(root, "project");
+  const directory = join(root, "payments");
+
+  const services = [];
+
+  let clock = START;
+  let sequence = 0;
+
+  const now = () => clock;
+
+  t.after(async () => {
+    for (const service of services.reverse()) {
+      service.close();
+    }
+
+    await rm(root, {
+      recursive: true,
+      force: true
+    });
+  });
+
+  await mkdir(projectRoot);
+
+  const sessions = createLagoAccountSessionStore({
+    filePath: join(root, "accounts.json"),
+    now
+  });
+
+  async function createPlayer(id) {
+    const result =
+      await sessions.upsertVerifiedTelegramUser({
+        id,
+        username: "synthetic_" + id
+      });
+
+    assert.equal(result.ok, true);
+
+    const accountId = result.account.accountId;
+
+    const session = await sessions.createSession(
+      accountId,
+      { ttlSeconds: 3600 }
+    );
+
+    assert.equal(session.ok, true);
+
+    return {
+      accountId,
+      token: session.token
+    };
+  }
+
+  const playerA = await createPlayer("100001");
+  const playerB = await createPlayer("100002");
+
+
+  /*
+   * REAL SUBSCRIPTION LEDGER
+   */
+
+  const ledger = createLagoSubscriptionLedger({
+    directory,
+    projectRoot,
+    now,
+
+    async verifyPayment(request) {
+      return {
+        ...request,
+        serverVerified: true,
+        confirmationStatus: "finalized",
+        product: POLICY.product,
+        chain: POLICY.chain,
+        network: POLICY.network,
+        tokenMint: POLICY.tokenMint,
+        payerWallet: PAYER,
+        treasuryWallet: TREASURY,
+        amountBaseUnits: "1000000"
+      };
+    }
+  });
+
+  services.push(ledger);
+
+  function createEntitlement(enabled) {
+    const service =
+      createLagoSubscriptionEntitlement({
+        directory,
+        projectRoot,
+        sessionStore: sessions,
+        verifiedLedgerEnabled: enabled,
+        now
+      });
+
+    services.push(service);
+
+    return service;
+  }
+
+  const entitlement = createEntitlement(true);
+  const disabledEntitlement = createEntitlement(false);
+
+
+  /*
+   * SYNTHETIC CHARACTER OWNERSHIP
+   */
+
+  const characters = new Map([
+    [
+      playerA.accountId,
+      {
+        activeCharacterId: CHARACTER,
+        owned: new Set([
+          CHARACTER,
+          OTHER_CHARACTER
+        ])
+      }
+    ],
+    [
+      playerB.accountId,
+      {
+        activeCharacterId: CHARACTER,
+        owned: new Set([CHARACTER])
+      }
+    ]
+  ]);
+
+  async function getCharacterAccess({
+    accountId,
+    characterId
+  }) {
+    const state = characters.get(accountId);
+
+    return {
+      serverVerified: true,
+      accountId,
+      characterId,
+
+      owned:
+        state?.owned.has(characterId) === true,
+
+      activeCharacterId:
+        state?.activeCharacterId || null
+    };
+  }
+
+  function createRuntime(changes = {}) {
+    return createLagoRuntimeAccess({
+      sessionStore: sessions,
+      getCharacterAccess,
+      getSubscription: entitlement.getSubscription,
+      runtimeEnabled: true,
+      now,
+      ...changes
+    });
+  }
+
+  const runtime = createRuntime();
+
+
+  /*
+   * SYNTHETIC PAYMENT
+   */
+
+  async function pay(player = playerA) {
+    sequence++;
+
+    const alphabet =
+      "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+    const result = await ledger.applyPayment({
+      accountId: player.accountId,
+
+      quoteId:
+        sequence.toString(16).padStart(32, "0"),
+
+      transactionSignature:
+        "1".repeat(63) + alphabet[sequence - 1]
+    });
+
+    assert.equal(result.ok, true);
+
+    return result;
+  }
+
+  function input(player = playerA, changes = {}) {
+    return {
+      sessionToken: player.token,
+      characterId: CHARACTER,
+      action: "chat",
+      ...changes
+    };
+  }
+
+  return {
+    sessions,
+    playerA,
+    playerB,
+    entitlement,
+    disabledEntitlement,
+    runtime,
+    createRuntime,
+    getCharacterAccess,
+    pay,
+    input,
+
+    authorize(changes = {}) {
+      return runtime.authorize(
+        input(playerA, changes)
+      );
+    },
+
+    select(player, characterId) {
+      characters.get(
+        player.accountId
+      ).activeCharacterId = characterId;
+    },
+
+    removeOwnership(player, characterId) {
+      characters.get(
+        player.accountId
+      ).owned.delete(characterId);
+    },
+
+    setTime(value) {
+      clock = value;
+    },
+
+    advance(milliseconds) {
+      clock += milliseconds;
+    },
+
+    async renewSession(player = playerA) {
+      const session = await sessions.createSession(
+        player.accountId,
+        { ttlSeconds: 3600 }
+      );
+
+      assert.equal(session.ok, true);
+
+      player.token = session.token;
+
+      return session.token;
+    }
+  };
+}
+
+
+/*
+ * COMMON ASSERTIONS
+ */
+
+function assertDenied(result, reason) {
+  assert.equal(result.ok, false);
+  assert.equal(result.authorized, false);
+  assert.equal(result.runtimeAuthorized, false);
+  assert.equal(result.identity, null);
+  assert.equal(result.action, null);
+  assert.equal(result.memoryAuthorized, false);
+  assert.equal(result.tradingAuthorized, false);
+
+  assert.equal(
+    result.externalModelTrainingAuthorized,
+    false
+  );
+
+  assert.equal(result.reason, reason);
+  assert.equal(Object.isFrozen(result), true);
+}
+
+function assertAllowed(
+  result,
+  player,
+  characterId = CHARACTER,
+  action = "chat"
+) {
+  assert.equal(result.ok, true);
+  assert.equal(result.authorized, true);
+  assert.equal(result.runtimeAuthorized, true);
+
+  assert.equal(result.version, RUNTIME_ACCESS_VERSION);
+  assert.equal(result.action, action);
+
+  assert.equal(result.sessionVerified, true);
+  assert.equal(result.characterVerified, true);
+  assert.equal(result.subscriptionVerified, true);
+
+  assert.deepEqual(
+    result.identity,
+    createMemoryIdentity(
+      player.accountId,
+      characterId
+    )
+  );
+
+  assert.equal(result.memoryAuthorized, false);
+  assert.equal(result.learningAuthorized, false);
+  assert.equal(result.tradingAuthorized, false);
+
+  assert.equal(
+    result.externalModelTrainingAuthorized,
+    false
+  );
+
+  assert.equal(result.reason, null);
+
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(Object.isFrozen(result.identity), true);
+}
+
+
+/*
+ * TEST 01 — REQUIRED CONFIGURATION
+ */
+
+test("requires valid runtime configuration", () => {
+  assert.throws(
+    () => createLagoRuntimeAccess(),
+    /runtime_session_store_required/
+  );
+
+  const sessionStore = {
+    async restoreSession() {
+      return null;
+    }
+  };
+
+  for (const changes of [
+    { runtimeEnabled: "true" },
+    { now: null }
+  ]) {
+    assert.throws(
+      () => createLagoRuntimeAccess({
+        sessionStore,
+        ...changes
+      }),
+      /invalid_runtime_configuration/
+    );
+  }
+
+  assert.throws(
+    () => createLagoRuntimeAccess({
+      sessionStore,
+      getCharacterAccess: true
+    }),
+    /invalid_character_access_provider/
+  );
+
+  assert.throws(
+    () => createLagoRuntimeAccess({
+      sessionStore,
+      getSubscription: {}
+    }),
+    /invalid_subscription_provider/
+  );
+});
+
+
+/*
+ * TEST 02 — DISABLED BY DEFAULT
+ */
+
+test("keeps runtime disabled by default", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = createLagoRuntimeAccess({
+    sessionStore: fx.sessions,
+    getCharacterAccess: fx.getCharacterAccess,
+    getSubscription: fx.entitlement.getSubscription
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_disabled"
+  );
+
+  assert.equal(
+    runtime.getPolicy().runtimeEnabled,
+    false
+  );
+});
+
+
+/*
+ * TEST 03 — MALFORMED REQUESTS
+ */
+
+test("rejects malformed runtime requests", async t => {
+  const fx = await fixture(t);
+
+  for (const input of [
+    null,
+    [],
+    true,
+    123,
+    "chat"
+  ]) {
+    assertDenied(
+      await fx.runtime.authorize(input),
+      "invalid_runtime_request"
+    );
+  }
+});
+
+
+/*
+ * TEST 04 — UNSUPPORTED OPERATIONS
+ */
+
+test("rejects trading memory and external training operations", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  for (const action of [
+    "trade",
+    "buy",
+    "sell",
+    "withdraw",
+    "collect",
+    "recall",
+    "learn",
+    "train",
+    "memory",
+    "market-analysis",
+    "CHAT",
+    null
+  ]) {
+    assertDenied(
+      await fx.authorize({ action }),
+      "runtime_action_not_allowed"
+    );
+  }
+});
+
+
+/*
+ * TEST 05 — INVALID CHARACTERS
+ */
+
+test("rejects unknown character identities", async t => {
+  const fx = await fixture(t);
+
+  for (const characterId of [
+    "",
+    null,
+    "unknown",
+    "LAGO",
+    "../lago",
+    {}
+  ]) {
+    assertDenied(
+      await fx.authorize({ characterId }),
+      "invalid_character"
+    );
+  }
+});
+
+
+/*
+ * TEST 06 — MISSING SESSION
+ */
+
+test("requires a valid session token", async t => {
+  const fx = await fixture(t);
+
+  for (const sessionToken of [
+    "",
+    " ",
+    null,
+    123,
+    "invalid-session",
+    "a".repeat(257)
+  ]) {
+    assertDenied(
+      await fx.authorize({ sessionToken }),
+      "authentication_required"
+    );
+  }
+});
+
+
+/*
+ * TEST 07 — NO SUBSCRIPTION
+ */
+
+test("does not authorize AI without an active subscription", async t => {
+  const fx = await fixture(t);
+
+  assertDenied(
+    await fx.authorize(),
+    "active_subscription_required"
+  );
+});
+
+
+/*
+ * TEST 08 — UNVERIFIED BILLING
+ */
+
+test("rejects recorded subscriptions when entitlement is disabled", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    getSubscription:
+      fx.disabledEntitlement.getSubscription
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "active_subscription_required"
+  );
+});
+
+
+/*
+ * TEST 09 — AUTHORIZED CHAT
+ */
+
+test("authorizes chat for a verified subscribed active character", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const result = await fx.authorize();
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(
+    Date.parse(result.issuedAt),
+    START
+  );
+
+  assert.equal(
+    Date.parse(result.validUntil),
+    START + 5000
+  );
+
+  assert.equal(
+    Date.parse(result.currentPeriodEnd),
+    END
+  );
+});
+
+
+/*
+ * TEST 10 — MARKET ANALYSIS
+ */
+
+test("authorizes market analysis without granting trading access", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const result = await fx.authorize({
+    action: "market_analysis"
+  });
+
+  assertAllowed(
+    result,
+    fx.playerA,
+    CHARACTER,
+    "market_analysis"
+  );
+});
+
+
+/*
+ * TEST 11 — ACCOUNT ISOLATION
+ */
+
+test("does not transfer subscription access between accounts", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay(fx.playerA);
+
+  assertAllowed(
+    await fx.authorize(),
+    fx.playerA
+  );
+
+  assertDenied(
+    await fx.runtime.authorize(
+      fx.input(fx.playerB)
+    ),
+    "active_subscription_required"
+  );
+});
+
+
+/*
+ * TEST 12 — CHARACTER OWNERSHIP
+ */
+
+test("rejects characters not owned by the account", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.removeOwnership(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  assertDenied(
+    await fx.authorize({
+      characterId: OTHER_CHARACTER
+    }),
+    "character_access_denied"
+  );
+});
+
+
+/*
+ * TEST 13 — INACTIVE CHARACTER
+ */
+
+test("rejects owned characters that are not currently active", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  assertDenied(
+    await fx.authorize({
+      characterId: OTHER_CHARACTER
+    }),
+    "character_access_denied"
+  );
+});
+
+
+/*
+ * TEST 14 — CHARACTER SWITCH
+ */
+
+test("authorizes only the newly selected owned character", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  assertDenied(
+    await fx.authorize(),
+    "character_access_denied"
+  );
+
+  assertAllowed(
+    await fx.authorize({
+      characterId: OTHER_CHARACTER
+    }),
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+});
+
+
+/*
+ * TEST 15 — CLIENT PERMISSION INJECTION
+ */
+
+test("ignores client-supplied account and authorization fields", async t => {
+  const fx = await fixture(t);
+
+  const injection = {
+    accountId: fx.playerB.accountId,
+    entitled: true,
+    serverVerified: true,
+    runtimeAuthorized: true,
+    tradingAuthorized: true,
+    memoryAuthorized: true,
+    subscription: {
+      status: "active"
+    }
+  };
+
+  assertDenied(
+    await fx.authorize(injection),
+    "active_subscription_required"
+  );
+
+  await fx.pay();
+
+  assertAllowed(
+    await fx.authorize(injection),
+    fx.playerA
+  );
+});
+
+
+/*
+ * TEST 16 — MISSING PROVIDERS
+ */
+
+test("fails closed without trusted authorization providers", async t => {
+  const fx = await fixture(t);
+
+  assertDenied(
+    await fx.createRuntime({
+      getCharacterAccess: null
+    }).authorize(fx.input()),
+
+    "character_access_unavailable"
+  );
+
+  assertDenied(
+    await fx.createRuntime({
+      getSubscription: null
+    }).authorize(fx.input()),
+
+    "subscription_service_unavailable"
+  );
+});
+
+
+/*
+ * TEST 17 — INVALID OWNERSHIP RESPONSES
+ */
+
+test("rejects invalid character ownership evidence", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const valid = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  for (const changes of [
+    { serverVerified: false },
+    { accountId: fx.playerB.accountId },
+    { characterId: OTHER_CHARACTER },
+    { activeCharacterId: OTHER_CHARACTER },
+    { owned: false },
+    { owned: "true" }
+  ]) {
+    const runtime = fx.createRuntime({
+      async getCharacterAccess() {
+        return {
+          ...valid,
+          ...changes
+        };
+      }
+    });
+
+    assertDenied(
+      await runtime.authorize(fx.input()),
+      "character_access_denied"
+    );
+  }
+});
+
+
+/*
+ * TEST 18 — INVALID SUBSCRIPTION RESPONSES
+ */
+
+test("rejects inconsistent trusted subscription evidence", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const valid = fx.entitlement.getSubscription({
+    accountId: fx.playerA.accountId
+  });
+
+  const mutations = [
+    { ok: false },
+    { accountId: fx.playerB.accountId },
+    { serverVerified: false },
+    { entitled: false },
+    { subscriptionEntitlementGranted: false },
+    { status: "inactive" },
+    { subscriptionStatus: "expired" },
+    { product: "foreign-product" },
+    { billingModel: "one-time" },
+    { billingInterval: "year" },
+    { billingIntervalCount: 12 },
+    { subscriptionScope: "character" },
+    { maxActiveAgents: 2 },
+    { currency: "USD" },
+    { chain: "ethereum" },
+    { network: "devnet" },
+    { tokenMint: "foreign-mint" },
+    { autoRenewal: true },
+    { currentPeriodStart: "invalid-date" },
+    { currentPeriodEnd: "invalid-date" },
+    {
+      currentPeriodStart:
+        new Date(START + 1000).toISOString()
+    },
+    {
+      currentPeriodEnd:
+        new Date(START).toISOString()
+    }
+  ];
+
+  for (const changes of mutations) {
+    const runtime = fx.createRuntime({
+      async getSubscription() {
+        return {
+          ...valid,
+          ...changes
+        };
+      }
+    });
+
+    assertDenied(
+      await runtime.authorize(fx.input()),
+      "active_subscription_required"
+    );
+  }
+});
+
+
+/*
+ * TEST 19 — REVOKED SESSION
+ */
+
+test("rejects revoked server sessions", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  await fx.sessions.revokeSession(
+    fx.playerA.token
+  );
+
+  assertDenied(
+    await fx.authorize(),
+    "authentication_required"
+  );
+});
+
+
+/*
+ * TEST 20 — EXPIRED SESSION
+ */
+
+test("rejects expired server sessions", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.advance(3600000);
+
+  assertDenied(
+    await fx.authorize(),
+    "authentication_required"
+  );
+});
+
+
+/*
+ * TEST 21 — REVOCATION DURING VERIFICATION
+ */
+
+test("rejects sessions revoked during subscription verification", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      const state =
+        fx.entitlement.getSubscription(input);
+
+      await fx.sessions.revokeSession(
+        fx.playerA.token
+      );
+
+      return state;
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_session_changed"
+  );
+});
+
+
+/*
+ * TEST 22 — CHARACTER CHANGE DURING VERIFICATION
+ */
+
+test("rejects character switches during subscription verification", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.select(
+        fx.playerA,
+        OTHER_CHARACTER
+      );
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "character_context_changed"
+  );
+});
+
+
+/*
+ * TEST 23 — EXACT SUBSCRIPTION EXPIRATION
+ */
+
+test("rejects subscriptions at their exact expiration boundary", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.setTime(END);
+
+  await fx.renewSession();
+
+  assertDenied(
+    await fx.authorize(),
+    "active_subscription_required"
+  );
+});
+
+
+/*
+ * TEST 24 — EXPIRATION DURING VERIFICATION
+ */
+
+test("rejects subscriptions expiring during runtime verification", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.setTime(END - 1);
+
+  await fx.renewSession();
+
+  let checks = 0;
+
+  const runtime = fx.createRuntime({
+    async getCharacterAccess(input) {
+      checks++;
+
+      if (checks === 2) {
+        fx.advance(1);
+      }
+
+      return fx.getCharacterAccess(input);
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "subscription_expired"
+  );
+});
+
+
+/*
+ * TEST 25 — DECISION EXPIRATION
+ */
+
+test("limits authorization lifetime to the paid period end", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.setTime(END - 1000);
+
+  await fx.renewSession();
+
+  const result = await fx.authorize();
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(
+    Date.parse(result.validUntil),
+    END
+  );
+});
+
+
+/*
+ * TEST 26 — VERIFICATION AGE LIMIT
+ */
+
+test("rejects verification results reaching the five second age limit", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.advance(5000);
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "runtime_verification_timeout"
+  );
+});
+
+
+/*
+ * TEST 27 — INVALID CLOCK
+ */
+
+test("rejects invalid and backwards-moving verification clocks", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  for (const value of [
+    NaN,
+    Infinity,
+    1.5
+  ]) {
+    assertDenied(
+      await fx.createRuntime({
+        now: () => value
+      }).authorize(fx.input()),
+
+      "invalid_runtime_clock"
+    );
+  }
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.advance(-1);
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "invalid_runtime_clock"
+  );
+});
+
+
+/*
+ * TEST 28 — PROVIDER EXCEPTION PRIVACY
+ */
+
+test("sanitizes provider errors without exposing private information", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getCharacterAccess() {
+      throw new Error(
+        "SYNTHETIC_PRIVATE_SERVER_SECRET"
+      );
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertDenied(
+    result,
+    "runtime_authorization_unavailable"
+  );
+
+  assert.equal(
+    JSON.stringify(result).includes(
+      "SYNTHETIC_PRIVATE_SERVER_SECRET"
+    ),
+    false
+  );
+
+  assert.equal(
+    JSON.stringify(result).includes(
+      fx.playerA.token
+    ),
+    false
+  );
+});
+
+
+/*
+ * TEST 29 — IMMUTABLE RUNTIME POLICY
+ */
+
+test("enforces immutable account scoped runtime policy", async t => {
+  const fx = await fixture(t);
+
+  const policy = fx.runtime.getPolicy();
+
+  assert.equal(policy.subscriptionRequired, true);
+  assert.equal(policy.billingInterval, "month");
+  assert.equal(policy.maxActiveAgents, 1);
+
+  assert.equal(
+    policy.characterOwnershipRequired,
+    true
+  );
+
+  assert.equal(
+    policy.activeCharacterRequired,
+    true
+  );
+
+  assert.equal(
+    policy.runtimeEnabledByDefault,
+    false
+  );
+
+  assert.equal(
+    policy.memoryAuthorizationSeparate,
+    true
+  );
+
+  assert.equal(
+    policy.tradingAuthorizationSeparate,
+    true
+  );
+
+  assert.equal(
+    policy.externalModelTrainingEnabled,
+    false
+  );
+
+  assert.equal(
+    policy.clientPermissionsTrusted,
+    false
+  );
+
+  assert.equal(policy.maxDecisionAgeMs, 5000);
+  assert.equal(policy.failClosed, true);
+
+  assert.deepEqual(
+    fx.runtime.getActions(),
+    ["chat", "market_analysis"]
+  );
+
+  assert.equal(Object.isFrozen(policy), true);
+  assert.equal(Object.isFrozen(fx.runtime), true);
+
+  assert.equal(
+    Object.isFrozen(fx.runtime.getActions()),
+    true
+  );
+});
