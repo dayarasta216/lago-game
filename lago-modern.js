@@ -1984,9 +1984,12 @@ modernRoot
       );
 
 
+    
     /*
      * Tap Lago state.
+     * Merge latest state before rendering.
      */
+
     document.addEventListener(
       "lago:tap-game-state",
       event => {
@@ -1999,10 +2002,7 @@ modernRoot
 
         };
 
-
-        update(
-          tapState
-        );
+        scheduleUIUpdate();
 
       }
     );
@@ -2010,47 +2010,43 @@ modernRoot
 
     /*
      * Account state.
+     * Coalesce duplicate notifications.
      */
+
     document.addEventListener(
       "lago:state",
-      () => {
-
-        update();
-
-      }
+      scheduleUIUpdate
     );
-
 
     document.addEventListener(
       "lago:account-state",
-      () => {
-
-        update();
-
-      }
+      scheduleUIUpdate
     );
 
 
     /*
      * Language.
      */
+
     document.addEventListener(
       "lago:language",
       () => {
 
-        update(
-          tapState
-        );
-
+        scheduleUIUpdate();
 
         setTapHint(
+
           currentTapHint ||
           TAP_HINTS[0],
+
           true
+
         );
 
       }
     );
+
+
 
 
     /*
@@ -2274,6 +2270,42 @@ modernRoot
    * =========================================================
    */
 
+
+  /*
+   * R1.9G — Frame-batched UI rendering.
+   *
+   * Merge frequent account events.
+   * Keep game actions synchronous.
+   */
+
+  let uiRenderScheduled = false;
+
+  function scheduleUIUpdate() {
+
+    if (uiRenderScheduled) {
+      return;
+    }
+
+    uiRenderScheduled = true;
+
+    window.requestAnimationFrame(() => {
+
+      try {
+
+        update();
+
+      } finally {
+
+        uiRenderScheduled = false;
+
+      }
+
+    });
+
+  }
+
+
+  
   function update(
     nextTapState = null
   ) {
