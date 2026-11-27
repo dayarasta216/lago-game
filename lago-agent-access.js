@@ -1,17 +1,32 @@
-
 (() => {
   "use strict";
 
   /*
    * LAGO GAME
-   * R1.10A — Monthly AI subscription.
+   * R2.7H1 — CLIENT SUBSCRIPTION INTEGRATION
    *
-   * Free gameplay.
-   * Paid AI intelligence.
-   * Server-verified subscription.
+   * Server-authoritative billing state.
+   * Account-scoped subscription.
+   * In-memory state only.
+   * Stale response protection.
+   *
+   * No local AI activation.
+   * No automatic payments.
+   * No trading authorization.
    */
 
-  const VERSION = 2;
+  const VERSION = 3;
+
+  const STATE_ENDPOINT =
+    "/api/subscription/state";
+
+  const REQUEST_TIMEOUT_MS = 10000;
+
+  const REFRESH_INTERVAL_MS = 30000;
+
+  const MAX_STATE_AGE_MS = 60000;
+
+  const DAY_MS = 86400000;
 
   const POLICY = Object.freeze({
 
@@ -27,6 +42,8 @@
 
     network: "solana",
 
+    chainNetwork: "mainnet-beta",
+
     tokenMint:
       "J9BmsKsS6PH7QGxDWA43YVbsmTxavgFmu5ScSDzWpump",
 
@@ -35,6 +52,8 @@
     maxActiveAgents: 1,
 
     autoRenewal: false,
+
+    manualRenewal: true,
 
     freeTrial: false,
 
@@ -52,16 +71,91 @@
 
     serverVerificationRequired: true,
 
-    separateTradingAuthorization: true
+    separateTradingAuthorization: true,
+
+    localEntitlementTrusted: false,
+
+    persistentClientCache: false
 
   });
 
 
+  const STATUSES = Object.freeze([
+
+    "inactive",
+    "active",
+    "expired",
+    "scheduled"
+
+  ]);
+
+
+  let snapshot = null;
+
+  let loading = false;
+
+  let reason = "authentication_required";
+
+  let generation = 0;
+
+  let controller = null;
+
+  let refreshTimer = null;
+
+
+  /*
+   * SERVER ACCOUNT IDENTITY
+   */
+
+  function getAuthenticatedAccountId() {
+
+    try {
+
+      const auth =
+        window.LAGO_AUTH_BACKEND?.getState?.();
+
+      if (
+
+        auth?.authenticated !== true ||
+
+        auth.loading === true ||
+
+        Boolean(auth.lastError) ||
+
+        typeof auth.accountId !== "string" ||
+
+        !/^lago_[A-Za-z0-9_-]{22}$/.test(
+          auth.accountId
+        )
+
+      ) {
+
+        return null;
+
+      }
+
+      return auth.accountId;
+
+    } catch {
+
+      return null;
+
+    }
+
+  }
+
+
+  /*
+   * CURRENT GAME CHARACTER
+   *
+   * Character switching does not
+   * change account billing history.
+   */
+
   function getCharacter() {
 
     const context =
-      window.LAGO_MINIGAMES
-        ?.getContext?.();
+      window.LAGO_MINIGAMES?.getContext?.();
 
     return {
 
@@ -78,9 +172,400 @@
   }
 
 
+  /*
+   * CANONICAL SERVER TIMESTAMPS
+   */
+
+  function timestamp(value) {
+
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const parsed = Date.parse(value);
+
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+
+    if (
+      new Date(parsed).toISOString() !== value
+    ) {
+      return null;
+    }
+
+    return parsed;
+
+  }
+
+
+  function monotonicTime() {
+
+    return typeof window.performance?.now ===
+      "function"
+
+      ? window.performance.now()
+
+      : Date.now();
+
+  }
+
+
+  /*
+   * VALIDATE SERVER RESPONSE
+   *
+   * Accept billing information only.
+   * Ignore operational AI permissions.
+   */
+
+  function normalizeSubscription(
+    state,
+    accountId
+  ) {
+
+    if (
+
+      state?.ok !== true ||
+
+      state.accountId !== accountId ||
+
+      state.product !== POLICY.product ||
+
+      state.billingModel !== "subscription" ||
+
+      state.billingInterval !== "month" ||
+
+      state.billingIntervalCount !== 1 ||
+
+      state.subscriptionScope !== "account" ||
+
+      state.maxActiveAgents !== 1 ||
+
+      state.currency !== POLICY.currency ||
+
+      state.tokenMint !== POLICY.tokenMint ||
+
+      state.chain !== "solana" ||
+
+      state.network !== POLICY.chainNetwork ||
+
+      state.autoRenewal !== false ||
+
+      typeof state.serverVerified !== "boolean" ||
+
+      typeof state.entitled !== "boolean" ||
+
+      state.subscriptionEntitlementGranted !==
+        state.entitled ||
+
+      !STATUSES.includes(state.status) ||
+
+      state.subscriptionStatus !== state.status
+
+    ) {
+
+      return null;
+
+    }
+
+
+    const checkedAt =
+      timestamp(state.checkedAt);
+
+    if (checkedAt === null) {
+      return null;
+    }
+
+    const active =
+      state.status === "active";
+
+    const expectedEntitlement =
+      active && state.serverVerified === true;
+
+    if (
+      state.entitled !== expectedEntitlement
+    ) {
+
+      return null;
+
+    }
+
+
+    if (active) {
+
+      const start =
+        timestamp(state.currentPeriodStart);
+
+      const end =
+        timestamp(state.currentPeriodEnd);
+
+      const paidThrough =
+        timestamp(state.paidThrough);
+
+      const latest =
+        timestamp(state.latestPeriodEnd);
+
+      if (
+
+        start === null ||
+
+        end === null ||
+
+        paidThrough === null ||
+
+        latest === null ||
+
+        start > checkedAt ||
+
+        checkedAt >= end ||
+
+        end <= start ||
+
+        paidThrough < end ||
+
+        latest < paidThrough
+
+      ) {
+
+        return null;
+
+      }
+
+    } else {
+
+      if (
+
+        state.currentPeriodStart !== null ||
+
+        state.currentPeriodEnd !== null ||
+
+        state.paidThrough !== null
+
+      ) {
+
+        return null;
+
+      }
+
+      if (state.status === "inactive") {
+
+        if (state.latestPeriodEnd !== null) {
+          return null;
+        }
+
+      } else {
+
+        const latest =
+          timestamp(state.latestPeriodEnd);
+
+        if (latest === null) {
+          return null;
+        }
+
+        if (
+
+          state.status === "expired" &&
+          latest > checkedAt
+
+        ) {
+
+          return null;
+
+        }
+
+        if (
+
+          state.status === "scheduled" &&
+          latest <= checkedAt
+
+        ) {
+
+          return null;
+
+        }
+
+      }
+
+    }
+
+
+    return Object.freeze({
+
+      accountId,
+
+      status: state.status,
+
+      serverVerified:
+        state.serverVerified,
+
+      entitled:
+        expectedEntitlement,
+
+      currentPeriodStart:
+        state.currentPeriodStart,
+
+      currentPeriodEnd:
+        state.currentPeriodEnd,
+
+      paidThrough:
+        state.paidThrough,
+
+      latestPeriodEnd:
+        state.latestPeriodEnd,
+
+      checkedAt,
+
+      receivedAt:
+        monotonicTime()
+
+    });
+
+  }
+
+
+  /*
+   * FRESH ACCOUNT-SCOPED SNAPSHOT
+   */
+
+  function getFreshSnapshot() {
+
+    if (!snapshot) {
+      return null;
+    }
+
+    const accountId =
+      getAuthenticatedAccountId();
+
+    if (
+      !accountId ||
+      accountId !== snapshot.accountId
+    ) {
+
+      return null;
+
+    }
+
+    const age =
+      monotonicTime() - snapshot.receivedAt;
+
+    if (
+
+      !Number.isFinite(age) ||
+
+      age < 0 ||
+
+      age >= MAX_STATE_AGE_MS
+
+    ) {
+
+      return null;
+
+    }
+
+    const estimatedServerTime =
+      snapshot.checkedAt + age;
+
+    if (
+
+      snapshot.status === "active" &&
+
+      estimatedServerTime >=
+        timestamp(snapshot.currentPeriodEnd)
+
+    ) {
+
+      return null;
+
+    }
+
+    return {
+
+      state: snapshot,
+
+      estimatedServerTime
+
+    };
+
+  }
+
+
+  /*
+   * PUBLIC CLIENT STATE
+   *
+   * Compatibility with existing
+   * agent chat and context modules.
+   */
+
   function getState() {
 
-    const character = getCharacter();
+    const character =
+      getCharacter();
+
+    const accountId =
+      getAuthenticatedAccountId();
+
+    const fresh =
+      getFreshSnapshot();
+
+    const subscription =
+      fresh?.state || null;
+
+    const entitled =
+      subscription?.entitled === true;
+
+    let stateReason;
+
+    if (!accountId) {
+
+      stateReason =
+        "authentication_required";
+
+    } else if (loading) {
+
+      stateReason =
+        "subscription_loading";
+
+    } else if (!subscription) {
+
+      stateReason = snapshot
+
+        ? "subscription_refresh_required"
+
+        : reason;
+
+    } else if (entitled) {
+
+      stateReason =
+        "ai_service_unavailable";
+
+    } else if (
+      subscription.serverVerified !== true
+    ) {
+
+      stateReason =
+        "subscription_entitlement_disabled";
+
+    } else if (
+      subscription.status === "expired"
+    ) {
+
+      stateReason =
+        "subscription_expired";
+
+    } else if (
+      subscription.status === "scheduled"
+    ) {
+
+      stateReason =
+        "subscription_not_started";
+
+    } else {
+
+      stateReason =
+        "active_subscription_required";
+
+    }
+
 
     return Object.freeze({
 
@@ -94,30 +579,96 @@
 
       billingIntervalCount: 1,
 
-      subscriptionScope:
-        POLICY.subscriptionScope,
+      subscriptionScope: "account",
 
-      subscriptionStatus: "inactive",
+      maxActiveAgents: 1,
+
+      accountId,
+
+      authenticated:
+        accountId !== null,
+
+      loading,
+
+      subscriptionStateAvailable:
+        subscription !== null,
+
+      subscriptionStatus:
+
+        subscription?.status ||
+
+        (
+          accountId
+            ? "unavailable"
+            : "inactive"
+        ),
 
       subscriptionId: null,
 
       subscriptionStartedAt: null,
 
-      currentPeriodStart: null,
+      currentPeriodStart:
+        subscription?.currentPeriodStart || null,
 
-      currentPeriodEnd: null,
+      currentPeriodEnd:
+        subscription?.currentPeriodEnd || null,
+
+      paidThrough:
+        subscription?.paidThrough || null,
+
+      latestPeriodEnd:
+        subscription?.latestPeriodEnd || null,
+
+      daysRemaining:
+
+        subscription?.status === "active"
+
+          ? Math.max(
+
+              0,
+
+              Math.ceil(
+
+                (
+
+                  timestamp(
+                    subscription.paidThrough
+                  ) -
+
+                  fresh.estimatedServerTime
+
+                ) / DAY_MS
+
+              )
+
+            )
+
+          : subscription
+            ? 0
+            : null,
 
       nextBillingAt: null,
 
-      daysRemaining: null,
-
       autoRenewal: false,
+
+      manualRenewal: true,
 
       renewalAvailable: false,
 
       status: "locked",
 
-      entitled: false,
+      serverVerified:
+        subscription?.serverVerified === true,
+
+      entitled,
+
+      subscriptionEntitlementGranted:
+        entitled,
+
+      /*
+       * Runtime authorization remains
+       * separate from billing entitlement.
+       */
 
       aiEnabled: false,
 
@@ -131,6 +682,8 @@
 
       tradingEnabled: false,
 
+      tradingAuthorized: false,
+
       characterId: character.id,
 
       characterName: character.name,
@@ -141,52 +694,21 @@
 
       network: POLICY.network,
 
-      checkoutAvailable: false,
+      chainNetwork: POLICY.chainNetwork,
 
-      serverVerified: false,
+      checkoutAvailable: false,
 
       price: null,
 
-      reason: "payment_service_unavailable"
+      preserveCharacterOnExpiry: true,
+
+      preserveMemoryOnExpiry: true,
+
+      preserveProgressOnExpiry: true,
+
+      reason: stateReason
 
     });
-
-  }
-
-
-  function getPolicy() {
-
-    return POLICY;
-
-  }
-
-
-  function canUseAI() {
-
-    /*
-     * Future backend requirements:
-     *
-     * Verified account identity.
-     * Verified $LAGO payment.
-     * Active subscription.
-     * Valid server-side expiry date.
-     *
-     * No local activation.
-     */
-
-    return false;
-
-  }
-
-
-  function canTrade() {
-
-    /*
-     * Requires active subscription
-     * and separate trading authorization.
-     */
-
-    return false;
 
   }
 
@@ -197,9 +719,7 @@
 
       new CustomEvent(
         "lago:agent-access-state",
-        {
-          detail: getState()
-        }
+        { detail: getState() }
       )
 
     );
@@ -207,14 +727,446 @@
   }
 
 
+  /*
+   * CANCEL OLD REQUESTS
+   */
+
+  function clearRefreshTimer() {
+
+    if (refreshTimer !== null) {
+
+      window.clearTimeout?.(
+        refreshTimer
+      );
+
+      refreshTimer = null;
+
+    }
+
+  }
+
+
+  function invalidate(
+    nextReason = "subscription_refresh_required"
+  ) {
+
+    generation++;
+
+    controller?.abort();
+
+    controller = null;
+
+    clearRefreshTimer();
+
+    snapshot = null;
+
+    loading = false;
+
+    reason = nextReason;
+
+  }
+
+
+  /*
+   * PERIODIC REFRESH
+   *
+   * Refresh only authenticated,
+   * visible clients.
+   */
+
+  function scheduleRefresh() {
+
+    clearRefreshTimer();
+
+    if (
+
+      !getAuthenticatedAccountId() ||
+
+      document.hidden === true ||
+
+      typeof window.setTimeout !== "function"
+
+    ) {
+
+      return;
+
+    }
+
+    refreshTimer = window.setTimeout(() => {
+
+      refreshTimer = null;
+
+      if (document.hidden !== true) {
+
+        void refresh();
+
+      }
+
+    }, REFRESH_INTERVAL_MS);
+
+  }
+
+
+  /*
+   * FETCH SERVER SUBSCRIPTION
+   *
+   * No accountId in URL or body.
+   * HttpOnly cookie is sent automatically.
+   */
+
+  async function refresh() {
+
+    invalidate();
+
+    const accountId =
+      getAuthenticatedAccountId();
+
+    if (!accountId) {
+
+      reason = "authentication_required";
+
+      emit();
+
+      return getState();
+
+    }
+
+    if (
+
+      typeof window.fetch !== "function" ||
+
+      typeof window.AbortController !==
+        "function" ||
+
+      typeof window.setTimeout !== "function"
+
+    ) {
+
+      reason = "subscription_service_unavailable";
+
+      emit();
+
+      return getState();
+
+    }
+
+
+    const requestGeneration =
+      generation;
+
+    const requestController =
+      new window.AbortController();
+
+    controller =
+      requestController;
+
+    loading = true;
+
+    let timeout = null;
+
+
+    try {
+
+      emit();
+
+      timeout = window.setTimeout(() => {
+
+        requestController.abort();
+
+      }, REQUEST_TIMEOUT_MS);
+
+
+      const response = await window.fetch(
+
+        STATE_ENDPOINT,
+
+        {
+
+          method: "GET",
+
+          credentials: "same-origin",
+
+          cache: "no-store",
+
+          redirect: "error",
+
+          headers: {
+
+            Accept: "application/json"
+
+          },
+
+          signal:
+            requestController.signal
+
+        }
+
+      );
+
+
+      if (
+
+        generation !== requestGeneration ||
+
+        getAuthenticatedAccountId() !==
+          accountId
+
+      ) {
+
+        return getState();
+
+      }
+
+
+      if (response.status === 401) {
+
+        reason = "authentication_required";
+
+        return getState();
+
+      }
+
+      if (!response.ok) {
+
+        reason = "subscription_service_unavailable";
+
+        return getState();
+
+      }
+
+
+      const contentType =
+        response.headers
+          .get("content-type") || "";
+
+      if (
+
+        contentType
+          .split(";")[0]
+          .trim()
+          .toLowerCase() !== "application/json"
+
+      ) {
+
+        reason = "invalid_subscription_response";
+
+        return getState();
+
+      }
+
+
+      const body = await response.json();
+
+
+      /*
+       * Reject delayed responses
+       * belonging to an old session.
+       */
+
+      if (
+
+        generation !== requestGeneration ||
+
+        getAuthenticatedAccountId() !==
+          accountId ||
+
+        requestController.signal.aborted
+
+      ) {
+
+        return getState();
+
+      }
+
+
+      const normalized =
+        body?.ok === true
+
+          ? normalizeSubscription(
+
+              body.subscription,
+
+              accountId
+
+            )
+
+          : null;
+
+
+      if (!normalized) {
+
+        reason = "invalid_subscription_response";
+
+        return getState();
+
+      }
+
+
+      snapshot = normalized;
+
+      reason = null;
+
+    } catch {
+
+      if (
+        generation === requestGeneration
+      ) {
+
+        snapshot = null;
+
+        reason =
+          requestController.signal.aborted
+
+            ? "subscription_request_timeout"
+
+            : "subscription_service_unavailable";
+
+      }
+
+    } finally {
+
+      if (timeout !== null) {
+
+        window.clearTimeout(timeout);
+
+      }
+
+      if (
+        generation === requestGeneration
+      ) {
+
+        controller = null;
+
+        loading = false;
+
+        emit();
+
+        scheduleRefresh();
+
+      }
+
+    }
+
+    return getState();
+
+  }
+
+
+  /*
+   * AUTHENTICATION CHANGES
+   *
+   * Never retain the previous account's
+   * subscription after logout or switch.
+   */
+
+  function handleAuthChange() {
+
+    void refresh();
+
+  }
+
+
+  /*
+   * CHARACTER CHANGES
+   *
+   * Billing belongs to the account.
+   * No additional payment is created.
+   */
+
+  function handleCharacterChange() {
+
+    emit();
+
+  }
+
+
+  function handleVisibilityChange() {
+
+    if (document.hidden === true) {
+
+      invalidate(
+        "subscription_refresh_required"
+      );
+
+      emit();
+
+      return;
+
+    }
+
+    void refresh();
+
+  }
+
+
+  document.addEventListener(
+
+    "lago:backend-auth-state",
+
+    handleAuthChange
+
+  );
+
   document.addEventListener(
 
     "lago:character-equipped",
 
-    emit
+    handleCharacterChange
 
   );
 
+  document.addEventListener(
+
+    "visibilitychange",
+
+    handleVisibilityChange
+
+  );
+
+  window.addEventListener?.(
+
+    "pageshow",
+
+    handleVisibilityChange
+
+  );
+
+  window.addEventListener?.(
+
+    "pagehide",
+
+    () => invalidate()
+
+  );
+
+  window.addEventListener?.(
+
+    "online",
+
+    () => void refresh()
+
+  );
+
+  window.addEventListener?.(
+
+    "offline",
+
+    () => {
+
+      invalidate(
+        "subscription_service_unavailable"
+      );
+
+      emit();
+
+    }
+
+  );
+
+
+  /*
+   * PUBLIC CLIENT API
+   */
 
   window.LAGO_AGENT_ACCESS =
     Object.freeze({
@@ -223,11 +1175,25 @@
 
       getState,
 
-      getPolicy,
+      refresh,
 
-      canUseAI,
+      getPolicy() {
 
-      canTrade
+        return POLICY;
+
+      },
+
+      canUseAI() {
+
+        return false;
+
+      },
+
+      canTrade() {
+
+        return false;
+
+      }
 
     });
 
@@ -235,12 +1201,26 @@
   document.dispatchEvent(
 
     new CustomEvent(
+
       "lago:agent-access-ready",
-      {
-        detail: getState()
-      }
+
+      { detail: getState() }
+
     )
 
   );
+
+
+  /*
+   * Restore server billing state
+   * when an authenticated session
+   * is already available.
+   */
+
+  if (getAuthenticatedAccountId()) {
+
+    void refresh();
+
+  }
 
 })();
