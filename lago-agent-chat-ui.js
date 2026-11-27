@@ -8,7 +8,7 @@
    * Borderless interface
    */
 
-  const VERSION = 1;
+  const VERSION = 2;
 
   let panel = null;
   let opened = false;
@@ -614,9 +614,50 @@ id="lgAgentChatMessages"
       ".lg-agent-send"
     );
 
+    
     toggle.addEventListener("click", () => {
+
+      const current =
+        window.LAGO_AGENT_CHAT.getState();
+
+      if (current.purchaseRequired === true) {
+
+        const shop = window.LAGO_SHOP;
+
+        if (typeof shop?.show !== "function") {
+
+          panel.querySelector(
+            ".lg-agent-error"
+          ).textContent = isRussian()
+            ? "Магазин недоступен."
+            : "Shop unavailable.";
+
+          return;
+
+        }
+
+        setOpened(false);
+
+        shop.show();
+
+        document.getElementById("lagoShopAI")
+          ?.scrollIntoView({
+            block: "start",
+            behavior: "auto"
+          });
+
+        return;
+
+      }
+
+      if (!current.ready) {
+        return;
+      }
+
       setOpened(!opened);
+
     });
+
 
     input.addEventListener("input", () => {
 
@@ -694,25 +735,107 @@ setOpened(true);
     ).textContent =
       `${current.characterName || "LAGO"} CHAT`;
 
+  
+    const purchaseRequired =
+      current.purchaseRequired === true;
+
+    const locked =
+      current.locked === true ||
+      current.ready !== true;
+
+    panel.dataset.aiLocked =
+      String(locked);
+
     panel.querySelector(
       ".lg-agent-status"
-    ).textContent = ru
-      ? "ЛОКАЛЬНЫЙ РЕЖИМ"
-      : "LOCAL PREVIEW";
+    ).textContent = locked
+      ? (
+          purchaseRequired
+            ? (ru ? "AI ЗАБЛОКИРОВАН" : "AI LOCKED")
+            : (ru ? "AI НЕДОСТУПЕН" : "AI UNAVAILABLE")
+        )
+      : (ru ? "AI АКТИВЕН" : "AI ACTIVE");
 
     panel.querySelector(
       ".lg-agent-note"
-    ).textContent = ru
-      ? "Тестовые ответы. AI-модель пока не подключена."
-      : "Scripted replies. AI model not connected yet.";
+    ).textContent = purchaseRequired
+      ? (
+          ru
+            ? "Персональный AI доступен только после покупки за $LAGO."
+            : "Personal AI requires a verified $LAGO purchase."
+        )
+      : locked
+        ? (
+            ru
+              ? "AI-сервис пока недоступен."
+              : "AI service is not available yet."
+          )
+        : "";
 
-    toggle.textContent = opened
-      ? (ru ? "ЗАКРЫТЬ" : "CLOSE")
-      : (ru ? "ОБЩАТЬСЯ" : "CHAT");
+    if (locked) {
 
-    input.placeholder = ru
-      ? "Сообщение персонажу..."
-      : "Message your agent...";
+      opened = false;
+
+      document.getElementById("lagoModern")
+        ?.classList.remove("lg-agent-open");
+
+      log.hidden = true;
+
+      input.value = "";
+
+      toggle.removeAttribute("aria-expanded");
+
+      toggle.removeAttribute("aria-controls");
+
+      toggle.disabled = !purchaseRequired;
+
+      toggle.textContent = purchaseRequired
+        ? (
+            ru
+              ? "ПОЛУЧИТЬ AI · $LAGO"
+              : "GET AI · $LAGO"
+          )
+        : (
+            ru
+              ? "НЕДОСТУПНО"
+              : "UNAVAILABLE"
+          );
+
+    } else {
+
+      toggle.disabled = false;
+
+      toggle.setAttribute(
+        "aria-expanded",
+        String(opened)
+      );
+
+      toggle.setAttribute(
+        "aria-controls",
+        "lgAgentChatMessages"
+      );
+
+      toggle.textContent = opened
+        ? (ru ? "ЗАКРЫТЬ" : "CLOSE")
+        : (ru ? "ОБЩАТЬСЯ" : "CHAT");
+
+      log.hidden = !opened;
+
+    }
+
+    input.placeholder = locked
+      ? (
+          ru
+            ? "AI-чат заблокирован..."
+            : "AI chat is locked..."
+        )
+      : (
+          ru
+            ? "Сообщение персонажу..."
+            : "Message your agent..."
+        );
+
+
 
     input.setAttribute(
       "aria-label",
