@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { performance } from "node:perf_hooks";
 
 import {
@@ -319,7 +321,7 @@ export function createLagoAIGateway({
   runtimeAccess,
   generate = null,
   getProcessingConsent = null,
-
+  usageLedger = null,
   providerId = null,
   model = null,
 
@@ -396,6 +398,34 @@ export function createLagoAIGateway({
       "ai_generation_authorization_required"
     );
   }
+
+  /*
+   * R2.8C5B — USAGE LEDGER CONFIGURATION
+   */
+
+  if (usageLedger !== null) {
+    for (const method of [
+      "reserveUsage",
+      "markDispatched",
+      "cancelReservation",
+      "markUncertain",
+      "settleUsage"
+    ]) {
+      if (
+        typeof usageLedger[method] !== "function"
+      ) {
+        throw new Error(
+          "invalid_ai_usage_ledger"
+        );
+      }
+    }
+
+    if (!requireGenerationAuthorization) {
+      throw new Error(
+        "ai_budget_authorization_required"
+      );
+    }
+  }
   
   let closed = false;
 
@@ -415,6 +445,16 @@ export function createLagoAIGateway({
     let timer = null;
     let onAbort = null;
 
+    /*
+     * R2.8C5B — REQUEST ACCOUNTING STATE
+     */
+
+    let usageIdentity = null;
+
+    let usagePhase = "none";
+
+    let budgetFailure = null;
+    
     try {
       if (
         !exactFields(input, [
@@ -481,6 +521,20 @@ export function createLagoAIGateway({
       ) {
         return reject(
           "ai_provider_unavailable"
+        );
+      }
+
+            /*
+       * OpenAI cannot operate without
+       * persistent usage accounting.
+       */
+
+      if (
+        providerId === "openai" &&
+        usageLedger === null
+      ) {
+        return reject(
+          "ai_usage_ledger_required"
         );
       }
 
@@ -836,6 +890,142 @@ export function createLagoAIGateway({
             throw GENERATION_AUTHORIZATION_DENIED;
           }
 
+          /*
+           * R2.8C5B
+           * ATOMIC BUDGET RESERVATION
+           *
+           * No external operation while
+           * the ledger write lock is held.
+           */
+
+          if (usageLedger !== null) {
+            ensureActive();
+
+            const identity = Object.freeze({
+              requestId: randomUUID(),
+
+              accountId:
+                initial.identity.accountId
+            });
+
+            const reserved =
+              usageLedger.reserveUsage({
+                ...identity,
+
+                inputTokens:
+                  countedInputTokens,
+
+                maxOutputTokens:
+                  providerRequest.maxOutputTokens
+              });
+
+            if (
+              reserved?.ok !== true ||
+
+              reserved.reserved !== true ||
+
+              reserved.reservationCreated !== true ||
+
+              reserved.duplicate !== false ||
+
+              reserved.requestId !==
+                identity.requestId ||
+
+              reserved.accountId !==
+                identity.accountId
+            ) {
+              const quotaReasons = [
+                "ai_daily_token_budget_exceeded",
+
+                "ai_monthly_token_budget_exceeded",
+
+                "ai_daily_request_quota_exceeded",
+
+                "ai_request_token_limit_exceeded"
+              ];
+
+              budgetFailure =
+                quotaReasons.includes(
+                  reserved?.reason
+                )
+                  ? reserved.reason
+                  : "ai_usage_reservation_failed";
+
+              throw GENERATION_AUTHORIZATION_DENIED;
+            }
+
+            usageIdentity = identity;
+
+            usagePhase = "reserved";
+
+            /*
+             * Check deadline again after
+             * potentially blocking SQLite work.
+             */
+
+            ensureActive();
+
+            if (
+              check() >=
+                freshAuthorization.validUntil
+            ) {
+              throw AUTHORIZATION_EXPIRED;
+            }
+
+            /*
+             * Persist the single-use dispatch
+             * claim before permitting inference.
+             *
+             * Any ambiguous write outcome
+             * must retain the reservation.
+             */
+
+            usagePhase = "dispatch_attempted";
+
+            const dispatched =
+              usageLedger.markDispatched(
+                usageIdentity
+              );
+
+            if (
+              dispatched?.ok !== true ||
+
+              dispatched.state !==
+                "dispatched" ||
+
+              dispatched.stateChanged !== true ||
+
+              dispatched.duplicate !== false ||
+
+              dispatched.requestId !==
+                usageIdentity.requestId ||
+
+              dispatched.accountId !==
+                usageIdentity.accountId
+            ) {
+              budgetFailure =
+                "ai_usage_dispatch_claim_failed";
+
+              throw GENERATION_AUTHORIZATION_DENIED;
+            }
+
+            usagePhase = "dispatched";
+
+            ensureActive();
+
+            if (
+              check() >=
+                freshAuthorization.validUntil
+            ) {
+              throw AUTHORIZATION_EXPIRED;
+            }
+          }
+
+          /*
+           * Only now may the existing
+           * generation barrier return true.
+           */
+          
           authorizedInputTokens =
             countedInputTokens;
 
@@ -913,6 +1103,72 @@ export function createLagoAIGateway({
         );
       }
 
+      /*
+       * R2.8C5B — ACTUAL USAGE SETTLEMENT
+       *
+       * Account for completed inference
+       * before checking disclosure consent.
+       *
+       * A rejected user-facing response
+       * may still have incurred provider cost.
+       */
+
+      if (usageLedger !== null) {
+        if (
+          usageIdentity === null ||
+
+          usagePhase !== "dispatched"
+        ) {
+          return reject(
+            "ai_usage_reservation_missing"
+          );
+        }
+
+        const settlement =
+          usageLedger.settleUsage({
+            ...usageIdentity,
+
+            inputTokens:
+              response.usage.inputTokens,
+
+            outputTokens:
+              response.usage.outputTokens
+          });
+
+        if (
+          settlement?.ok !== true ||
+
+          settlement.settled !== true ||
+
+          settlement.state !== "settled" ||
+
+          settlement.requestId !==
+            usageIdentity.requestId ||
+
+          settlement.accountId !==
+            usageIdentity.accountId ||
+
+          settlement.actualTokens !==
+            response.usage.totalTokens
+        ) {
+          return reject(
+            "ai_usage_settlement_failed"
+          );
+        }
+
+        usagePhase = "settled";
+
+        check();
+
+        if (
+          settlement.exceededReservation === true
+        ) {
+          return reject(
+            "ai_generation_token_usage_exceeded"
+          );
+        }
+      }
+      
       /*
        * R2.8C3A — AUTHORIZED TOKEN BOUNDARY
        */
@@ -1045,6 +1301,10 @@ export function createLagoAIGateway({
         );
       }
 
+            if (budgetFailure !== null) {
+        return reject(budgetFailure);
+      }
+
       if (
         error === GENERATION_AUTHORIZATION_DENIED ||
         (
@@ -1078,6 +1338,47 @@ export function createLagoAIGateway({
         activeControllers.delete(controller);
 
         controller.abort();
+              /*
+       * R2.8C5B — CONSERVATIVE FAILURE RECOVERY
+       *
+       * Only undispatched reservations
+       * can be cancelled safely.
+       *
+       * Ambiguous dispatch outcomes retain
+       * their full reservation.
+       */
+
+      if (
+        usageLedger !== null &&
+
+        usageIdentity !== null
+      ) {
+        try {
+          if (usagePhase === "reserved") {
+            usageLedger.cancelReservation(
+              usageIdentity
+            );
+
+          } else if (
+            usagePhase === "dispatched" ||
+
+            usagePhase === "dispatch_attempted"
+          ) {
+            usageLedger.markUncertain(
+              usageIdentity
+            );
+          }
+
+        } catch {
+          /*
+           * Never release unknown provider
+           * usage on cleanup failure.
+           *
+           * Persistent recovery inspection
+           * retains unresolved reservations.
+           */
+        }
+      }
       }
     }
   }
@@ -1136,6 +1437,25 @@ export function createLagoAIGateway({
         clientGenerationAuthorizationTrusted: false,
 
         openAIAuthorizationBypassAllowed: false,
+
+                usageLedgerConfigured:
+          usageLedger !== null,
+
+        usageReservationRequired:
+          providerId === "openai" ||
+          usageLedger !== null,
+
+        atomicUsageReservationEnabled:
+          usageLedger !== null,
+
+        usageSettlementEnabled:
+          usageLedger !== null,
+
+        unknownProviderUsageRetained: true,
+
+        openAIBudgetBypassAllowed: false,
+
+        clientUsageCountersTrusted: false,
 
         providerConfigured: Boolean(
           generate &&
