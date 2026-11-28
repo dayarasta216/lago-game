@@ -492,9 +492,13 @@ export function createLagoOpenAIAdapter({
   apiKey = null,
   model = null,
   enabled = false,
+  requireGenerationAuthorization = false,
   fetchImpl = globalThis.fetch
 } = {}) {
-  if (typeof enabled !== "boolean") {
+  if (
+  typeof enabled !== "boolean" ||
+  typeof requireGenerationAuthorization !== "boolean"
+) {
     throw new Error(
       "invalid_openai_adapter_configuration"
     );
@@ -600,6 +604,34 @@ export function createLagoOpenAIAdapter({
       ) {
         fail("invalid_openai_request");
       }
+
+      /*
+ * R2.8C3 — PRE-GENERATION AUTHORIZATION
+ *
+ * Trusted internal server callback.
+ * Never obtained from client input.
+ */
+
+const beforeGeneration =
+  options?.beforeGeneration;
+
+if (
+  beforeGeneration !== undefined &&
+  typeof beforeGeneration !== "function"
+) {
+  fail(
+    "invalid_openai_generation_authorizer"
+  );
+}
+
+if (
+  requireGenerationAuthorization &&
+  typeof beforeGeneration !== "function"
+) {
+  fail(
+    "openai_generation_authorization_required"
+  );
+}
 
       externalSignal = options?.signal;
 
@@ -787,13 +819,69 @@ export function createLagoOpenAIAdapter({
         context
       );
 
-      normalizeTokenCount(
-        countResponse,
-        input.maxInputTokens
-      );
+      const inputTokens = normalizeTokenCount(
+  countResponse,
+  input.maxInputTokens
+);
 
+check();
+
+
+/*
+ * R2.8C3 — GENERATION AUTHORIZATION BARRIER
+ *
+ * Token counting is complete.
+ * Actual inference must not start until
+ * the trusted server confirms access.
+ *
+ * The authorization callback shares
+ * the adapter cancellation deadline.
+ */
+
+if (beforeGeneration) {
+  const authorizationContext =
+    Object.freeze({
+      providerId: PROVIDER_ID,
+      model,
+
+      characterId:
+        input.characterId,
+
+      action:
+        input.action,
+
+      inputTokens,
+
+      maxOutputTokens:
+        input.maxOutputTokens
+    });
+
+  const authorizationTask =
+    Promise.resolve().then(() => {
       check();
 
+      return beforeGeneration(
+        authorizationContext,
+        { signal }
+      );
+    });
+
+  const authorized =
+    await Promise.race([
+      authorizationTask,
+      cancelled
+    ]);
+
+  check();
+
+  if (authorized !== true) {
+    fail(
+      "openai_generation_authorization_denied"
+    );
+  }
+}
+
+check();
 
       /*
        * 2. REQUEST MODEL INFERENCE
@@ -927,7 +1015,18 @@ export function createLagoOpenAIAdapter({
       return Object.freeze({
         ...POLICY,
 
-        enabled,
+enabled,
+
+generationAuthorizationSupported: true,
+
+generationAuthorizationRequired:
+  requireGenerationAuthorization,
+
+generationAuthorizationAfterTokenCount: true,
+
+generationAuthorizationSharesDeadline: true,
+
+clientGenerationAuthorizationTrusted: false,
 
         configured: Boolean(
           secret && model
