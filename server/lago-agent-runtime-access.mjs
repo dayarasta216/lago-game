@@ -38,7 +38,12 @@ const POLICY = Object.freeze({
   maxActiveAgents: 1,
   authenticatedAccountRequired: true,
   characterOwnershipRequired: true,
-  activeCharacterRequired: true,
+  selectionRevisionRequired: true,
+selectionRevisionServerVerified: true,
+selectionRevisionBoundAuthorization: true,
+selectionRevisionRecheckRequired: true,
+clientSelectionRevisionTrusted: false,
+executionReauthorizationRequired: true,
   runtimeEnabledByDefault: false,
   memoryAuthorizationSeparate: true,
   tradingAuthorizationSeparate: true,
@@ -53,20 +58,44 @@ verificationLatencyConsumesDecisionLifetime: true,
 failClosed: true
 });
 
-function deny(reason) {
+/*
+ * R2.8B4 — CHARACTER REVISION CONTRACT
+ *
+ * Accept only server-verified ownership.
+ * Require the active character.
+ * Bind authorization to a persistent
+ * selection revision.
+ */
+
+function normalizeCharacterAccess(
+  access,
+  accountId,
+  characterId
+) {
+  if (
+    access?.ok !== true ||
+    access.serverVerified !== true ||
+    access.accountId !== accountId ||
+    access.characterId !== characterId ||
+    access.owned !== true ||
+    access.active !== true ||
+    access.activeCharacterId !== characterId ||
+    !Number.isSafeInteger(
+      access.selectionRevision
+    ) ||
+    access.selectionRevision < 1
+  ) {
+    return null;
+  }
+
   return Object.freeze({
-    ok: false,
-    authorized: false,
-    runtimeAuthorized: false,
-    identity: null,
-    action: null,
-    memoryAuthorized: false,
-    tradingAuthorized: false,
-    externalModelTrainingAuthorized: false,
-    reason
+    accountId,
+    characterId,
+
+    selectionRevision:
+      access.selectionRevision
   });
 }
-
 function parseTimestamp(value) {
   if (typeof value !== "string") {
     return null;
@@ -116,18 +145,43 @@ function normalizeSession(session, timestamp) {
   });
 }
 
-function characterAllowed(
+/*
+ * R2.8B4 — CHARACTER REVISION CONTRACT
+ *
+ * Accept only server-verified ownership.
+ * Require the active character.
+ * Bind authorization to a persistent
+ * selection revision.
+ */
+
+function normalizeCharacterAccess(
   access,
   accountId,
   characterId
 ) {
-  return Boolean(
-    access?.serverVerified === true &&
-    access.accountId === accountId &&
-    access.characterId === characterId &&
-    access.owned === true &&
-    access.activeCharacterId === characterId
-  );
+  if (
+    access?.ok !== true ||
+    access.serverVerified !== true ||
+    access.accountId !== accountId ||
+    access.characterId !== characterId ||
+    access.owned !== true ||
+    access.active !== true ||
+    access.activeCharacterId !== characterId ||
+    !Number.isSafeInteger(
+      access.selectionRevision
+    ) ||
+    access.selectionRevision < 1
+  ) {
+    return null;
+  }
+
+  return Object.freeze({
+    accountId,
+    characterId,
+
+    selectionRevision:
+      access.selectionRevision
+  });
 }
 
 
@@ -508,15 +562,21 @@ export function createLagoRuntimeAccess({
       )
     );
 
-    if (
-      !characterAllowed(
-        characterAccess,
-        accountId,
-        characterId
-      )
-    ) {
-      return deny("character_access_denied");
-    }
+   const initialCharacter =
+  normalizeCharacterAccess(
+    characterAccess,
+    accountId,
+    characterId
+  );
+
+if (!initialCharacter) {
+  return deny(
+    "character_access_denied"
+  );
+}
+
+const selectionRevision =
+  initialCharacter.selectionRevision;
 
 
     /*
@@ -557,15 +617,27 @@ export function createLagoRuntimeAccess({
       )
     );
 
-    if (
-      !characterAllowed(
-        currentAccess,
-        accountId,
-        characterId
-      )
-    ) {
-      return deny("character_context_changed");
-    }
+    const currentCharacter =
+  normalizeCharacterAccess(
+    currentAccess,
+    accountId,
+    characterId
+  );
+
+if (!currentCharacter) {
+  return deny(
+    "character_context_changed"
+  );
+}
+
+if (
+  currentCharacter.selectionRevision !==
+    selectionRevision
+) {
+  return deny(
+    "character_selection_revision_changed"
+  );
+}
 
 
     /*
@@ -669,10 +741,15 @@ export function createLagoRuntimeAccess({
 
       sessionVerified: true,
 
-      characterVerified: true,
+characterVerified: true,
 
-      subscriptionVerified: true,
+selectionRevision,
 
+selectionRevisionVerified: true,
+
+executionReauthorizationRequired: true,
+
+subscriptionVerified: true,
       issuedAt:
         new Date(finishedAt).toISOString(),
 
