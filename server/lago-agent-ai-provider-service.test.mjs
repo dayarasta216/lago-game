@@ -674,16 +674,14 @@ test(
   "R2.8C6A closed service never executes inference",
   async t => {
     const fx = fixture(t);
-
     const service = fx.open();
 
-       await service.close();
-
     await service.close();
-    
+    await service.close();
+
     assert.equal(
-      consent.reason,
-      "ai_consent_store_closed"
+      service.getPolicy().serviceClosed,
+      true
     );
 
     assert.equal(
@@ -691,32 +689,17 @@ test(
       false
     );
 
-    assert.equal(
-      fx.networkCalls(),
-      0
-    );
-  }
-);
     const result =
       await service.execute(input());
 
-    assert.equal(
-      result.ok,
-
-      false
-    );
+    assert.equal(result.ok, false);
 
     assert.equal(
       result.reason,
-
       "ai_gateway_closed"
     );
 
-    assert.equal(
-      fx.networkCalls(),
-
-      0
-    );
+    assert.equal(fx.networkCalls(), 0);
   }
 );
 
@@ -738,13 +721,11 @@ test(
       error => {
         assert.equal(
           error.message,
-
           "ai_provider_bootstrap_failed"
         );
 
         assert.equal(
           String(error).includes(KEY),
-
           false
         );
 
@@ -752,10 +733,278 @@ test(
       }
     );
 
-    assert.equal(
-      fx.networkCalls(),
+    assert.equal(fx.networkCalls(), 0);
+  }
+);
 
-      0
+
+/*
+ * R2.8C6C3B
+ * MANDATORY SECURITY COMPOSITION TESTS
+ */
+
+
+/*
+ * TEST 13 — PRIVATE SECURITY DATABASES
+ */
+
+test(
+  "R2.8C6C3B initializes all mandatory private security databases",
+  t => {
+    const fx = fixture(t);
+    const service = fx.open();
+
+    for (const name of [
+      "lago-ai-usage.sqlite",
+      "lago-ai-consent.sqlite",
+      "lago-ai-rate.sqlite"
+    ]) {
+      const file = join(
+        fx.directory,
+        name
+      );
+
+      assert.equal(
+        existsSync(file),
+        true,
+        name
+      );
+
+      if (process.platform !== "win32") {
+        assert.equal(
+          statSync(file).mode & 0o077,
+          0,
+          name
+        );
+      }
+    }
+
+    const policy = service.getPolicy();
+
+    for (const field of [
+      "persistentConsentRequired",
+      "persistentRateLimiterRequired",
+      "persistentRateLimiterConfigured",
+      "consentRevisionRequired",
+      "consentRevisionBindingEnabled",
+      "rateAdmissionBeforeProvider",
+      "authenticatedConsentManagement",
+      "asynchronousShutdown"
+    ]) {
+      assert.equal(
+        policy[field],
+        true,
+        field
+      );
+    }
+
+    assert.equal(
+      policy.rawSecurityStoresExposed,
+      false
     );
+
+    assert.equal(
+      policy.securityOverridesAllowed,
+      false
+    );
+
+    assert.equal(fx.networkCalls(), 0);
+  }
+);
+
+
+/*
+ * TEST 14 — FORBIDDEN SECURITY OVERRIDES
+ */
+
+test(
+  "R2.8C6C3B rejects all external security overrides",
+  t => {
+    const fx = fixture(t);
+
+    for (const override of [
+      {
+        getProcessingConsent: () => true
+      },
+      {
+        getProcessingConsentRevision: () => 1
+      },
+      {
+        rateLimiter: {}
+      },
+      {
+        usageLedger: {}
+      },
+      {
+        getProcessingConsent: null
+      }
+    ]) {
+      assert.throws(
+        () => fx.open(override),
+        /ai_security_override_forbidden/
+      );
+    }
+
+    assert.equal(
+      existsSync(fx.directory),
+      false
+    );
+
+    assert.equal(fx.networkCalls(), 0);
+  }
+);
+
+
+/*
+ * TEST 15 — AUTHENTICATED CONSENT
+ */
+
+test(
+  "R2.8C6C3B denies unauthenticated consent operations",
+  async t => {
+    const fx = fixture(t);
+    const service = fx.open();
+
+    const state =
+      await service.getConsentState({
+        sessionToken: "invalid-session"
+      });
+
+    assert.equal(state.ok, false);
+
+    assert.equal(
+      state.reason,
+      "authentication_required"
+    );
+
+    const grant =
+      await service.setConsent({
+        sessionToken: "invalid-session",
+        granted: true,
+        policyVersion: 1,
+        expectedRevision: 0
+      });
+
+    assert.equal(grant.ok, false);
+
+    assert.equal(grant.granted, false);
+
+    assert.equal(
+      grant.reason,
+      "authentication_required"
+    );
+
+    assert.equal(
+      service.consentStore,
+      undefined
+    );
+
+    assert.equal(
+      service.rateLimiter,
+      undefined
+    );
+
+    assert.equal(fx.networkCalls(), 0);
+  }
+);
+
+
+/*
+ * TEST 16 — INVALID RATE CONFIGURATION
+ */
+
+test(
+  "R2.8C6C3B fails closed when persistent rate policy is invalid",
+  t => {
+    const fx = fixture(t);
+
+    assert.throws(
+      () => fx.open({
+        rateLimits: null
+      }),
+      /ai_provider_bootstrap_failed/
+    );
+
+    assert.equal(fx.networkCalls(), 0);
+
+    const service = fx.open();
+
+    assert.equal(
+      service.getPolicy().active,
+      true
+    );
+  }
+);
+
+
+/*
+ * TEST 17 — ASYNCHRONOUS SHUTDOWN
+ */
+
+test(
+  "R2.8C6C3B aborts active authorization and drains shutdown",
+
+  {
+    timeout: 10000
+  },
+
+  async t => {
+    const fx = fixture(t);
+
+    let entered;
+
+    const started = new Promise(resolve => {
+      entered = resolve;
+    });
+
+    const service = fx.open({
+      runtimeAccess: {
+        authorize() {
+          entered();
+
+          return new Promise(() => {});
+        }
+      }
+    });
+
+    const inference =
+      service.execute(input());
+
+    await started;
+
+    const closing = service.close();
+
+    assert.equal(
+      service.close(),
+      closing
+    );
+
+    const result = await inference;
+
+    assert.equal(result.ok, false);
+
+    assert.equal(
+      result.reason,
+      "ai_gateway_closed"
+    );
+
+    await closing;
+
+    const consent =
+      await service.getConsentState({
+        sessionToken: "synthetic-session"
+      });
+
+    assert.equal(
+      consent.reason,
+      "ai_consent_store_closed"
+    );
+
+    assert.equal(
+      service.getPolicy().active,
+      false
+    );
+
+    assert.equal(fx.networkCalls(), 0);
   }
 );
