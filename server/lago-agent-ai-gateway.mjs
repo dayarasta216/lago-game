@@ -898,22 +898,39 @@ export function createLagoAIGateway({
       }
 
 
+            /*
+       * R2.8C3A — PROVIDER RESPONSE VALIDATION
+       */
+
+      const response =
+        normalizeProviderResponse(
+          rawResponse
+        );
+
+      if (!response) {
+        return reject(
+          "invalid_ai_provider_response"
+        );
+      }
+
+      /*
+       * R2.8C3A — AUTHORIZED TOKEN BOUNDARY
+       */
+
+      if (
+        requireGenerationAuthorization &&
+        response.usage.inputTokens >
+          authorizedInputTokens
+      ) {
+        return reject(
+          "ai_generation_token_usage_exceeded"
+        );
+      }
+
+
       /*
        * 6. RECHECK PROCESSING CONSENT
        */
-
-      const remainingConsent = await run(
-        signal => getProcessingConsent(
-          consentContext,
-          { signal }
-        )
-      );
-
-      if (remainingConsent !== true) {
-        return reject(
-          "ai_processing_consent_changed"
-        );
-      }
 
 
       /*
