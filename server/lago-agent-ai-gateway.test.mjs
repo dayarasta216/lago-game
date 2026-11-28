@@ -1955,3 +1955,689 @@ test(
     );
   }
 );
+
+/*
+ * LAGO GAME
+ * R2.8C3B — GATEWAY + OPENAI INTEGRATION
+ *
+ * Real gateway.
+ * Real OpenAI adapter.
+ * Real authentication and entitlement.
+ * Synthetic HTTP transport.
+ *
+ * No real API calls.
+ * No real credentials.
+ * No billable inference.
+ */
+
+import {
+  createLagoOpenAIAdapter
+} from "./lago-agent-openai-adapter.mjs";
+
+const R28C3B_COUNT_URL =
+  "https://api.openai.com/v1/responses/input_tokens";
+
+const R28C3B_GENERATE_URL =
+  "https://api.openai.com/v1/responses";
+
+function r28c3bJSON(value, status = 200) {
+  return new Response(
+    JSON.stringify(value),
+    {
+      status,
+
+      headers: {
+        "content-type": "application/json"
+      }
+    }
+  );
+}
+
+function r28c3bOutput(inputTokens = 24) {
+  return {
+    object: "response",
+    status: "completed",
+    model: MODEL,
+
+    error: null,
+    incomplete_details: null,
+
+    store: false,
+    tools: [],
+
+    output: [
+      {
+        type: "message",
+        role: "assistant",
+        status: "completed",
+
+        content: [
+          {
+            type: "output_text",
+            text: "Integrated agent response.",
+            annotations: []
+          }
+        ]
+      }
+    ],
+
+    usage: {
+      input_tokens: inputTokens,
+      output_tokens: 8,
+      total_tokens: inputTokens + 8
+    }
+  };
+}
+
+
+async function r28c3bFixture(t, config = {}) {
+  const fx = await fixture(t);
+
+  const httpCalls = [];
+
+  let gateway = null;
+
+  const adapter = createLagoOpenAIAdapter({
+    apiKey: "synthetic-integration-key",
+
+    model: MODEL,
+
+    enabled: true,
+
+    requireGenerationAuthorization: true,
+
+    async fetchImpl(url, options) {
+      const body = JSON.parse(options.body);
+
+      httpCalls.push({
+        url,
+        body,
+        signal: options.signal
+      });
+
+      if (url === R28C3B_COUNT_URL) {
+        fx.calls.push("count");
+
+        if (config.onCount) {
+          await config.onCount(fx, gateway);
+        }
+
+        return r28c3bJSON({
+          object: "response.input_tokens",
+
+          input_tokens:
+            config.inputTokens ?? 24
+        });
+      }
+
+      if (url === R28C3B_GENERATE_URL) {
+        fx.calls.push("generation");
+
+        if (config.onGenerate) {
+          await config.onGenerate(
+            fx,
+            gateway
+          );
+        }
+
+        return r28c3bJSON(
+          r28c3bOutput(
+            config.outputInputTokens ?? 24
+          )
+        );
+      }
+
+      throw new Error(
+        "unexpected_integration_endpoint"
+      );
+    }
+  });
+
+  t.after(() => adapter.close());
+
+  gateway = fx.createGateway({
+    providerId: "openai",
+
+    model: MODEL,
+
+    generate: adapter.generate
+  });
+
+  if (config.paid !== false) {
+    await fx.pay();
+  }
+
+  return {
+    fx,
+
+    adapter,
+
+    gateway,
+
+    httpCalls,
+
+    execute(changes = {}) {
+      return gateway.execute(
+        fx.input(
+          fx.playerA,
+          changes
+        )
+      );
+    }
+  };
+}
+
+
+function r28c3bAssertCountOnly(env) {
+  assert.deepEqual(
+    env.httpCalls.map(call => call.url),
+    [R28C3B_COUNT_URL]
+  );
+}
+
+
+/*
+ * TEST 01
+ *
+ * Full authorized inference.
+ */
+
+test(
+  "R2.8C3B executes real gateway and adapter",
+  async t => {
+    const env = await r28c3bFixture(t);
+
+    const result = await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    assert.equal(
+      result.providerId,
+      "openai"
+    );
+
+    assert.equal(result.model, MODEL);
+
+    assert.equal(
+      result.identity.accountId,
+      env.fx.playerA.accountId
+    );
+
+    assert.equal(
+      result.identity.characterId,
+      CHARACTER
+    );
+
+    assert.equal(
+      result.selectionRevision,
+      1
+    );
+
+    assert.equal(
+      result.text,
+      "Integrated agent response."
+    );
+
+    assert.deepEqual(result.usage, {
+      inputTokens: 24,
+      outputTokens: 8,
+      totalTokens: 32
+    });
+
+    assertLocked(result);
+
+    assert.deepEqual(
+      env.httpCalls.map(call => call.url),
+      [
+        R28C3B_COUNT_URL,
+        R28C3B_GENERATE_URL
+      ]
+    );
+
+    assert.deepEqual(
+      env.fx.calls,
+      [
+        "authorize",
+        "consent",
+        "authorize",
+        "count",
+        "consent",
+        "authorize",
+        "generation",
+        "consent",
+        "authorize"
+      ]
+    );
+  }
+);
+
+
+/*
+ * TEST 02
+ *
+ * No subscription means no HTTP.
+ */
+
+test(
+  "R2.8C3B blocks all HTTP without subscription",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      paid: false
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_authorization_denied"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 03
+ *
+ * Invalid session means no HTTP.
+ */
+
+test(
+  "R2.8C3B blocks invalid session before HTTP",
+  async t => {
+    const env = await r28c3bFixture(t);
+
+    assertDenied(
+      await env.execute({
+        sessionToken: "invalid-session"
+      }),
+
+      "ai_authorization_denied"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 04
+ *
+ * Consent revoked during token counting.
+ */
+
+test(
+  "R2.8C3B blocks generation after consent revocation",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx) {
+        fx.setConsent(false);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_generation_authorization_denied"
+    );
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 05
+ *
+ * Character changed during token counting.
+ */
+
+test(
+  "R2.8C3B blocks generation after character switch",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx) {
+        fx.select(OTHER);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_generation_authorization_denied"
+    );
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 06
+ *
+ * Character changed away and back.
+ * Persistent revision must still differ.
+ */
+
+test(
+  "R2.8C3B blocks stale character revision",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx) {
+        fx.select(OTHER);
+        fx.select(CHARACTER);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_generation_authorization_denied"
+    );
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 07
+ *
+ * Session expires during token counting.
+ */
+
+test(
+  "R2.8C3B blocks generation after session expiry",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx) {
+        fx.advance(3600001);
+      }
+    });
+
+    const result = await env.execute();
+
+    assert.equal(result.ok, false);
+
+    assert.equal(
+      result.inferenceCompleted,
+      false
+    );
+
+    assert.equal(result.text, null);
+
+    assertLocked(result);
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 08
+ *
+ * Input token limit.
+ */
+
+test(
+  "R2.8C3B blocks excessive input token count",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      inputTokens: 4097
+    });
+
+    const result = await env.execute();
+
+    assert.equal(result.ok, false);
+    assert.equal(result.text, null);
+
+    assertLocked(result);
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 09
+ *
+ * Consent revoked after generation.
+ */
+
+test(
+  "R2.8C3B discards output after consent withdrawal",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onGenerate(fx) {
+        fx.setConsent(false);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_processing_consent_changed"
+    );
+
+    assert.equal(
+      env.httpCalls.length,
+      2
+    );
+  }
+);
+
+
+/*
+ * TEST 10
+ *
+ * Active character changed after generation.
+ */
+
+test(
+  "R2.8C3B discards output after character switch",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onGenerate(fx) {
+        fx.select(OTHER);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_authorization_context_changed"
+    );
+
+    assert.equal(
+      env.httpCalls.length,
+      2
+    );
+  }
+);
+
+
+/*
+ * TEST 11
+ *
+ * Actual usage exceeds counted tokens.
+ */
+
+test(
+  "R2.8C3B rejects usage exceeding authorization",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      inputTokens: 24,
+
+      outputInputTokens: 25
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_generation_token_usage_exceeded"
+    );
+
+    assert.equal(
+      env.httpCalls.length,
+      2
+    );
+  }
+);
+
+
+/*
+ * TEST 12
+ *
+ * Gateway closes during token counting.
+ */
+
+test(
+  "R2.8C3B blocks generation after gateway shutdown",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx, gateway) {
+        gateway.close();
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+      "ai_gateway_closed"
+    );
+
+    r28c3bAssertCountOnly(env);
+
+    assert.equal(
+      env.httpCalls[0].signal.aborted,
+      true
+    );
+  }
+);
+
+
+/*
+ * TEST 13
+ *
+ * No private identity information in HTTP.
+ */
+
+test(
+  "R2.8C3B never sends account credentials to provider",
+  async t => {
+    const env = await r28c3bFixture(t);
+
+    const result = await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    for (const call of env.httpCalls) {
+      const serialized =
+        JSON.stringify(call.body);
+
+      assert.equal(
+        serialized.includes(
+          env.fx.playerA.token
+        ),
+        false
+      );
+
+      assert.equal(
+        serialized.includes(
+          env.fx.playerA.accountId
+        ),
+        false
+      );
+
+      assert.equal(
+        serialized.includes(
+          "synthetic-integration-key"
+        ),
+        false
+      );
+
+      assert.deepEqual(
+        call.body.tools,
+        []
+      );
+
+      assert.equal(
+        call.body.tool_choice,
+        "none"
+      );
+
+      for (const field of [
+        "sessionToken",
+        "accountId",
+        "selectionRevision",
+        "wallet",
+        "memory",
+        "apiKey"
+      ]) {
+        assert.equal(
+          Object.hasOwn(
+            call.body,
+            field
+          ),
+
+          false
+        );
+      }
+    }
+  }
+);
+
+
+/*
+ * TEST 14
+ *
+ * Provider context cannot change after
+ * token counting.
+ */
+
+test(
+  "R2.8C3B preserves identical counted and generated context",
+  async t => {
+    const env = await r28c3bFixture(t);
+
+    const result = await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    const [count, generate] =
+      env.httpCalls;
+
+    assert.deepEqual(
+      generate.body,
+      {
+        ...count.body,
+
+        store: false,
+        stream: false,
+        background: false,
+
+        max_output_tokens: 1024
+      }
+    );
+
+    assert.equal(
+      count.signal,
+      generate.signal
+    );
+
+    assert.equal(
+      generate.signal.aborted,
+      true
+    );
+  }
+);
