@@ -320,7 +320,12 @@ function normalizeProviderResponse(response) {
 export function createLagoAIGateway({
   runtimeAccess,
   generate = null,
-  getProcessingConsent = null,
+    getProcessingConsent = null,
+
+  getProcessingConsentRevision = null,
+
+  rateLimiter = null,
+
   usageLedger = null,
   providerId = null,
   model = null,
@@ -426,6 +431,43 @@ export function createLagoAIGateway({
       );
     }
   }
+
+    /*
+   * R2.8C6C3A — SECURITY DEPENDENCIES
+   */
+
+  if (
+    getProcessingConsentRevision !== null &&
+    typeof getProcessingConsentRevision !== "function"
+  ) {
+    throw new Error(
+      "invalid_ai_consent_revision_provider"
+    );
+  }
+
+  if (rateLimiter !== null) {
+    for (const method of [
+      "acquire",
+      "release"
+    ]) {
+      if (
+        typeof rateLimiter[method] !== "function"
+      ) {
+        throw new Error(
+          "invalid_ai_rate_limiter"
+        );
+      }
+    }
+  }
+
+  if (
+    (rateLimiter === null) !==
+    (getProcessingConsentRevision === null)
+  ) {
+    throw new Error(
+      "incomplete_ai_security_configuration"
+    );
+  }
   
   let closed = false;
 
@@ -454,6 +496,16 @@ export function createLagoAIGateway({
     let usagePhase = "none";
 
     let budgetFailure = null;
+
+        /*
+     * R2.8C6C3A — EXECUTION TRACKING
+     */
+
+    let rateClaim = null;
+
+    let providerStarted = false;
+
+    let providerFinished = false;
     
     try {
       if (
@@ -703,6 +755,65 @@ export function createLagoAIGateway({
         purpose: "ai_inference"
       });
 
+      /*
+       * CONSENT REVISION BINDING
+       *
+       * The persistent consent callback
+       * must be synchronous.
+       */
+
+      function readConsentRevision(
+        consentSignal
+      ) {
+        check();
+
+        if (
+          !(consentSignal instanceof AbortSignal) ||
+          consentSignal.aborted
+        ) {
+          return null;
+        }
+
+        const revision =
+          getProcessingConsentRevision(
+            consentContext,
+            { signal: consentSignal }
+          );
+
+        check();
+
+        return (
+          !consentSignal.aborted &&
+          Number.isSafeInteger(revision) &&
+          revision >= 1
+        )
+          ? revision
+          : null;
+      }
+
+      const initialConsentRevision =
+        getProcessingConsentRevision === null
+          ? null
+          : readConsentRevision(signal);
+
+      function sameConsentRevision(
+        consentSignal = signal
+      ) {
+        if (
+          getProcessingConsentRevision === null
+        ) {
+          return true;
+        }
+
+        return (
+          initialConsentRevision !== null &&
+
+          readConsentRevision(
+            consentSignal
+          ) === initialConsentRevision
+        );
+      }
+      
       const consent = await run(
         signal => getProcessingConsent(
           consentContext,
@@ -710,7 +821,10 @@ export function createLagoAIGateway({
         )
       );
 
-      if (consent !== true) {
+           if (
+        consent !== true ||
+        !sameConsentRevision()
+      ) {
         return reject(
           "ai_processing_consent_required"
         );
@@ -729,7 +843,82 @@ export function createLagoAIGateway({
         );
       }
 
+      /*
+       * R2.8C6C3A — RATE ADMISSION
+       *
+       * Must run before provider token
+       * counting or paid generation.
+       */
 
+      if (rateLimiter !== null) {
+        check();
+
+        if (!sameConsentRevision()) {
+          return reject(
+            "ai_processing_consent_changed"
+          );
+        }
+
+        const claim = rateLimiter.acquire({
+          accountId:
+            initial.identity.accountId
+        });
+
+        if (
+          claim?.ok !== true ||
+
+          claim.admitted !== true ||
+
+          claim.released !== false ||
+
+          claim.duplicate !== false ||
+
+          claim.accountId !==
+            initial.identity.accountId ||
+
+          typeof claim.requestId !== "string" ||
+
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+            .test(claim.requestId)
+        ) {
+          const rateReasons = [
+            "ai_account_concurrency_exceeded",
+
+            "ai_global_concurrency_exceeded",
+
+            "ai_account_minute_rate_exceeded",
+
+            "ai_account_hour_rate_exceeded",
+
+            "ai_global_minute_rate_exceeded",
+
+            "ai_global_hour_rate_exceeded"
+          ];
+
+          return reject(
+            rateReasons.includes(claim?.reason)
+              ? claim.reason
+              : "ai_rate_admission_failed"
+          );
+        }
+
+        rateClaim = Object.freeze({
+          requestId:
+            claim.requestId,
+
+          accountId:
+            claim.accountId
+        });
+
+        check();
+
+        if (!sameConsentRevision()) {
+          return reject(
+            "ai_processing_consent_changed"
+          );
+        }
+      }
+      
       /*
        * 4. MINIMAL PROVIDER REQUEST
        *
@@ -860,7 +1049,11 @@ export function createLagoAIGateway({
 
           ensureActive();
 
-          if (latestConsent !== true) {
+                   if (
+            latestConsent !== true ||
+
+            !sameConsentRevision(adapterSignal)
+          ) {
             throw GENERATION_AUTHORIZATION_DENIED;
           }
 
@@ -1025,6 +1218,27 @@ export function createLagoAIGateway({
            * Only now may the existing
            * generation barrier return true.
            */
+
+                    /*
+           * Final consent check after
+           * atomic reservation and dispatch claim.
+           */
+
+          ensureActive();
+
+          if (
+            !sameConsentRevision(adapterSignal)
+          ) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          ensureActive();
+
+          if (
+            check() >= freshAuthorization.validUntil
+          ) {
+            throw AUTHORIZATION_EXPIRED;
+          }
           
           authorizedInputTokens =
             countedInputTokens;
@@ -1063,11 +1277,51 @@ export function createLagoAIGateway({
               : {
                   signal
                 };
+          /*
+           * Check consent immediately
+           * before the provider invocation.
+           */
 
-          return generate(
-            providerRequest,
-            Object.freeze(providerOptions)
-          );
+          if (!sameConsentRevision(signal)) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          if (
+            check() >= current.validUntil
+          ) {
+            throw AUTHORIZATION_EXPIRED;
+          }
+
+          providerStarted = true;
+
+          try {
+            const task = Promise.resolve(
+              generate(
+                providerRequest,
+
+                Object.freeze(providerOptions)
+              )
+            );
+
+            return task.then(
+              result => {
+                providerFinished = true;
+
+                return result;
+              },
+
+              error => {
+                providerFinished = true;
+
+                throw error;
+              }
+            );
+
+          } catch (error) {
+            providerFinished = true;
+
+            throw error;
+          }
         }
       );
 
@@ -1194,8 +1448,11 @@ export function createLagoAIGateway({
           { signal }
         )
       );
+      if (
+        remainingConsent !== true ||
 
-      if (remainingConsent !== true) {
+        !sameConsentRevision()
+      ) {
         return reject(
           "ai_processing_consent_changed"
         );
@@ -1220,6 +1477,17 @@ export function createLagoAIGateway({
       ) {
         return reject(
           "ai_authorization_context_changed"
+        );
+      }
+
+            /*
+       * Consent may have changed while
+       * final authorization was pending.
+       */
+
+      if (!sameConsentRevision()) {
+        return reject(
+          "ai_processing_consent_changed"
         );
       }
 
@@ -1338,6 +1606,42 @@ export function createLagoAIGateway({
         activeControllers.delete(controller);
 
         controller.abort();
+
+        /*
+         * R2.8C6C3A — SAFE RATE RELEASE
+         *
+         * Release only when the local
+         * provider invocation has settled
+         * or never started.
+         *
+         * Unresolved calls retain their
+         * persistent concurrency claim.
+         */
+
+        if (
+          rateLimiter !== null &&
+
+          rateClaim !== null &&
+
+          (
+            !providerStarted ||
+            providerFinished
+          )
+        ) {
+          try {
+            rateLimiter.release(
+              rateClaim
+            );
+
+          } catch {
+            /*
+             * Fail closed.
+             * The persistent claim remains
+             * available for future recovery.
+             */
+          }
+        }
+        
               /*
        * R2.8C5B — CONSERVATIVE FAILURE RECOVERY
        *
@@ -1456,6 +1760,21 @@ export function createLagoAIGateway({
         openAIBudgetBypassAllowed: false,
 
         clientUsageCountersTrusted: false,
+
+                persistentRateLimiterConfigured:
+          rateLimiter !== null,
+
+        consentRevisionBindingEnabled:
+          getProcessingConsentRevision !== null,
+
+        rateAdmissionBeforeProvider:
+          rateLimiter !== null,
+
+        unfinishedProviderClaimsRetained:
+          true,
+
+        clientRateLimitsTrusted:
+          false,
 
         providerConfigured: Boolean(
           generate &&
