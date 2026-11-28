@@ -2619,3 +2619,567 @@ test("fails closed when the real subscription backend is not configured", async 
   assertClientLocked(browser);
 
 });
+
+/*
+ * LAGO GAME
+ * R2.8C6B
+ * SERVER RUNTIME COMPOSITION TESTS
+ */
+
+import {
+  createLagoRuntimeServices
+} from "./lago-agent-runtime-services.mjs";
+
+
+/*
+ * TEST 01 — DEFAULT DISABLED
+ */
+
+test(
+  "R2.8C6B starts without character storage and keeps AI locked",
+  async t => {
+    const fx = await fixture(t);
+
+    const server = await fx.launch({
+      directory: "",
+
+      env: {
+        LAGO_CHARACTER_DATA_DIR: "",
+
+        LAGO_AI_PROVIDER_ENABLED: "0"
+      }
+    });
+
+    assert.match(
+      server.stdout,
+
+      /Character storage: NOT CONFIGURED/
+    );
+
+    assert.match(
+      server.stdout,
+
+      /AI runtime: DISABLED/
+    );
+
+    assert.match(
+      server.stdout,
+
+      /AI provider: LOCKED/
+    );
+
+    const health =
+      await server.request("/api/health");
+
+    assert.equal(
+      health.status,
+      200
+    );
+
+    const unavailable =
+      await server.request(
+        "/api/ai/chat"
+      );
+
+    assert.equal(
+      unavailable.status,
+      404
+    );
+
+    const stopped =
+      await server.stop();
+
+    assert.equal(
+      stopped.code,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 02 — REAL CHARACTER DATABASE
+ */
+
+test(
+  "R2.8C6B initializes private character storage through server bootstrap",
+  async t => {
+    const fx = await fixture(t);
+
+    const directory = join(
+      fx.root,
+
+      "private-characters"
+    );
+
+    const server = await fx.launch({
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          directory
+      }
+    });
+
+    assert.match(
+      server.stdout,
+
+      /Character storage: READY/
+    );
+
+    assert.match(
+      server.stdout,
+
+      /AI provider: LOCKED/
+    );
+
+    const database = join(
+      directory,
+
+      "lago-characters.sqlite"
+    );
+
+    const info = await stat(database);
+
+    assert.equal(
+      info.isFile(),
+
+      true
+    );
+
+    if (process.platform !== "win32") {
+      assert.equal(
+        info.mode & 0o077,
+
+        0
+      );
+    }
+
+    const stopped =
+      await server.stop();
+
+    assert.equal(
+      stopped.code,
+
+      0
+    );
+
+    /*
+     * Verify that the server can reopen
+     * the same persistent database.
+     */
+
+    const next = await fx.launch({
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          directory
+      }
+    });
+
+    assert.match(
+      next.stdout,
+
+      /Character storage: READY/
+    );
+
+    assert.equal(
+      (await next.stop()).code,
+
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 03 — PRIVATE STORAGE REQUIRED
+ */
+
+test(
+  "R2.8C6B rejects character storage inside public project",
+  async t => {
+    const fx = await fixture(t);
+
+    const server = await fx.launch({
+      directory: "",
+
+      expectReady: false,
+
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          join(
+            fx.projectRoot,
+
+            "public-characters"
+          )
+      }
+    });
+
+    const result =
+      await within(server.done);
+
+    assert.equal(
+      result.code,
+
+      1
+    );
+
+    assert.match(
+      server.stderr,
+
+      /runtime_bootstrap_failed/
+    );
+
+    assert.doesNotMatch(
+      server.stdout,
+
+      /Character storage: READY/
+    );
+  }
+);
+
+
+/*
+ * TEST 04 — RELATIVE PATH DENIED
+ */
+
+test(
+  "R2.8C6B rejects relative character database paths",
+  async t => {
+    const fx = await fixture(t);
+
+    const server = await fx.launch({
+      directory: "",
+
+      expectReady: false,
+
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          "character-data"
+      }
+    });
+
+    const result =
+      await within(server.done);
+
+    assert.equal(
+      result.code,
+
+      1
+    );
+
+    assert.match(
+      server.stderr,
+
+      /runtime_bootstrap_failed/
+    );
+  }
+);
+
+
+/*
+ * TEST 05 — NO PREMATURE ACTIVATION
+ */
+
+test(
+  "R2.8C6B prevents premature AI provider activation",
+  async t => {
+    const fx = await fixture(t);
+
+    const secret =
+      "synthetic-runtime-secret";
+
+    const directory = join(
+      fx.root,
+
+      "private-characters"
+    );
+
+    const usageDirectory = join(
+      fx.root,
+
+      "private-ai-usage"
+    );
+
+    const server = await fx.launch({
+      directory: "",
+
+      expectReady: false,
+
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          directory,
+
+        LAGO_AI_PROVIDER_ENABLED:
+          "1",
+
+        LAGO_OPENAI_API_KEY:
+          secret,
+
+        LAGO_OPENAI_MODEL:
+          "synthetic-model-v1",
+
+        LAGO_AI_USAGE_DATA_DIR:
+          usageDirectory
+      }
+    });
+
+    const result =
+      await within(server.done);
+
+    assert.equal(
+      result.code,
+
+      1
+    );
+
+    assert.match(
+      server.stderr,
+
+      /runtime_bootstrap_failed/
+    );
+
+    assert.equal(
+      (
+        server.stdout +
+        server.stderr
+      ).includes(secret),
+
+      false
+    );
+
+    await assert.rejects(
+      stat(usageDirectory),
+
+      { code: "ENOENT" }
+    );
+
+    await assert.rejects(
+      stat(directory),
+
+      { code: "ENOENT" }
+    );
+  }
+);
+
+
+/*
+ * TEST 06 — AUTHENTICATED CHARACTER
+ * SERVICE AND RUNTIME LOCK
+ */
+
+test(
+  "R2.8C6B composes real character operations without AI authorization",
+  async t => {
+    const fx = await fixture(t);
+
+    const sessions =
+      createLagoAccountSessionStore({
+        filePath: join(
+          fx.projectRoot,
+
+          "server",
+
+          "data",
+
+          "lago-auth.json"
+        )
+      });
+
+    const directory = join(
+      fx.root,
+
+      "private-characters"
+    );
+
+    const config = {
+      env: {
+        LAGO_CHARACTER_DATA_DIR:
+          directory
+      },
+
+      projectRoot:
+        fx.projectRoot,
+
+      sessionStore:
+        sessions
+    };
+
+    const services =
+      createLagoRuntimeServices(config);
+
+    t.after(() => services.close());
+
+    const initialized =
+      await services.characterService
+        .initializeAccount({
+          sessionToken:
+            fx.playerA.token
+        });
+
+    assert.equal(
+      initialized.ok,
+
+      true,
+
+      initialized.reason
+    );
+
+    assert.equal(
+      initialized.accountId,
+
+      fx.playerA.accountId
+    );
+
+    assert.equal(
+      initialized.activeCharacterId,
+
+      "lago"
+    );
+
+    const authorization =
+      await services.runtimeAccess.authorize({
+        sessionToken:
+          fx.playerA.token,
+
+        characterId:
+          "lago",
+
+        action:
+          "chat"
+      });
+
+    assert.equal(
+      authorization.ok,
+
+      false
+    );
+
+    assert.equal(
+      authorization.reason,
+
+      "runtime_disabled"
+    );
+
+    const policy =
+      services.getPolicy();
+
+    assert.equal(
+      policy.maxActiveAgents,
+
+      1
+    );
+
+    assert.equal(
+      policy.providerEnabled,
+
+      false
+    );
+
+    assert.equal(
+      policy.tradingAuthorized,
+
+      false
+    );
+
+    assert.equal(
+      policy.rawCharacterStoreExposed,
+
+      false
+    );
+
+    assert.equal(
+      services.characterStore,
+
+      undefined
+    );
+
+    services.close();
+
+    const closed =
+      await services.characterService
+        .getState({
+          sessionToken:
+            fx.playerA.token
+        });
+
+    assert.equal(
+      closed.reason,
+
+      "character_service_closed"
+    );
+
+    assert.equal(
+      services.getPolicy()
+        .characterServiceAvailable,
+
+      false
+    );
+
+    /*
+     * Reopen the same storage.
+     * The selected agent must persist.
+     */
+
+    const reopened =
+      createLagoRuntimeServices(config);
+
+    t.after(() => reopened.close());
+
+    const restored =
+      await reopened.characterService
+        .getState({
+          sessionToken:
+            fx.playerA.token
+        });
+
+    assert.equal(
+      restored.ok,
+
+      true,
+
+      restored.reason
+    );
+
+    assert.equal(
+      restored.activeCharacterId,
+
+      "lago"
+    );
+  }
+);
+
+
+/*
+ * TEST 07 — INVALID ACTIVATION FLAGS
+ */
+
+test(
+  "R2.8C6B rejects ambiguous provider activation configuration",
+  () => {
+    for (const activation of [
+      true,
+
+      1,
+
+      "true",
+
+      "yes",
+
+      " 1",
+
+      "1 ",
+
+      null
+    ]) {
+      assert.throws(
+        () => createLagoRuntimeServices({
+          env: {
+            LAGO_AI_PROVIDER_ENABLED:
+              activation
+          }
+        }),
+
+        /invalid_ai_provider_activation/
+      );
+    }
+  }
+);
