@@ -1,4 +1,14 @@
 import {
+  createLagoAIConsentStore,
+  AI_CONSENT_POLICY_VERSION
+} from "./lago-agent-ai-consent-store.mjs";
+
+import {
+  createLagoAIRateLimiter,
+  AI_RATE_LIMITS
+} from "./lago-agent-ai-rate-limiter.mjs";
+
+import {
   createLagoAIUsageLedger
 } from "./lago-agent-ai-usage-ledger.mjs";
 
@@ -312,6 +322,50 @@ async function fixture(t) {
     return ledger;
   }
 
+    function createSecurityStores(
+    limits = AI_RATE_LIMITS
+  ) {
+    const consentStore =
+      createLagoAIConsentStore({
+        directory: join(
+          root,
+          "private-consent"
+        ),
+
+        projectRoot,
+
+        sessionStore: sessions,
+
+        model: MODEL,
+
+        now
+      });
+
+    services.push(consentStore);
+
+    const rateLimiter =
+      createLagoAIRateLimiter({
+        directory: join(
+          root,
+          "private-rate"
+        ),
+
+        projectRoot,
+
+        limits,
+
+        now
+      });
+
+    services.push(rateLimiter);
+
+    return {
+      consentStore,
+
+      rateLimiter
+    };
+  }
+
   const gateway = createGateway();
 
   async function pay(player = playerA) {
@@ -371,6 +425,7 @@ async function fixture(t) {
        gateway,
     createGateway,
     createUsageLedger,
+        createSecurityStores,
     calls,
     requests,
     consentRequests,
@@ -2063,6 +2118,37 @@ async function r28c3bFixture(t, config = {}) {
           config.limits
         );
 
+    const security =
+    config.guarded === true
+      ? fx.createSecurityStores(
+          config.rateLimits
+        )
+      : null;
+
+  if (
+    security !== null &&
+    config.grantConsent !== false
+  ) {
+    const granted =
+      await security.consentStore.setConsent({
+        sessionToken:
+          fx.playerA.token,
+
+        granted: true,
+
+        policyVersion:
+          AI_CONSENT_POLICY_VERSION,
+
+        expectedRevision: 0
+      });
+
+    assert.equal(
+      granted.ok,
+      true,
+      granted.reason
+    );
+  }
+  
   const httpCalls = [];
 
   let gateway = null;
@@ -2132,8 +2218,23 @@ async function r28c3bFixture(t, config = {}) {
 
     generate: adapter.generate,
 
-    usageLedger
-  });
+        usageLedger,
+
+    ...(security === null
+      ? {}
+      : {
+          rateLimiter:
+            security.rateLimiter,
+
+          getProcessingConsent:
+            security.consentStore
+              .getProcessingConsent,
+
+          getProcessingConsentRevision:
+            security.consentStore
+              .getProcessingConsentRevision
+        })
+    });
 
   if (config.paid !== false) {
     await fx.pay();
@@ -2146,7 +2247,9 @@ async function r28c3bFixture(t, config = {}) {
 
     gateway,
 
-    usageLedger,
+        usageLedger,
+
+    security,
 
     httpCalls,
 
@@ -3205,6 +3308,388 @@ test(
 
     assert.ok(
       Object.isFrozen(policy)
+    );
+  }
+);
+
+/*
+ * LAGO GAME
+ * R2.8C6C3A — CONSENT AND RATE INTEGRATION
+ */
+
+async function changeGuardedConsent(
+  env,
+  granted,
+  expectedRevision
+) {
+  const result =
+    await env.security.consentStore.setConsent({
+      sessionToken:
+        env.fx.playerA.token,
+
+      granted,
+
+      expectedRevision,
+
+      policyVersion:
+        AI_CONSENT_POLICY_VERSION
+    });
+
+  assert.equal(
+    result.ok,
+    true,
+    result.reason
+  );
+
+  return result;
+}
+
+
+/*
+ * TEST 01 — DEFAULT CONSENT DENIAL
+ */
+
+test(
+  "R2.8C6C3A denies inference without persistent consent",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true,
+
+      grantConsent: false
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_processing_consent_required"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 02 — FULL GUARDED EXECUTION
+ */
+
+test(
+  "R2.8C6C3A executes guarded inference and releases completed slot",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true
+    });
+
+    for (let i = 0; i < 2; i++) {
+      const result = await env.execute();
+
+      assert.equal(
+        result.ok,
+        true,
+        result.reason
+      );
+    }
+
+    assert.equal(
+      env.httpCalls.length,
+      4
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      64
+    );
+
+    assert.deepEqual(
+      r28c5bPending(env),
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 03 — RATE BEFORE TOKEN COUNT
+ */
+
+test(
+  "R2.8C6C3A exhausted rate blocks all subsequent provider HTTP",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true,
+
+      rateLimits: {
+        ...AI_RATE_LIMITS,
+
+        accountPerMinute: 1
+      }
+    });
+
+    const first = await env.execute();
+
+    assert.equal(
+      first.ok,
+      true,
+      first.reason
+    );
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_account_minute_rate_exceeded"
+    );
+
+    assert.equal(
+      env.httpCalls.length,
+      2
+    );
+  }
+);
+
+
+/*
+ * TEST 04 — ACTIVE CONCURRENCY SLOT
+ */
+
+test(
+  "R2.8C6C3A blocks concurrent inference before provider counting",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true
+    });
+
+    const limiter =
+      env.security.rateLimiter;
+
+    const identity = {
+      accountId:
+        env.fx.playerA.accountId
+    };
+
+    const claim =
+      limiter.acquire(identity);
+
+    assert.equal(
+      claim.ok,
+      true,
+      claim.reason
+    );
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_account_concurrency_exceeded"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+
+    assert.equal(
+      limiter.release({
+        ...identity,
+
+        requestId:
+          claim.requestId
+      }).ok,
+      true
+    );
+
+    const result =
+      await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+  }
+);
+
+
+/*
+ * TEST 05 — REVOKE AND REGRANT
+ * DURING TOKEN COUNT
+ */
+
+test(
+  "R2.8C6C3A rejects changed consent revision before paid generation",
+  async t => {
+    let env;
+
+    env = await r28c3bFixture(t, {
+      guarded: true,
+
+      async onCount() {
+        await changeGuardedConsent(
+          env,
+          false,
+          1
+        );
+
+        await changeGuardedConsent(
+          env,
+          true,
+          2
+        );
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_generation_authorization_denied"
+    );
+
+    r28c3bAssertCountOnly(env);
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 06 — REVOKE AND REGRANT
+ * DURING GENERATION
+ */
+
+test(
+  "R2.8C6C3A settles usage but rejects changed consent after inference",
+  async t => {
+    let env;
+
+    env = await r28c3bFixture(t, {
+      guarded: true,
+
+      async onGenerate() {
+        await changeGuardedConsent(
+          env,
+          false,
+          1
+        );
+
+        await changeGuardedConsent(
+          env,
+          true,
+          2
+        );
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_processing_consent_changed"
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 07 — RATE STORAGE FAILURE
+ */
+
+test(
+  "R2.8C6C3A fails closed when rate storage is unavailable",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true
+    });
+
+    env.security.rateLimiter.close();
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_rate_admission_failed"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 08 — PROVIDER ERROR ACCOUNTING
+ */
+
+test(
+  "R2.8C6C3A releases finished local execution without refunding uncertain usage",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      guarded: true,
+
+      onGenerate() {
+        throw new Error(
+          "synthetic_provider_error"
+        );
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_gateway_unavailable"
+    );
+
+    assert.equal(
+      r28c5bPending(env)[0].state,
+      "uncertain"
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      1048
+    );
+
+    const limiter =
+      env.security.rateLimiter;
+
+    const claim = limiter.acquire({
+      accountId:
+        env.fx.playerA.accountId
+    });
+
+    assert.equal(
+      claim.ok,
+      true,
+      claim.reason
+    );
+
+    assert.equal(
+      limiter.release({
+        requestId:
+          claim.requestId,
+
+        accountId:
+          claim.accountId
+      }).ok,
+      true
     );
   }
 );
