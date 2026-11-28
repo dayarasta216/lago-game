@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+
 import {
   createMemoryIdentity,
   validAccountId,
@@ -11,16 +12,13 @@ import {
 
 /*
  * LAGO GAME
- * R2.8A — AI RUNTIME AUTHORIZATION
+ * R2.8B4 — AI RUNTIME AUTHORIZATION
  *
  * One account.
  * One active personal agent.
+ * Persistent selection revision.
  * Server-authorized AI operations.
- *
  * Disabled by default.
- * No memory authorization.
- * No external model training.
- * No trading authorization.
  */
 
 export const RUNTIME_ACCESS_VERSION = 1;
@@ -36,66 +34,67 @@ const POLICY = Object.freeze({
   subscriptionRequired: true,
   billingInterval: "month",
   maxActiveAgents: 1,
+
   authenticatedAccountRequired: true,
   characterOwnershipRequired: true,
+  activeCharacterRequired: true,
+
   selectionRevisionRequired: true,
-selectionRevisionServerVerified: true,
-selectionRevisionBoundAuthorization: true,
-selectionRevisionRecheckRequired: true,
-clientSelectionRevisionTrusted: false,
-executionReauthorizationRequired: true,
+  selectionRevisionServerVerified: true,
+  selectionRevisionBoundAuthorization: true,
+  selectionRevisionRecheckRequired: true,
+
+  clientSelectionRevisionTrusted: false,
+  executionReauthorizationRequired: true,
+
   runtimeEnabledByDefault: false,
   memoryAuthorizationSeparate: true,
   tradingAuthorizationSeparate: true,
   externalModelTrainingEnabled: false,
   clientPermissionsTrusted: false,
+
   maxDecisionAgeMs: MAX_DECISION_AGE_MS,
-verificationTimeoutMs: MAX_DECISION_AGE_MS,
-sharedVerificationDeadline: true,
-monotonicClockRequired: true,
-providerCancellationSupported: true,
-verificationLatencyConsumesDecisionLifetime: true,
-failClosed: true
+  verificationTimeoutMs: MAX_DECISION_AGE_MS,
+
+  sharedVerificationDeadline: true,
+  monotonicClockRequired: true,
+  providerCancellationSupported: true,
+  verificationLatencyConsumesDecisionLifetime: true,
+
+  failClosed: true
 });
 
+
 /*
- * R2.8B4 — CHARACTER REVISION CONTRACT
- *
- * Accept only server-verified ownership.
- * Require the active character.
- * Bind authorization to a persistent
- * selection revision.
+ * SAFE AUTHORIZATION REJECTION
  */
 
-function normalizeCharacterAccess(
-  access,
-  accountId,
-  characterId
-) {
-  if (
-    access?.ok !== true ||
-    access.serverVerified !== true ||
-    access.accountId !== accountId ||
-    access.characterId !== characterId ||
-    access.owned !== true ||
-    access.active !== true ||
-    access.activeCharacterId !== characterId ||
-    !Number.isSafeInteger(
-      access.selectionRevision
-    ) ||
-    access.selectionRevision < 1
-  ) {
-    return null;
-  }
-
+function deny(reason) {
   return Object.freeze({
-    accountId,
-    characterId,
+    ok: false,
+    authorized: false,
+    runtimeAuthorized: false,
 
-    selectionRevision:
-      access.selectionRevision
+    identity: null,
+    action: null,
+
+    selectionRevision: null,
+    selectionRevisionVerified: false,
+
+    memoryAuthorized: false,
+    learningAuthorized: false,
+    tradingAuthorized: false,
+    externalModelTrainingAuthorized: false,
+
+    reason
   });
 }
+
+
+/*
+ * TIMESTAMP VALIDATION
+ */
+
 function parseTimestamp(value) {
   if (typeof value !== "string") {
     return null;
@@ -119,6 +118,11 @@ function validClock(value) {
     Number.isFinite(new Date(value).getTime())
   );
 }
+
+
+/*
+ * SERVER SESSION CONTRACT
+ */
 
 function normalizeSession(session, timestamp) {
   if (
@@ -145,13 +149,9 @@ function normalizeSession(session, timestamp) {
   });
 }
 
+
 /*
  * R2.8B4 — CHARACTER REVISION CONTRACT
- *
- * Accept only server-verified ownership.
- * Require the active character.
- * Bind authorization to a persistent
- * selection revision.
  */
 
 function normalizeCharacterAccess(
