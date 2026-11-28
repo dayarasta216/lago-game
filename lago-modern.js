@@ -1143,7 +1143,7 @@
           </div>
 
 
-          <<div
+          <div
   class="lago-center-sub"
 >
   PERSONAL AGENT
