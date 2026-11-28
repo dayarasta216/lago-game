@@ -1658,3 +1658,300 @@ test("publishes immutable AI limits and fail closed execution policy", async t =
     true
   );
 });
+
+/*
+ * R2.8C3A
+ * GENERATION AUTHORIZATION INTEGRATION
+ */
+
+function generationContext(request) {
+  return {
+    providerId: request.providerId,
+    model: request.model,
+    characterId: request.characterId,
+    action: request.action,
+    inputTokens: 24,
+    maxOutputTokens: request.maxOutputTokens
+  };
+}
+
+test(
+  "R2.8C3A authorizes generation after token counting",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    let generationCalls = 0;
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        assert.equal(
+          typeof options.beforeGeneration,
+          "function"
+        );
+
+        const authorized =
+          await options.beforeGeneration(
+            generationContext(request),
+            { signal: options.signal }
+          );
+
+        assert.equal(authorized, true);
+
+        generationCalls++;
+
+        return reply();
+      }
+    });
+
+    const result = await gateway.execute(
+      fx.input()
+    );
+
+    assertCompleted(result, fx.playerA);
+
+    assert.equal(generationCalls, 1);
+
+    assert.equal(
+      gateway.getPolicy()
+        .generationAuthorizationRequired,
+      true
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A blocks changed processing consent",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    let generationCalls = 0;
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        fx.setConsent(false);
+
+        const allowed =
+          await options.beforeGeneration(
+            generationContext(request),
+            { signal: options.signal }
+          );
+
+        if (allowed) {
+          generationCalls++;
+        }
+
+        return reply();
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_authorization_denied"
+    );
+
+    assert.equal(generationCalls, 0);
+  }
+);
+
+
+test(
+  "R2.8C3A blocks changed character selection",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        fx.select(OTHER);
+
+        const allowed =
+          await options.beforeGeneration(
+            generationContext(request),
+            { signal: options.signal }
+          );
+
+        assert.equal(allowed, false);
+
+        return reply();
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_authorization_denied"
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A rejects skipped authorization",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate() {
+        return reply();
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_authorization_denied"
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A rejects duplicate authorization",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        const context =
+          generationContext(request);
+
+        const config = {
+          signal: options.signal
+        };
+
+        assert.equal(
+          await options.beforeGeneration(
+            context,
+            config
+          ),
+          true
+        );
+
+        assert.equal(
+          await options.beforeGeneration(
+            context,
+            config
+          ),
+          false
+        );
+
+        return reply();
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_authorization_denied"
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A rejects unauthorized token count",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        const allowed =
+          await options.beforeGeneration(
+            {
+              ...generationContext(request),
+              inputTokens: 999999
+            },
+            { signal: options.signal }
+          );
+
+        assert.equal(allowed, false);
+
+        return reply();
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_authorization_denied"
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A rejects usage above authorized tokens",
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const gateway = fx.createGateway({
+      requireGenerationAuthorization: true,
+
+      async generate(request, options) {
+        assert.equal(
+          await options.beforeGeneration(
+            generationContext(request),
+            { signal: options.signal }
+          ),
+          true
+        );
+
+        return reply({
+          usage: {
+            inputTokens: 25,
+            outputTokens: 8
+          }
+        });
+      }
+    });
+
+    assertDenied(
+      await gateway.execute(fx.input()),
+      "ai_generation_token_usage_exceeded"
+    );
+  }
+);
+
+
+test(
+  "R2.8C3A forbids disabling OpenAI authorization",
+  () => {
+    assert.throws(
+      () => createLagoAIGateway({
+        runtimeAccess: {
+          async authorize() {
+            return null;
+          }
+        },
+
+        providerId: "openai",
+
+        requireGenerationAuthorization: false
+      }),
+
+      /ai_generation_authorization_required/
+    );
+  }
+);
