@@ -28,9 +28,9 @@ const NOW = Date.parse(
   "2027-01-31T12:00:00.000Z"
 );
 
-const ACCOUNT = "a".repeat(64);
+const ACCOUNT = "lago_" + "a".repeat(22);
 
-const OTHER = "b".repeat(64);
+const OTHER = "lago_" + "b".repeat(22);
 
 
 function fixture(changes = {}) {
