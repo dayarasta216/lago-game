@@ -888,13 +888,18 @@ test(
 
             () => {
               try {
-                parentPort.postMessage(
+                                const result =
                   limiter.acquire({
                     accountId:
                       workerData.accountId
-                  })
-                );
+                  });
 
+                parentPort.postMessage({
+                  result,
+
+                  frozen:
+                    Object.isFrozen(result)
+                });
               } finally {
                 limiter.close();
               }
@@ -958,10 +963,22 @@ test(
         w.postMessage("go");
       }
 
-      const results =
+            const packets =
         (await responses)
-          .map(([result]) => result);
+          .map(([packet]) => packet);
 
+      for (const packet of packets) {
+        assert.equal(
+          packet.frozen,
+
+          true
+        );
+      }
+
+      const results =
+        packets.map(packet =>
+          Object.freeze(packet.result)
+        );
       assert.equal(
         results.filter(r => r.ok).length,
 
