@@ -37,7 +37,7 @@ import {
 
 export const AI_USAGE_LEDGER_VERSION = 1;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const MAX = Number.MAX_SAFE_INTEGER;
 
@@ -54,7 +54,17 @@ const POLICY = Object.freeze({
 
   automaticReservationRelease: false,
 
-  settlementEnabled: false,
+    settlementEnabled: true,
+
+  dispatchTrackingEnabled: true,
+
+  recoveryEnabled: true,
+
+  uncertainReservationsRetained: true,
+
+  terminalRequestReplayBlocked: true,
+
+  settlementIdempotencyEnabled: true,
 
   providerDispatchAuthorized: false,
 
@@ -320,7 +330,7 @@ export function createLagoAIUsageLedger({
       ).get().user_version;
 
       if (
-        ![0, 1, SCHEMA_VERSION]
+               ![0, 1, 2, SCHEMA_VERSION]
           .includes(version)
       ) {
         throw new Error(
@@ -368,7 +378,7 @@ export function createLagoAIUsageLedger({
         `);
       }
 
-      if (version < SCHEMA_VERSION) {
+           if (version < 2) {
         db.exec(`
           CREATE TABLE ai_usage_reservations (
 
@@ -400,7 +410,45 @@ export function createLagoAIUsageLedger({
               account_id
             );
 
-          PRAGMA user_version = 2;
+                    PRAGMA user_version = 2;
+        `);
+      }
+
+      /*
+       * R2.8C5A
+       * Reservation lifecycle migration.
+       */
+
+      if (version < 3) {
+        db.exec(`
+          ALTER TABLE ai_usage_reservations
+          ADD COLUMN state TEXT NOT NULL
+          DEFAULT 'reserved'
+          CHECK (
+            state IN (
+              'reserved',
+              'dispatched',
+              'uncertain',
+              'settled',
+              'cancelled'
+            )
+          );
+
+          ALTER TABLE ai_usage_reservations
+          ADD COLUMN state_at_ms INTEGER;
+
+          UPDATE ai_usage_reservations
+          SET state_at_ms = reserved_at_ms;
+
+          CREATE INDEX
+            ai_usage_reservation_state_idx
+
+          ON ai_usage_reservations (
+            account_id,
+            state
+          );
+
+          PRAGMA user_version = 3;
         `);
       }
     });
@@ -481,21 +529,44 @@ export function createLagoAIUsageLedger({
       )
       VALUES (?, ?, ?, ?, ?)
     `);
-
     pending = db.prepare(`
       SELECT
 
         COALESCE(
           SUM(
-            input_tokens + max_output_tokens
+            CASE WHEN state IN (
+              'reserved',
+              'dispatched',
+              'uncertain'
+            )
+            THEN input_tokens + max_output_tokens
+            ELSE 0
+            END
           ), 0
         ) AS tokens,
 
-        COUNT(*) AS requests,
+        COALESCE(
+          SUM(
+            CASE WHEN state IN (
+              'reserved',
+              'dispatched',
+              'uncertain'
+            )
+            THEN 1
+            ELSE 0
+            END
+          ), 0
+        ) AS requests,
 
-        MAX(reserved_at_ms) AS last_time
+        MAX(
+          COALESCE(
+            state_at_ms,
+            reserved_at_ms
+          )
+        ) AS last_time
 
       FROM ai_usage_reservations
+
       WHERE account_id = ?
     `);
 
@@ -981,6 +1052,12 @@ export function createLagoAIUsageLedger({
               );
             }
 
+                        if (existing.state !== "reserved") {
+              return reject(
+                "ai_reservation_already_processed"
+              );
+            }
+
             return reservationResult(
               existing,
               true
@@ -1042,6 +1119,666 @@ export function createLagoAIUsageLedger({
     }
   }
 
+    /*
+   * R2.8C5A — RESERVATION LIFECYCLE
+   *
+   * RESERVED -> DISPATCHED
+   * RESERVED -> CANCELLED
+   *
+   * DISPATCHED -> UNCERTAIN
+   * DISPATCHED -> SETTLED
+   *
+   * UNCERTAIN -> SETTLED
+   *
+   * Terminal identifiers are retained.
+   * No automatic release after dispatch.
+   */
+
+  const updateReservationState = db.prepare(`
+    UPDATE ai_usage_reservations
+
+    SET
+      state = ?,
+      state_at_ms = ?
+
+    WHERE request_id = ?
+      AND account_id = ?
+      AND state = ?
+  `);
+
+  const findPendingReservations = db.prepare(`
+    SELECT *
+
+    FROM ai_usage_reservations
+
+    WHERE account_id = ?
+
+      AND state IN (
+        'reserved',
+        'dispatched',
+        'uncertain'
+      )
+
+      AND request_id > ?
+
+    ORDER BY request_id
+
+    LIMIT 101
+  `);
+
+
+  /*
+   * SAFE LIFECYCLE RESULT
+   */
+
+  function lifecycleResult(
+    row,
+    duplicate = false
+  ) {
+    return Object.freeze({
+      ok: true,
+
+      version:
+        AI_USAGE_LEDGER_VERSION,
+
+      requestId:
+        row.request_id,
+
+      accountId:
+        row.account_id,
+
+      state:
+        row.state,
+
+      stateChanged:
+        !duplicate,
+
+      duplicate,
+
+      reservedAt:
+        new Date(
+          row.reserved_at_ms
+        ).toISOString(),
+
+      updatedAt:
+        new Date(
+          row.state_at_ms ??
+          row.reserved_at_ms
+        ).toISOString(),
+
+      inputTokens:
+        row.input_tokens,
+
+      maxOutputTokens:
+        row.max_output_tokens,
+
+      estimatedTokens:
+        row.input_tokens +
+        row.max_output_tokens,
+
+      providerDispatchAuthorized: false,
+
+      tradingAuthorized: false,
+
+      reason: null
+    });
+  }
+
+
+  /*
+   * CHECK ACCOUNT CLOCK
+   *
+   * Includes terminal history.
+   */
+
+  function lifecycleClock(accountId) {
+    const timestamp = now();
+
+    if (!getAIBudgetWindows(timestamp)) {
+      return {
+        ok: false,
+        reason: "invalid_ai_usage_clock"
+      };
+    }
+
+    const lastEvent =
+      latest.get(accountId).last_time;
+
+    const lastReservation =
+      pending.get(accountId).last_time;
+
+    if (
+      (
+        lastEvent !== null &&
+        timestamp < lastEvent
+      ) ||
+
+      (
+        lastReservation !== null &&
+        timestamp < lastReservation
+      )
+    ) {
+      return {
+        ok: false,
+        reason: "ai_usage_clock_regressed"
+      };
+    }
+
+    return {
+      ok: true,
+      timestamp
+    };
+  }
+
+
+  /*
+   * ATOMIC STATE TRANSITION
+   */
+
+  function transition(
+    input,
+    expectedState,
+    nextState,
+    allowDuplicate
+  ) {
+    if (closed) {
+      return reject(
+        "ai_usage_ledger_closed"
+      );
+    }
+
+    try {
+      if (
+        !exactFields(input, [
+          "requestId",
+          "accountId"
+        ])
+      ) {
+        return reject(
+          "invalid_ai_lifecycle_request"
+        );
+      }
+
+      const {
+        requestId,
+        accountId
+      } = input;
+
+      if (
+        !validRequestId(requestId) ||
+        !validAccountId(accountId)
+      ) {
+        return reject(
+          "invalid_ai_lifecycle_request"
+        );
+      }
+
+      return transaction(
+        "BEGIN IMMEDIATE",
+
+        () => {
+          const row =
+            findReservation.get(requestId);
+
+          if (
+            !row ||
+            row.account_id !== accountId
+          ) {
+            return reject(
+              "ai_reservation_not_found"
+            );
+          }
+
+          const clock =
+            lifecycleClock(accountId);
+
+          if (!clock.ok) {
+            return reject(clock.reason);
+          }
+
+          if (
+            row.state === nextState &&
+            allowDuplicate
+          ) {
+            return lifecycleResult(
+              row,
+              true
+            );
+          }
+
+          if (row.state !== expectedState) {
+            return reject(
+              "ai_reservation_invalid_state"
+            );
+          }
+
+          const changed =
+            updateReservationState.run(
+              nextState,
+
+              clock.timestamp,
+
+              requestId,
+
+              accountId,
+
+              expectedState
+            );
+
+          if (changed.changes !== 1) {
+            throw new Error(
+              "ai_reservation_transition_failed"
+            );
+          }
+
+          return lifecycleResult(
+            findReservation.get(requestId)
+          );
+        }
+      );
+
+    } catch {
+      return reject(
+        "ai_usage_ledger_unavailable"
+      );
+    }
+  }
+
+
+  /*
+   * SINGLE-USE DISPATCH CLAIM
+   *
+   * A duplicate call never succeeds.
+   */
+
+  function markDispatched(input) {
+    return transition(
+      input,
+
+      "reserved",
+
+      "dispatched",
+
+      false
+    );
+  }
+
+
+  /*
+   * CANCEL ONLY BEFORE DISPATCH
+   */
+
+  function cancelReservation(input) {
+    return transition(
+      input,
+
+      "reserved",
+
+      "cancelled",
+
+      true
+    );
+  }
+
+
+  /*
+   * UNKNOWN PROVIDER OUTCOME
+   *
+   * Retain the entire reservation.
+   */
+
+  function markUncertain(input) {
+    return transition(
+      input,
+
+      "dispatched",
+
+      "uncertain",
+
+      true
+    );
+  }
+
+
+  /*
+   * COMPLETED SETTLEMENT RESULT
+   */
+
+  function settlementResult(
+    row,
+    actual,
+    duplicate
+  ) {
+    const estimatedTokens =
+      row.input_tokens +
+      row.max_output_tokens;
+
+    const actualTokens =
+      actual.input_tokens +
+      actual.output_tokens;
+
+    return Object.freeze({
+      ...eventResult(
+        actual,
+        duplicate
+      ),
+
+      settled: true,
+
+      state: "settled",
+
+      estimatedTokens,
+
+      actualTokens,
+
+      releasedTokens:
+        Math.max(
+          0,
+          estimatedTokens - actualTokens
+        ),
+
+      exceededReservation:
+
+        actual.input_tokens >
+          row.input_tokens ||
+
+        actual.output_tokens >
+          row.max_output_tokens,
+
+      providerDispatchAuthorized: false,
+
+      tradingAuthorized: false
+    });
+  }
+
+
+  /*
+   * ATOMIC USAGE SETTLEMENT
+   *
+   * Trusted provider usage only.
+   *
+   * Record the actual charge even
+   * if the reservation was exceeded.
+   */
+
+  function settleUsage(input) {
+    if (closed) {
+      return reject(
+        "ai_usage_ledger_closed"
+      );
+    }
+
+    try {
+      if (
+        !exactFields(input, [
+          "requestId",
+          "accountId",
+          "inputTokens",
+          "outputTokens"
+        ])
+      ) {
+        return reject(
+          "invalid_ai_settlement_request"
+        );
+      }
+
+      const {
+        requestId,
+        accountId,
+        inputTokens,
+        outputTokens
+      } = input;
+
+      if (
+        !validRequestId(requestId) ||
+
+        !validAccountId(accountId) ||
+
+        !counter(inputTokens) ||
+
+        !counter(outputTokens) ||
+
+        !counter(
+          inputTokens + outputTokens
+        ) ||
+
+        inputTokens + outputTokens === 0
+      ) {
+        return reject(
+          "invalid_ai_settlement_request"
+        );
+      }
+
+      return transaction(
+        "BEGIN IMMEDIATE",
+
+        () => {
+          const row =
+            findReservation.get(requestId);
+
+          if (
+            !row ||
+            row.account_id !== accountId
+          ) {
+            return reject(
+              "ai_reservation_not_found"
+            );
+          }
+
+          const clock =
+            lifecycleClock(accountId);
+
+          if (!clock.ok) {
+            return reject(clock.reason);
+          }
+
+          const existing =
+            find.get(requestId);
+
+          /*
+           * Exact settlement replay.
+           */
+
+          if (row.state === "settled") {
+            if (
+              !existing ||
+
+              existing.account_id !==
+                accountId ||
+
+              existing.input_tokens !==
+                inputTokens ||
+
+              existing.output_tokens !==
+                outputTokens
+            ) {
+              return reject(
+                "ai_usage_request_conflict"
+              );
+            }
+
+            return settlementResult(
+              row,
+              existing,
+              true
+            );
+          }
+
+          if (
+            ![
+              "dispatched",
+              "uncertain"
+            ].includes(row.state)
+          ) {
+            return reject(
+              "ai_reservation_invalid_state"
+            );
+          }
+
+          if (existing) {
+            return reject(
+              "ai_usage_request_conflict"
+            );
+          }
+
+          /*
+           * Persist actual usage.
+           */
+
+          insert.run(
+            requestId,
+
+            accountId,
+
+            clock.timestamp,
+
+            inputTokens,
+
+            outputTokens
+          );
+
+          /*
+           * Release reservation only
+           * inside the same transaction.
+           */
+
+          const changed =
+            updateReservationState.run(
+              "settled",
+
+              clock.timestamp,
+
+              requestId,
+
+              accountId,
+
+              row.state
+            );
+
+          if (changed.changes !== 1) {
+            throw new Error(
+              "ai_settlement_transition_failed"
+            );
+          }
+
+          return settlementResult(
+            findReservation.get(requestId),
+
+            find.get(requestId),
+
+            false
+          );
+        }
+      );
+
+    } catch {
+      return reject(
+        "ai_usage_ledger_unavailable"
+      );
+    }
+  }
+
+
+  /*
+   * RECOVERY INSPECTION
+   *
+   * No automatic redispatch.
+   * No automatic cancellation.
+   *
+   * Trusted server account only.
+   * Bounded, cursor-based results.
+   */
+
+  function listPendingReservations(
+    accountId,
+    afterRequestId = ""
+  ) {
+    if (closed) {
+      return reject(
+        "ai_usage_ledger_closed"
+      );
+    }
+
+    if (
+      !validAccountId(accountId) ||
+
+      (
+        afterRequestId !== "" &&
+        !validRequestId(afterRequestId)
+      )
+    ) {
+      return reject(
+        "invalid_ai_recovery_request"
+      );
+    }
+
+    try {
+      return transaction(
+        "BEGIN",
+
+        () => {
+          const clock =
+            lifecycleClock(accountId);
+
+          if (!clock.ok) {
+            return reject(clock.reason);
+          }
+
+          const rows =
+            findPendingReservations.all(
+              accountId,
+              afterRequestId
+            );
+
+          const hasMore =
+            rows.length > 100;
+
+          const page =
+            rows.slice(0, 100);
+
+          const reservations =
+            Object.freeze(
+              page.map(
+                row => lifecycleResult(
+                  row,
+                  true
+                )
+              )
+            );
+
+          return Object.freeze({
+            ok: true,
+
+            version:
+              AI_USAGE_LEDGER_VERSION,
+
+            accountId,
+
+            reservations,
+
+            hasMore,
+
+            nextCursor:
+              hasMore
+                ? page[page.length - 1]
+                    .request_id
+                : null,
+
+            providerDispatchAuthorized: false,
+
+            tradingAuthorized: false,
+
+            reason: null
+          });
+        }
+      );
+
+    } catch {
+      return reject(
+        "ai_usage_ledger_unavailable"
+      );
+    }
+  }
 
   /*
    * SHUTDOWN
@@ -1067,8 +1804,17 @@ export function createLagoAIUsageLedger({
     recordUsage,
 
     getUsage,
-
     reserveUsage,
+
+    markDispatched,
+
+    cancelReservation,
+
+    markUncertain,
+
+    settleUsage,
+
+    listPendingReservations,
 
     close,
 
