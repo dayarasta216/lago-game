@@ -68,7 +68,8 @@ const TIMEOUT = Symbol("ai_gateway_timeout");
 const CLOSED = Symbol("ai_gateway_closed");
 const INVALID_CLOCK = Symbol("invalid_ai_gateway_clock");
 const AUTHORIZATION_EXPIRED = Symbol("ai_authorization_expired");
-
+const GENERATION_AUTHORIZATION_DENIED =
+  Symbol("ai_generation_authorization_denied");
 
 /*
  * COMMON VALIDATION
@@ -322,7 +323,10 @@ export function createLagoAIGateway({
   providerId = null,
   model = null,
 
-  enabled = false,
+    enabled = false,
+
+  requireGenerationAuthorization =
+    providerId === "openai",
 
   now = () => Date.now()
 } = {}) {
@@ -352,8 +356,9 @@ export function createLagoAIGateway({
     );
   }
 
-  if (
+    if (
     typeof enabled !== "boolean" ||
+    typeof requireGenerationAuthorization !== "boolean" ||
     typeof now !== "function"
   ) {
     throw new Error(
@@ -379,6 +384,19 @@ export function createLagoAIGateway({
     );
   }
 
+    /*
+   * R2.8C3A — REQUIRED OPENAI AUTHORIZATION
+   */
+
+  if (
+    providerId === "openai" &&
+    requireGenerationAuthorization !== true
+  ) {
+    throw new Error(
+      "ai_generation_authorization_required"
+    );
+  }
+  
   let closed = false;
 
   const activeControllers = new Set();
@@ -695,8 +713,147 @@ export function createLagoAIGateway({
       });
 
 
+            /*
+       * 5. GENERATION AUTHORIZATION
+       *
+       * R2.8C3A
+       *
+       * Revalidate the authenticated agent
+       * after token counting and immediately
+       * before paid provider generation.
+       */
+
+      let generationAuthorizationStarted = false;
+      let generationAuthorized = false;
+      let generationAuthorizationDenied = false;
+      let authorizedInputTokens = null;
+
+      async function beforeGeneration(
+        context,
+        options = {}
+      ) {
+        if (generationAuthorizationStarted) {
+          generationAuthorizationDenied = true;
+
+          generationAuthorized = false;
+
+          return false;
+        }
+
+        generationAuthorizationStarted = true;
+
+        const adapterSignal = options.signal;
+
+        function ensureActive() {
+          check();
+
+          if (
+            generationAuthorizationDenied ||
+            !(adapterSignal instanceof AbortSignal) ||
+            adapterSignal.aborted
+          ) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+        }
+
+        try {
+          ensureActive();
+
+          if (
+            !exactFields(context, [
+              "providerId",
+              "model",
+              "characterId",
+              "action",
+              "inputTokens",
+              "maxOutputTokens"
+            ]) ||
+
+            context.providerId !== providerId ||
+            context.model !== model ||
+            context.characterId !== characterId ||
+            context.action !== action ||
+
+            !Number.isSafeInteger(
+              context.inputTokens
+            ) ||
+
+            context.inputTokens < 1 ||
+
+            context.inputTokens >
+              providerRequest.maxInputTokens ||
+
+            context.maxOutputTokens !==
+              providerRequest.maxOutputTokens
+          ) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          const countedInputTokens =
+            context.inputTokens;
+
+          /*
+           * Recheck processing consent
+           * after provider token counting.
+           */
+
+          const latestConsent = await run(
+            () => getProcessingConsent(
+              consentContext,
+              { signal: adapterSignal }
+            )
+          );
+
+          ensureActive();
+
+          if (latestConsent !== true) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          /*
+           * Reauthenticate the exact account,
+           * character and selection revision.
+           */
+
+          const freshAuthorization =
+            await authorize();
+
+          ensureActive();
+
+          if (
+            !sameContext(
+              initial,
+              freshAuthorization
+            )
+          ) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          if (
+            check() >=
+              freshAuthorization.validUntil
+          ) {
+            throw GENERATION_AUTHORIZATION_DENIED;
+          }
+
+          authorizedInputTokens =
+            countedInputTokens;
+
+          generationAuthorized = true;
+
+          return true;
+
+        } catch {
+          generationAuthorizationDenied = true;
+
+          generationAuthorized = false;
+
+          return false;
+        }
+      }
+
       /*
-       * 5. EXECUTE PROVIDER
+       * EXECUTE PROVIDER
        */
 
       const rawResponse = await run(
@@ -707,22 +864,37 @@ export function createLagoAIGateway({
             throw AUTHORIZATION_EXPIRED;
           }
 
+          const providerOptions =
+            requireGenerationAuthorization
+              ? {
+                  signal,
+                  beforeGeneration
+                }
+              : {
+                  signal
+                };
+
           return generate(
             providerRequest,
-            { signal }
+            Object.freeze(providerOptions)
           );
         }
       );
 
-      const response =
-        normalizeProviderResponse(
-          rawResponse
-        );
+      /*
+       * Reject adapters that bypassed
+       * the required authorization barrier.
+       */
 
-      if (!response) {
-        return reject(
-          "invalid_ai_provider_response"
-        );
+      if (
+        requireGenerationAuthorization &&
+        (
+          generationAuthorizationDenied ||
+          !generationAuthorizationStarted ||
+          !generationAuthorized
+        )
+      ) {
+        throw GENERATION_AUTHORIZATION_DENIED;
       }
 
 
@@ -844,6 +1016,19 @@ export function createLagoAIGateway({
         );
       }
 
+      if (
+        error === GENERATION_AUTHORIZATION_DENIED ||
+        (
+          error?.name === "LagoOpenAIAdapterError" &&
+          error?.message ===
+            "openai_generation_authorization_denied"
+        )
+      ) {
+        return reject(
+          "ai_generation_authorization_denied"
+        );
+      }
+      
       return reject(
         "ai_gateway_unavailable"
       );
@@ -907,8 +1092,21 @@ export function createLagoAIGateway({
     getPolicy() {
       return Object.freeze({
         ...POLICY,
-
         enabled,
+
+        generationAuthorizationSupported: true,
+
+        generationAuthorizationRequired:
+          requireGenerationAuthorization,
+
+        generationAuthorizationAfterTokenCount:
+          requireGenerationAuthorization,
+
+        generationAuthorizationSingleUse: true,
+
+        clientGenerationAuthorizationTrusted: false,
+
+        openAIAuthorizationBypassAllowed: false,
 
         providerConfigured: Boolean(
           generate &&
