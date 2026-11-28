@@ -1,3 +1,7 @@
+import {
+  createLagoAIUsageLedger
+} from "./lago-agent-ai-usage-ledger.mjs";
+
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -289,6 +293,25 @@ async function fixture(t) {
     return gateway;
   }
 
+    function createUsageLedger(limits) {
+    const ledger = createLagoAIUsageLedger({
+      directory: join(
+        root,
+        "private-ai-usage"
+      ),
+
+      projectRoot,
+
+      limits,
+
+      now
+    });
+
+    services.push(ledger);
+
+    return ledger;
+  }
+
   const gateway = createGateway();
 
   async function pay(player = playerA) {
@@ -345,9 +368,9 @@ async function fixture(t) {
     playerA,
     playerB,
 
-    gateway,
+       gateway,
     createGateway,
-
+    createUsageLedger,
     calls,
     requests,
     consentRequests,
@@ -2031,7 +2054,14 @@ function r28c3bOutput(inputTokens = 24) {
 
 
 async function r28c3bFixture(t, config = {}) {
-  const fx = await fixture(t);
+    const fx = await fixture(t);
+
+  const usageLedger =
+    config.withoutLedger === true
+      ? null
+      : fx.createUsageLedger(
+          config.limits
+        );
 
   const httpCalls = [];
 
@@ -2095,12 +2125,14 @@ async function r28c3bFixture(t, config = {}) {
 
   t.after(() => adapter.close());
 
-  gateway = fx.createGateway({
+    gateway = fx.createGateway({
     providerId: "openai",
 
     model: MODEL,
 
-    generate: adapter.generate
+    generate: adapter.generate,
+
+    usageLedger
   });
 
   if (config.paid !== false) {
@@ -2110,9 +2142,11 @@ async function r28c3bFixture(t, config = {}) {
   return {
     fx,
 
-    adapter,
+        adapter,
 
     gateway,
+
+    usageLedger,
 
     httpCalls,
 
@@ -2638,6 +2672,539 @@ test(
     assert.equal(
       generate.signal.aborted,
       true
+    );
+  }
+);
+
+/*
+ * LAGO GAME
+ * R2.8C5B
+ * GATEWAY BUDGET INTEGRATION TESTS
+ */
+
+const R28C5B_LIMITS = Object.freeze({
+  dailyTokens: 1050,
+
+  monthlyTokens: 5000,
+
+  dailyRequests: 100,
+
+  maxInputTokens: 4096,
+
+  maxOutputTokens: 1024
+});
+
+function r28c5bUsage(env) {
+  const result =
+    env.usageLedger.getUsage(
+      env.fx.playerA.accountId
+    );
+
+  assert.equal(
+    result.ok,
+    true,
+    result.reason
+  );
+
+  return result.usage;
+}
+
+function r28c5bPending(env) {
+  const result =
+    env.usageLedger.listPendingReservations(
+      env.fx.playerA.accountId
+    );
+
+  assert.equal(
+    result.ok,
+    true,
+    result.reason
+  );
+
+  return result.reservations;
+}
+
+
+/*
+ * TEST 01 — MANDATORY LEDGER
+ */
+
+test(
+  "R2.8C5B blocks OpenAI without persistent usage ledger",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      withoutLedger: true
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_usage_ledger_required"
+    );
+
+    assert.deepEqual(
+      env.httpCalls,
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 02 — CONFIGURATION
+ */
+
+test(
+  "R2.8C5B rejects malformed ledger configuration",
+  () => {
+    assert.throws(
+      () => createLagoAIGateway({
+        runtimeAccess: {
+          async authorize() {
+            return null;
+          }
+        },
+
+        providerId: "openai",
+
+        usageLedger: {}
+      }),
+
+      /invalid_ai_usage_ledger/
+    );
+  }
+);
+
+
+/*
+ * TEST 03 — RESERVE BEFORE HTTP
+ */
+
+test(
+  "R2.8C5B reserves and claims dispatch before paid generation",
+  async t => {
+    let env;
+
+    let inspected = false;
+
+    env = await r28c3bFixture(t, {
+      onGenerate() {
+        const usage =
+          r28c5bUsage(env);
+
+        assert.equal(
+          usage.dailyReservedTokens,
+          1048
+        );
+
+        assert.equal(
+          usage.dailyUsedTokens,
+          0
+        );
+
+        const pending =
+          r28c5bPending(env);
+
+        assert.equal(
+          pending.length,
+          1
+        );
+
+        assert.equal(
+          pending[0].state,
+          "dispatched"
+        );
+
+        inspected = true;
+      }
+    });
+
+    const result =
+      await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    assert.equal(inspected, true);
+
+    const usage =
+      r28c5bUsage(env);
+
+    assert.equal(
+      usage.dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.dailyReservedTokens,
+      0
+    );
+
+    assert.equal(
+      usage.dailyRequests,
+      1
+    );
+
+    assert.equal(
+      usage.dailyReservedRequests,
+      0
+    );
+
+    assert.deepEqual(
+      r28c5bPending(env),
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 04 — EXHAUSTED QUOTA
+ */
+
+test(
+  "R2.8C5B exhausted budget prevents paid generation",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      limits: R28C5B_LIMITS
+    });
+
+    const first =
+      await env.execute();
+
+    assert.equal(
+      first.ok,
+      true,
+      first.reason
+    );
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_daily_token_budget_exceeded"
+    );
+
+    assert.deepEqual(
+      env.httpCalls.map(
+        call => call.url
+      ),
+
+      [
+        R28C3B_COUNT_URL,
+
+        R28C3B_GENERATE_URL,
+
+        R28C3B_COUNT_URL
+      ]
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 05 — UNKNOWN OUTCOME
+ */
+
+test(
+  "R2.8C5B provider failure retains uncertain usage",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      limits: R28C5B_LIMITS,
+
+      onGenerate() {
+        throw new Error(
+          "synthetic_network_failure"
+        );
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_gateway_unavailable"
+    );
+
+    const pending =
+      r28c5bPending(env);
+
+    assert.equal(
+      pending.length,
+      1
+    );
+
+    assert.equal(
+      pending[0].state,
+      "uncertain"
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      1048
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      0
+    );
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_daily_token_budget_exceeded"
+    );
+
+    assert.equal(
+      env.httpCalls.filter(
+        call => call.url ===
+          R28C3B_GENERATE_URL
+      ).length,
+
+      1
+    );
+  }
+);
+
+
+/*
+ * TEST 06 — CONSENT AFTER GENERATION
+ */
+
+test(
+  "R2.8C5B settles cost before rejecting withdrawn consent",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onGenerate(fx) {
+        fx.setConsent(false);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_processing_consent_changed"
+    );
+
+    const usage =
+      r28c5bUsage(env);
+
+    assert.equal(
+      usage.dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.dailyReservedTokens,
+      0
+    );
+
+    assert.deepEqual(
+      r28c5bPending(env),
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 07 — CONSENT BEFORE GENERATION
+ */
+
+test(
+  "R2.8C5B denies revoked consent without creating reservation",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      onCount(fx) {
+        fx.setConsent(false);
+      }
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_generation_authorization_denied"
+    );
+
+    r28c3bAssertCountOnly(env);
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      0
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      0
+    );
+
+    assert.deepEqual(
+      r28c5bPending(env),
+      []
+    );
+  }
+);
+
+
+/*
+ * TEST 08 — PROVIDER OVERAGE
+ */
+
+test(
+  "R2.8C5B accounts for provider overage without disclosing output",
+  async t => {
+    const env = await r28c3bFixture(t, {
+      inputTokens: 24,
+
+      outputInputTokens: 25
+    });
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_generation_token_usage_exceeded"
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      33
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 09 — ACCOUNT ISOLATION
+ */
+
+test(
+  "R2.8C5B usage remains isolated by authenticated account",
+  async t => {
+    const env =
+      await r28c3bFixture(t);
+
+    const result =
+      await env.execute();
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    const foreign =
+      env.usageLedger.getUsage(
+        env.fx.playerB.accountId
+      );
+
+    assert.equal(
+      foreign.ok,
+      true,
+      foreign.reason
+    );
+
+    assert.equal(
+      foreign.usage.dailyUsedTokens,
+      0
+    );
+
+    assert.equal(
+      foreign.usage.dailyReservedTokens,
+      0
+    );
+
+    assert.equal(
+      r28c5bUsage(env).dailyUsedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 10 — CLOSED LEDGER
+ */
+
+test(
+  "R2.8C5B unavailable ledger fails closed before generation",
+  async t => {
+    const env =
+      await r28c3bFixture(t);
+
+    env.usageLedger.close();
+
+    assertDenied(
+      await env.execute(),
+
+      "ai_usage_reservation_failed"
+    );
+
+    r28c3bAssertCountOnly(env);
+  }
+);
+
+
+/*
+ * TEST 11 — GATEWAY POLICY
+ */
+
+test(
+  "R2.8C5B exposes mandatory accounting policy",
+  async t => {
+    const env =
+      await r28c3bFixture(t);
+
+    const policy =
+      env.gateway.getPolicy();
+
+    assert.equal(
+      policy.usageLedgerConfigured,
+      true
+    );
+
+    assert.equal(
+      policy.usageReservationRequired,
+      true
+    );
+
+    assert.equal(
+      policy.atomicUsageReservationEnabled,
+      true
+    );
+
+    assert.equal(
+      policy.usageSettlementEnabled,
+      true
+    );
+
+    assert.equal(
+      policy.openAIBudgetBypassAllowed,
+      false
+    );
+
+    assert.equal(
+      policy.clientUsageCountersTrusted,
+      false
+    );
+
+    assert.ok(
+      Object.isFrozen(policy)
     );
   }
 );
