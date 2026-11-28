@@ -932,7 +932,19 @@ export function createLagoAIGateway({
        * 6. RECHECK PROCESSING CONSENT
        */
 
+      const remainingConsent = await run(
+        signal => getProcessingConsent(
+          consentContext,
+          { signal }
+        )
+      );
 
+      if (remainingConsent !== true) {
+        return reject(
+          "ai_processing_consent_changed"
+        );
+      }
+      
       /*
        * 7. REAUTHORIZE BEFORE DISCLOSURE
        *
