@@ -89,8 +89,12 @@ function fixture(t) {
       }
     },
 
-    async getProcessingConsent() {
-      return true;
+        sessionStore: {
+      async restoreSession() {
+        return {
+          ok: false
+        };
+      }
     },
 
     async fetchImpl() {
@@ -102,9 +106,9 @@ function fixture(t) {
     }
   };
 
-  t.after(() => {
+    t.after(async () => {
     for (const service of services) {
-      service.close();
+      await service.close();
     }
 
     rmSync(root, {
@@ -351,12 +355,12 @@ test(
       /ai_runtime_access_required/
     );
 
-    assert.throws(
+        assert.throws(
       () => fx.open({
-        getProcessingConsent: null
+        sessionStore: null
       }),
 
-      /ai_processing_consent_required/
+      /ai_consent_session_store_required/
     );
 
     assert.throws(
@@ -563,12 +567,14 @@ test(
     assert.deepEqual(
       Object.keys(service).sort(),
 
-      [
+            [
         "version",
         "execute",
+        "getConsentState",
+        "setConsent",
         "close",
         "getPolicy"
-      ].sort()
+      ].sort())
     );
 
     assert.equal(
@@ -671,23 +677,26 @@ test(
 
     const service = fx.open();
 
-    service.close();
+       await service.close();
 
-    service.close();
-
+    await service.close();
+    
     assert.equal(
-      service.getPolicy()
-        .serviceClosed,
-
-      true
+      consent.reason,
+      "ai_consent_store_closed"
     );
 
     assert.equal(
       service.getPolicy().active,
-
       false
     );
 
+    assert.equal(
+      fx.networkCalls(),
+      0
+    );
+  }
+);
     const result =
       await service.execute(input());
 
