@@ -1,4 +1,8 @@
 import {
+  createLagoRuntimeServices
+} from "./lago-agent-runtime-services.mjs";
+
+import {
   dirname,
   resolve,
   isAbsolute
@@ -134,6 +138,8 @@ const store =
 const managedServices = [];
 
 let subscriptionServices = null;
+
+let runtimeServices = null;
 
 let servicesClosed = false;
 
@@ -285,6 +291,48 @@ try {
 
 }
 
+/*
+ * R2.8C6B — MANAGED RUNTIME SERVICES
+ *
+ * Character storage is optional.
+ * Explicit configuration only.
+ * AI activation remains disabled.
+ */
+
+try {
+
+  runtimeServices =
+    createLagoRuntimeServices({
+
+      env: process.env,
+
+      projectRoot,
+
+      sessionStore: store,
+
+      entitlement:
+        subscriptionServices?.entitlement ??
+        null
+
+    });
+
+  if (runtimeServices !== null) {
+
+    managedServices.push(
+      runtimeServices
+    );
+
+  }
+
+} catch {
+
+  closeSubscriptionServices();
+
+  throw new Error(
+    "runtime_bootstrap_failed"
+  );
+
+}
 
 /*
  * CREATE MAIN HTTP SERVER
@@ -419,6 +467,22 @@ try {
         "AI entitlement: DISABLED"
       );
 
+            console.log(
+        `Character storage: ${
+          runtimeServices
+            ? "READY"
+            : "NOT CONFIGURED"
+        }`
+      );
+
+      console.log(
+        "AI runtime: DISABLED"
+      );
+
+      console.log(
+        "AI provider: LOCKED"
+      );
+      
       console.log(
         "Live trading: DISABLED"
       );
