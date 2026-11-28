@@ -3693,3 +3693,325 @@ test(
     );
   }
 );
+
+/*
+ * R2.8C6C3B
+ * FULL PROVIDER SERVICE INTEGRATION
+ */
+
+import {
+  createLagoAIProviderService
+} from "./lago-agent-ai-provider-service.mjs";
+
+
+test(
+  "R2.8C6C3B full service enforces consent rate limits and persistent usage",
+
+  async t => {
+    const fx = await fixture(t);
+
+    await fx.pay();
+
+    const root = await mkdtemp(
+      join(
+        tmpdir(),
+        "lago-full-provider-"
+      )
+    );
+
+    const projectRoot = join(
+      root,
+      "project"
+    );
+
+    const directory = join(
+      root,
+      "private-ai"
+    );
+
+    let service = null;
+
+    t.after(async () => {
+      if (service !== null) {
+        await service.close();
+      }
+
+      await rm(root, {
+        recursive: true,
+        force: true
+      });
+    });
+
+    await mkdir(projectRoot);
+
+    const calls = [];
+
+    const config = {
+      env: {
+        LAGO_AI_PROVIDER_ENABLED: "1",
+
+        LAGO_OPENAI_API_KEY:
+          "synthetic-full-provider-key",
+
+        LAGO_OPENAI_MODEL:
+          MODEL,
+
+        LAGO_AI_USAGE_DATA_DIR:
+          directory
+      },
+
+      projectRoot,
+
+      sessionStore: fx.sessions,
+
+      runtimeAccess: fx.runtime,
+
+      now: () => START,
+
+      rateLimits: {
+        ...AI_RATE_LIMITS,
+
+        accountPerMinute: 1
+      },
+
+      async fetchImpl(url, options) {
+        calls.push(url);
+
+        if (
+          url === R28C3B_COUNT_URL
+        ) {
+          return r28c3bJSON({
+            object:
+              "response.input_tokens",
+
+            input_tokens: 24
+          });
+        }
+
+        if (
+          url === R28C3B_GENERATE_URL
+        ) {
+          return r28c3bJSON(
+            r28c3bOutput()
+          );
+        }
+
+        throw new Error(
+          "unexpected_provider_endpoint"
+        );
+      }
+    };
+
+    service =
+      createLagoAIProviderService(
+        config
+      );
+
+
+    /*
+     * No consent — no HTTP.
+     */
+
+    assertDenied(
+      await service.execute(
+        fx.input()
+      ),
+
+      "ai_processing_consent_required"
+    );
+
+    assert.deepEqual(calls, []);
+
+
+    /*
+     * Authenticated explicit consent.
+     */
+
+    const granted =
+      await service.setConsent({
+        sessionToken:
+          fx.playerA.token,
+
+        granted: true,
+
+        policyVersion:
+          AI_CONSENT_POLICY_VERSION,
+
+        expectedRevision: 0
+      });
+
+    assert.equal(
+      granted.ok,
+      true,
+      granted.reason
+    );
+
+    assert.equal(granted.revision, 1);
+
+
+    /*
+     * Protected successful inference.
+     */
+
+    const result =
+      await service.execute(
+        fx.input()
+      );
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    assert.equal(
+      result.usage.totalTokens,
+      32
+    );
+
+    assertLocked(result);
+
+    assert.deepEqual(
+      calls,
+
+      [
+        R28C3B_COUNT_URL,
+        R28C3B_GENERATE_URL
+      ]
+    );
+
+
+    /*
+     * Rate exhaustion before counting.
+     */
+
+    assertDenied(
+      await service.execute(
+        fx.input()
+      ),
+
+      "ai_account_minute_rate_exceeded"
+    );
+
+    assert.equal(calls.length, 2);
+
+
+    /*
+     * Reopen all persistent stores.
+     */
+
+    await service.close();
+
+    service =
+      createLagoAIProviderService(
+        config
+      );
+
+    const restored =
+      await service.getConsentState({
+        sessionToken:
+          fx.playerA.token
+      });
+
+    assert.equal(
+      restored.granted,
+      true
+    );
+
+    assert.equal(
+      restored.revision,
+      1
+    );
+
+    assertDenied(
+      await service.execute(
+        fx.input()
+      ),
+
+      "ai_account_minute_rate_exceeded"
+    );
+
+    assert.equal(calls.length, 2);
+
+
+    /*
+     * Verify persisted usage directly
+     * through a separate trusted ledger.
+     */
+
+    const accounting =
+      createLagoAIUsageLedger({
+        directory,
+
+        projectRoot,
+
+        now: () => START
+      });
+
+    try {
+      const usage =
+        accounting.getUsage(
+          fx.playerA.accountId
+        );
+
+      assert.equal(
+        usage.ok,
+        true,
+        usage.reason
+      );
+
+      assert.equal(
+        usage.usage.dailyUsedTokens,
+        32
+      );
+
+      assert.equal(
+        usage.usage.dailyReservedTokens,
+        0
+      );
+
+    } finally {
+      accounting.close();
+    }
+
+
+    /*
+     * Revocation remains effective
+     * even with a persistent rate limit.
+     */
+
+    const revoked =
+      await service.setConsent({
+        sessionToken:
+          fx.playerA.token,
+
+        granted: false,
+
+        policyVersion:
+          AI_CONSENT_POLICY_VERSION,
+
+        expectedRevision: 1
+      });
+
+    assert.equal(
+      revoked.ok,
+      true,
+      revoked.reason
+    );
+
+    assert.equal(
+      revoked.granted,
+      false
+    );
+
+    assertDenied(
+      await service.execute(
+        fx.input()
+      ),
+
+      "ai_processing_consent_required"
+    );
+
+    assert.equal(calls.length, 2);
+  }
+);
