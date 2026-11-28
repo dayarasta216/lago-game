@@ -30,6 +30,10 @@ import {
   createMemoryIdentity
 } from "./lago-agent-memory-contract.mjs";
 
+import {
+  createLagoCharacterStore
+} from "./lago-agent-character-store.mjs";
+
 /*
  * LAGO GAME
  * R2.8A1 — RUNTIME AUTHORIZATION SECURITY TESTS
@@ -172,48 +176,51 @@ async function fixture(t) {
   const disabledEntitlement = createEntitlement(false);
 
 
-  /*
-   * SYNTHETIC CHARACTER OWNERSHIP
-   */
+/*
+ * REAL SERVER CHARACTER OWNERSHIP
+ *
+ * Persistent SQLite character registry.
+ * Independent account collections.
+ * Canonical selection revisions.
+ */
 
-  const characters = new Map([
-    [
-      playerA.accountId,
-      {
-        activeCharacterId: CHARACTER,
-        owned: new Set([
-          CHARACTER,
-          OTHER_CHARACTER
-        ])
-      }
-    ],
-    [
-      playerB.accountId,
-      {
-        activeCharacterId: CHARACTER,
-        owned: new Set([CHARACTER])
-      }
-    ]
-  ]);
+const characterStore = createLagoCharacterStore({
+  directory: join(root, "private-characters"),
+  projectRoot,
+  trustedGrantsEnabled: true,
+  now
+});
 
-  async function getCharacterAccess({
+services.push(characterStore);
+
+for (const player of [playerA, playerB]) {
+  const initialized =
+    characterStore.initializeAccount({
+      accountId: player.accountId
+    });
+
+  assert.equal(initialized.ok, true);
+  assert.equal(initialized.selectionRevision, 1);
+}
+
+const granted =
+  characterStore.recordTrustedGrant({
+    accountId: playerA.accountId,
+    characterId: OTHER_CHARACTER
+  });
+
+assert.equal(granted.ok, true);
+assert.equal(granted.granted, true);
+
+async function getCharacterAccess({
+  accountId,
+  characterId
+}) {
+  return characterStore.getCharacterAccess({
     accountId,
     characterId
-  }) {
-    const state = characters.get(accountId);
-
-    return {
-      serverVerified: true,
-      accountId,
-      characterId,
-
-      owned:
-        state?.owned.has(characterId) === true,
-
-      activeCharacterId:
-        state?.activeCharacterId || null
-    };
-  }
+  });
+}
 
   function createRuntime(changes = {}) {
     return createLagoRuntimeAccess({
@@ -281,17 +288,19 @@ async function fixture(t) {
       );
     },
 
-    select(player, characterId) {
-      characters.get(
-        player.accountId
-      ).activeCharacterId = characterId;
-    },
+   characterStore,
 
-    removeOwnership(player, characterId) {
-      characters.get(
-        player.accountId
-      ).owned.delete(characterId);
-    },
+select(player, characterId) {
+  const result =
+    characterStore.selectCharacter({
+      accountId: player.accountId,
+      characterId
+    });
+
+  assert.equal(result.ok, true);
+
+  return result;
+},
 
     setTime(value) {
       clock = value;
@@ -684,23 +693,44 @@ test("does not transfer subscription access between accounts", async t => {
 test("rejects characters not owned by the account", async t => {
   const fx = await fixture(t);
 
-  await fx.pay();
+  await fx.pay(fx.playerB);
 
-  fx.removeOwnership(
-    fx.playerA,
-    OTHER_CHARACTER
-  );
+  const selection =
+    fx.characterStore.selectCharacter({
+      accountId: fx.playerB.accountId,
+      characterId: OTHER_CHARACTER
+    });
 
-  fx.select(
-    fx.playerA,
-    OTHER_CHARACTER
+  assert.equal(selection.ok, false);
+
+  assert.equal(
+    selection.reason,
+    "character_not_owned"
   );
 
   assertDenied(
-    await fx.authorize({
-      characterId: OTHER_CHARACTER
-    }),
+    await fx.runtime.authorize(
+      fx.input(fx.playerB, {
+        characterId: OTHER_CHARACTER
+      })
+    ),
     "character_access_denied"
+  );
+
+  const state = fx.characterStore.getState({
+    accountId: fx.playerB.accountId
+  });
+
+  assert.equal(
+    state.activeCharacterId,
+    CHARACTER
+  );
+
+  assert.equal(state.selectionRevision, 1);
+
+  assert.deepEqual(
+    state.ownedCharacterIds,
+    [CHARACTER]
   );
 });
 
@@ -1798,4 +1828,213 @@ test("publishes the immutable shared deadline security policy", async t => {
   assert.equal(policy.failClosed, true);
 
   assert.equal(Object.isFrozen(policy), true);
+});
+
+/*
+ * LAGO GAME
+ * R2.8B4-PREP — REAL CHARACTER REVISION TESTS
+ */
+
+
+/*
+ * TEST 42 — REAL OWNERSHIP PROVIDER
+ */
+
+test("uses persistent character ownership for runtime authorization", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const access = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  assert.equal(access.ok, true);
+  assert.equal(access.serverVerified, true);
+  assert.equal(access.owned, true);
+  assert.equal(access.active, true);
+  assert.equal(access.selectionRevision, 1);
+
+  assertAllowed(
+    await fx.authorize(),
+    fx.playerA
+  );
+});
+
+
+/*
+ * TEST 43 — PERSISTENT SELECTION REVISION
+ */
+
+test("increments persistent selection revision when the active agent changes", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const first = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  assert.equal(first.selectionRevision, 1);
+
+  const selected = fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  assert.equal(selected.changed, true);
+
+  assert.equal(selected.selectionRevision, 2);
+
+  const current = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: OTHER_CHARACTER
+  });
+
+  assert.equal(current.active, true);
+
+  assert.equal(current.selectionRevision, 2);
+
+  assertDenied(
+    await fx.authorize(),
+    "character_access_denied"
+  );
+
+  assertAllowed(
+    await fx.authorize({
+      characterId: OTHER_CHARACTER
+    }),
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+});
+
+
+/*
+ * TEST 44 — ABA SELECTION REVISION
+ */
+
+test("distinguishes identical active characters across different selection revisions", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const first = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    CHARACTER
+  );
+
+  const current = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  assert.equal(
+    current.characterId,
+    first.characterId
+  );
+
+  assert.equal(
+    current.activeCharacterId,
+    first.activeCharacterId
+  );
+
+  assert.equal(current.active, true);
+  assert.equal(current.owned, true);
+
+  assert.equal(first.selectionRevision, 1);
+
+  assert.equal(current.selectionRevision, 3);
+
+  assert.notEqual(
+    first.selectionRevision,
+    current.selectionRevision
+  );
+
+  const history = fx.characterStore.getHistory({
+    accountId: fx.playerA.accountId
+  });
+
+  assert.equal(history.ok, true);
+
+  assert.deepEqual(
+    history.items.map(
+      item => item.selectionRevision
+    ),
+    [3, 2, 1]
+  );
+});
+
+
+/*
+ * TEST 45 — ACCOUNT REVISION ISOLATION
+ */
+
+test("isolates persistent character selection revisions between accounts", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay(fx.playerA);
+
+  await fx.pay(fx.playerB);
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    CHARACTER
+  );
+
+  const accessA = await fx.getCharacterAccess({
+    accountId: fx.playerA.accountId,
+    characterId: CHARACTER
+  });
+
+  const accessB = await fx.getCharacterAccess({
+    accountId: fx.playerB.accountId,
+    characterId: CHARACTER
+  });
+
+  assert.equal(accessA.selectionRevision, 3);
+
+  assert.equal(accessB.selectionRevision, 1);
+
+  assert.notEqual(
+    accessA.accountId,
+    accessB.accountId
+  );
+
+  const results = await Promise.all([
+    fx.runtime.authorize(
+      fx.input(fx.playerA)
+    ),
+
+    fx.runtime.authorize(
+      fx.input(fx.playerB)
+    )
+  ]);
+
+  assertAllowed(
+    results[0],
+    fx.playerA
+  );
+
+  assertAllowed(
+    results[1],
+    fx.playerB
+  );
 });
