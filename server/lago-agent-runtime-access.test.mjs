@@ -2038,3 +2038,701 @@ test("isolates persistent character selection revisions between accounts", async
     fx.playerB
   );
 });
+
+/*
+ * LAGO GAME
+ * R2.8B4A — SELECTION REVISION SECURITY
+ *
+ * Persistent revision binding.
+ * ABA change detection.
+ * Strict ownership evidence.
+ * Client revision isolation.
+ * Immutable authorization decisions.
+ */
+
+
+/*
+ * TEST 46 — VERIFIED REVISION
+ */
+
+test("binds successful runtime authorization to the server selection revision", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const result = await fx.authorize();
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(
+    result.selectionRevision,
+    1
+  );
+
+  assert.equal(
+    result.selectionRevisionVerified,
+    true
+  );
+
+  assert.equal(
+    result.executionReauthorizationRequired,
+    true
+  );
+
+  assert.equal(
+    Object.isFrozen(result),
+    true
+  );
+});
+
+
+/*
+ * TEST 47 — INVALID INITIAL REVISION
+ */
+
+test("rejects invalid initial character selection revisions", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  for (const selectionRevision of [
+    undefined,
+    null,
+    0,
+    -1,
+    1.5,
+    "1",
+    true,
+    NaN,
+    Infinity,
+    Number.MAX_SAFE_INTEGER + 1,
+    {}
+  ]) {
+    let subscriptionCalls = 0;
+
+    const runtime = fx.createRuntime({
+      async getCharacterAccess(input) {
+        return {
+          ...await fx.getCharacterAccess(input),
+          selectionRevision
+        };
+      },
+
+      async getSubscription(input) {
+        subscriptionCalls++;
+
+        return fx.entitlement.getSubscription(
+          input
+        );
+      }
+    });
+
+    const result = await runtime.authorize(
+      fx.input()
+    );
+
+    assertDenied(
+      result,
+      "character_access_denied"
+    );
+
+    assert.equal(subscriptionCalls, 0);
+
+    assert.equal(
+      result.selectionRevision,
+      null
+    );
+
+    assert.equal(
+      result.selectionRevisionVerified,
+      false
+    );
+  }
+});
+
+
+/*
+ * TEST 48 — INVALID RECHECK REVISION
+ */
+
+test("rejects invalid selection revisions returned by the second ownership check", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  for (const selectionRevision of [
+    undefined,
+    null,
+    0,
+    -1,
+    1.5,
+    "1",
+    NaN,
+    Infinity
+  ]) {
+    let checks = 0;
+
+    const runtime = fx.createRuntime({
+      async getCharacterAccess(input) {
+        checks++;
+
+        const access =
+          await fx.getCharacterAccess(input);
+
+        if (checks === 2) {
+          return {
+            ...access,
+            selectionRevision
+          };
+        }
+
+        return access;
+      }
+    });
+
+    assertDenied(
+      await runtime.authorize(
+        fx.input()
+      ),
+      "character_context_changed"
+    );
+
+    assert.equal(checks, 2);
+  }
+});
+
+
+/*
+ * TEST 49 — STRICT OWNERSHIP CONTRACT
+ */
+
+test("requires successful and explicitly active character ownership evidence", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  for (const changes of [
+    { ok: false },
+    { ok: undefined },
+    { active: false },
+    { active: undefined },
+    { active: "true" },
+    { active: 1 },
+    { owned: false },
+    { serverVerified: false }
+  ]) {
+    const runtime = fx.createRuntime({
+      async getCharacterAccess(input) {
+        return {
+          ...await fx.getCharacterAccess(input),
+          ...changes
+        };
+      }
+    });
+
+    assertDenied(
+      await runtime.authorize(
+        fx.input()
+      ),
+      "character_access_denied"
+    );
+  }
+});
+
+
+/*
+ * TEST 50 — ABA DURING VERIFICATION
+ */
+
+test("rejects switching away and back to the original character during subscription verification", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      fx.select(
+        fx.playerA,
+        OTHER_CHARACTER
+      );
+
+      fx.select(
+        fx.playerA,
+        CHARACTER
+      );
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertDenied(
+    result,
+    "character_selection_revision_changed"
+  );
+
+  const state = fx.characterStore.getState({
+    accountId: fx.playerA.accountId
+  });
+
+  assert.equal(
+    state.activeCharacterId,
+    CHARACTER
+  );
+
+  assert.equal(
+    state.selectionRevision,
+    3
+  );
+
+  assert.equal(
+    result.selectionRevision,
+    null
+  );
+
+  const fresh = await fx.authorize();
+
+  assertAllowed(fresh, fx.playerA);
+
+  assert.equal(
+    fresh.selectionRevision,
+    3
+  );
+});
+
+
+/*
+ * TEST 51 — FORWARD REVISION MISMATCH
+ */
+
+test("rejects a newer revision during the final character recheck", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  let checks = 0;
+
+  const runtime = fx.createRuntime({
+    async getCharacterAccess(input) {
+      checks++;
+
+      const access =
+        await fx.getCharacterAccess(input);
+
+      return {
+        ...access,
+        selectionRevision:
+          checks === 1 ? 1 : 2
+      };
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "character_selection_revision_changed"
+  );
+
+  assert.equal(checks, 2);
+});
+
+
+/*
+ * TEST 52 — REVISION ROLLBACK
+ */
+
+test("rejects rollback to an older character selection revision", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    CHARACTER
+  );
+
+  let checks = 0;
+
+  const runtime = fx.createRuntime({
+    async getCharacterAccess(input) {
+      checks++;
+
+      const access =
+        await fx.getCharacterAccess(input);
+
+      return {
+        ...access,
+
+        selectionRevision:
+          checks === 1
+            ? access.selectionRevision
+            : 1
+      };
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(fx.input()),
+    "character_selection_revision_changed"
+  );
+});
+
+
+/*
+ * TEST 53 — IDEMPOTENT SELECTION
+ */
+
+test("preserves authorization revision when selecting the already active character", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const runtime = fx.createRuntime({
+    async getSubscription(input) {
+      const selected = fx.select(
+        fx.playerA,
+        CHARACTER
+      );
+
+      assert.equal(
+        selected.changed,
+        false
+      );
+
+      assert.equal(
+        selected.selectionRevision,
+        1
+      );
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  const result = await runtime.authorize(
+    fx.input()
+  );
+
+  assertAllowed(result, fx.playerA);
+
+  assert.equal(
+    result.selectionRevision,
+    1
+  );
+});
+
+
+/*
+ * TEST 54 — CLIENT REVISION INJECTION
+ */
+
+test("ignores client supplied selection revisions and authorization flags", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const result = await fx.authorize({
+    selectionRevision: 999999,
+    selectionRevisionVerified: true,
+    executionReauthorizationRequired: false,
+    activeCharacterId: OTHER_CHARACTER,
+    memoryAuthorized: true,
+    learningAuthorized: true,
+    tradingAuthorized: true
+  });
+
+  assertAllowed(
+    result,
+    fx.playerA
+  );
+
+  assert.equal(
+    result.selectionRevision,
+    1
+  );
+
+  assert.equal(
+    result.selectionRevisionVerified,
+    true
+  );
+
+  assert.equal(
+    result.executionReauthorizationRequired,
+    true
+  );
+
+  assert.equal(result.memoryAuthorized, false);
+  assert.equal(result.learningAuthorized, false);
+  assert.equal(result.tradingAuthorized, false);
+});
+
+
+/*
+ * TEST 55 — MUTABLE PROVIDER EVIDENCE
+ */
+
+test("captures the initial revision independently of later provider object mutation", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const evidence = {
+    ...await fx.getCharacterAccess({
+      accountId: fx.playerA.accountId,
+      characterId: CHARACTER
+    })
+  };
+
+  const runtime = fx.createRuntime({
+    async getCharacterAccess() {
+      return evidence;
+    },
+
+    async getSubscription(input) {
+      evidence.selectionRevision = 2;
+
+      return fx.entitlement.getSubscription(
+        input
+      );
+    }
+  });
+
+  assertDenied(
+    await runtime.authorize(
+      fx.input()
+    ),
+    "character_selection_revision_changed"
+  );
+});
+
+
+/*
+ * TEST 56 — HISTORICAL DECISION SNAPSHOT
+ */
+
+test("keeps previously issued decisions immutable after character selection changes", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay();
+
+  const original = await fx.authorize();
+
+  assertAllowed(
+    original,
+    fx.playerA
+  );
+
+  assert.equal(
+    original.selectionRevision,
+    1
+  );
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    CHARACTER
+  );
+
+  const fresh = await fx.authorize();
+
+  assertAllowed(
+    fresh,
+    fx.playerA
+  );
+
+  assert.equal(
+    original.selectionRevision,
+    1
+  );
+
+  assert.equal(
+    fresh.selectionRevision,
+    3
+  );
+
+  assert.deepEqual(
+    original.identity,
+    fresh.identity
+  );
+
+  assert.notEqual(
+    original.selectionRevision,
+    fresh.selectionRevision
+  );
+
+  assert.equal(
+    original.executionReauthorizationRequired,
+    true
+  );
+
+  assert.equal(
+    Object.isFrozen(original),
+    true
+  );
+});
+
+
+/*
+ * TEST 57 — ACCOUNT REVISION BINDING
+ */
+
+test("binds concurrent authorization decisions to independent account revisions", async t => {
+  const fx = await fixture(t);
+
+  await fx.pay(fx.playerA);
+  await fx.pay(fx.playerB);
+
+  fx.select(
+    fx.playerA,
+    OTHER_CHARACTER
+  );
+
+  fx.select(
+    fx.playerA,
+    CHARACTER
+  );
+
+  const [resultA, resultB] =
+    await Promise.all([
+      fx.runtime.authorize(
+        fx.input(fx.playerA)
+      ),
+
+      fx.runtime.authorize(
+        fx.input(fx.playerB)
+      )
+    ]);
+
+  assertAllowed(resultA, fx.playerA);
+  assertAllowed(resultB, fx.playerB);
+
+  assert.equal(
+    resultA.selectionRevision,
+    3
+  );
+
+  assert.equal(
+    resultB.selectionRevision,
+    1
+  );
+
+  assert.equal(
+    resultA.selectionRevisionVerified,
+    true
+  );
+
+  assert.equal(
+    resultB.selectionRevisionVerified,
+    true
+  );
+
+  assert.notEqual(
+    resultA.identity.accountId,
+    resultB.identity.accountId
+  );
+});
+
+
+/*
+ * TEST 58 — FAIL CLOSED REVISION CONTRACT
+ */
+
+test("removes revision evidence and all execution permissions from denied decisions", async t => {
+  const fx = await fixture(t);
+
+  const result = await fx.authorize();
+
+  assertDenied(
+    result,
+    "active_subscription_required"
+  );
+
+  assert.equal(
+    result.selectionRevision,
+    null
+  );
+
+  assert.equal(
+    result.selectionRevisionVerified,
+    false
+  );
+
+  assert.equal(result.learningAuthorized, false);
+  assert.equal(result.memoryAuthorized, false);
+  assert.equal(result.tradingAuthorized, false);
+
+  assert.equal(
+    result.externalModelTrainingAuthorized,
+    false
+  );
+});
+
+
+/*
+ * TEST 59 — REVISION SECURITY POLICY
+ */
+
+test("publishes immutable server revision authorization policy", async t => {
+  const fx = await fixture(t);
+
+  const policy = fx.runtime.getPolicy();
+
+  assert.equal(
+    policy.activeCharacterRequired,
+    true
+  );
+
+  assert.equal(
+    policy.selectionRevisionRequired,
+    true
+  );
+
+  assert.equal(
+    policy.selectionRevisionServerVerified,
+    true
+  );
+
+  assert.equal(
+    policy.selectionRevisionBoundAuthorization,
+    true
+  );
+
+  assert.equal(
+    policy.selectionRevisionRecheckRequired,
+    true
+  );
+
+  assert.equal(
+    policy.clientSelectionRevisionTrusted,
+    false
+  );
+
+  assert.equal(
+    policy.executionReauthorizationRequired,
+    true
+  );
+
+  assert.equal(
+    policy.failClosed,
+    true
+  );
+
+  assert.equal(
+    Object.isFrozen(policy),
+    true
+  );
+});
