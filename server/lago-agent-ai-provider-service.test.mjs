@@ -564,17 +564,17 @@ test(
 
     const service = fx.open();
 
-    assert.deepEqual(
+        assert.deepEqual(
       Object.keys(service).sort(),
 
-            [
+      [
         "version",
         "execute",
         "getConsentState",
         "setConsent",
         "close",
         "getPolicy"
-      ].sort())
+      ].sort()
     );
 
     assert.equal(
