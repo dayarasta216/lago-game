@@ -1460,3 +1460,820 @@ test(
     }
   }
 );
+
+/*
+ * LAGO GAME
+ * R2.8C5A
+ * SETTLEMENT AND RECOVERY TESTS
+ */
+
+function lifecycleInput(
+  n = 1,
+  accountId = A
+) {
+  return {
+    requestId: id(n),
+
+    accountId
+  };
+}
+
+function reserveAndDispatch(
+  ledger,
+  n = 1
+) {
+  const reserved =
+    ledger.reserveUsage(
+      reservation(n)
+    );
+
+  assert.equal(
+    reserved.ok,
+    true,
+    reserved.reason
+  );
+
+  const dispatched =
+    ledger.markDispatched(
+      lifecycleInput(n)
+    );
+
+  assert.equal(
+    dispatched.ok,
+    true,
+    dispatched.reason
+  );
+
+  assert.equal(
+    dispatched.state,
+    "dispatched"
+  );
+
+  return dispatched;
+}
+
+
+/*
+ * TEST 01 — SINGLE DISPATCH CLAIM
+ */
+
+test(
+  "R2.8C5A dispatch claim is single-use across connections",
+  t => {
+    const fx = reservationFixture(t);
+
+    const first = fx.open();
+
+    const second = fx.open();
+
+    reserveAndDispatch(first);
+
+    denied(
+      second.markDispatched(
+        lifecycleInput()
+      ),
+
+      "ai_reservation_invalid_state"
+    );
+
+    denied(
+      second.reserveUsage(
+        reservation()
+      ),
+
+      "ai_reservation_already_processed"
+    );
+
+    assert.equal(
+      read(second).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 02 — EXACT SETTLEMENT
+ */
+
+test(
+  "R2.8C5A atomically replaces reservation with actual usage",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    reserveAndDispatch(l);
+
+    const result = l.settleUsage(
+      event(1, {
+        inputTokens: 24,
+
+        outputTokens: 3
+      })
+    );
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    assert.equal(result.settled, true);
+
+    assert.equal(result.state, "settled");
+
+    assert.equal(
+      result.estimatedTokens,
+      32
+    );
+
+    assert.equal(
+      result.actualTokens,
+      27
+    );
+
+    assert.equal(
+      result.releasedTokens,
+      5
+    );
+
+    assert.equal(
+      result.exceededReservation,
+      false
+    );
+
+    assert.equal(
+      result.providerDispatchAuthorized,
+      false
+    );
+
+    const usage = read(l);
+
+    assert.equal(
+      usage.dailyUsedTokens,
+      27
+    );
+
+    assert.equal(
+      usage.monthlyUsedTokens,
+      27
+    );
+
+    assert.equal(
+      usage.dailyReservedTokens,
+      0
+    );
+
+    assert.equal(
+      usage.monthlyReservedTokens,
+      0
+    );
+
+    assert.equal(
+      usage.dailyRequests,
+      1
+    );
+
+    assert.equal(
+      usage.dailyReservedRequests,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 03 — IDEMPOTENT SETTLEMENT
+ */
+
+test(
+  "R2.8C5A exact settlement retry cannot double charge",
+  t => {
+    const fx = reservationFixture(t);
+
+    const l = fx.open();
+
+    reserveAndDispatch(l);
+
+    const first =
+      l.settleUsage(event());
+
+    assert.equal(
+      first.ok,
+      true,
+      first.reason
+    );
+
+    l.close();
+
+    const next = fx.open();
+
+    const duplicate =
+      next.settleUsage(event());
+
+    assert.deepEqual(
+      duplicate,
+
+      {
+        ...first,
+
+        duplicate: true
+      }
+    );
+
+    denied(
+      next.settleUsage(
+        event(1, {
+          outputTokens: 7
+        })
+      ),
+
+      "ai_usage_request_conflict"
+    );
+
+    assert.equal(
+      read(next).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      read(next).dailyRequests,
+      1
+    );
+  }
+);
+
+
+/*
+ * TEST 04 — SAFE CANCELLATION
+ */
+
+test(
+  "R2.8C5A cancellation releases only undispatched reservations",
+  t => {
+    const l = reservationFixture(t, {
+      dailyTokens: 32
+    }).open();
+
+    assert.equal(
+      l.reserveUsage(
+        reservation()
+      ).ok,
+      true
+    );
+
+    const cancelled =
+      l.cancelReservation(
+        lifecycleInput()
+      );
+
+    assert.equal(
+      cancelled.ok,
+      true,
+      cancelled.reason
+    );
+
+    assert.equal(
+      cancelled.state,
+      "cancelled"
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      0
+    );
+
+    assert.equal(
+      read(l).dailyUsedTokens,
+      0
+    );
+
+    assert.equal(
+      l.cancelReservation(
+        lifecycleInput()
+      ).duplicate,
+
+      true
+    );
+
+    denied(
+      l.markDispatched(
+        lifecycleInput()
+      ),
+
+      "ai_reservation_invalid_state"
+    );
+
+    denied(
+      l.reserveUsage(
+        reservation()
+      ),
+
+      "ai_reservation_already_processed"
+    );
+
+    reserveAndDispatch(l, 2);
+  }
+);
+
+
+/*
+ * TEST 05 — NO CANCELLATION
+ * AFTER DISPATCH
+ */
+
+test(
+  "R2.8C5A never releases dispatched usage through cancellation",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    reserveAndDispatch(l);
+
+    denied(
+      l.cancelReservation(
+        lifecycleInput()
+      ),
+
+      "ai_reservation_invalid_state"
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 06 — UNCERTAIN PROVIDER OUTCOME
+ */
+
+test(
+  "R2.8C5A uncertain usage remains reserved across restart and rollover",
+  t => {
+    const fx = reservationFixture(t);
+
+    const l = fx.open();
+
+    reserveAndDispatch(l);
+
+    const uncertain =
+      l.markUncertain(
+        lifecycleInput()
+      );
+
+    assert.equal(
+      uncertain.ok,
+      true,
+      uncertain.reason
+    );
+
+    assert.equal(
+      uncertain.state,
+      "uncertain"
+    );
+
+    l.close();
+
+    fx.setTime(
+      Date.parse(
+        "2027-02-01T00:00:00.000Z"
+      )
+    );
+
+    const next = fx.open();
+
+    assert.equal(
+      read(next).dailyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      read(next).monthlyReservedTokens,
+      32
+    );
+
+    const recovery =
+      next.listPendingReservations(A);
+
+    assert.equal(recovery.ok, true);
+
+    assert.equal(
+      recovery.reservations.length,
+      1
+    );
+
+    assert.equal(
+      recovery.reservations[0].state,
+      "uncertain"
+    );
+
+    denied(
+      next.cancelReservation(
+        lifecycleInput()
+      ),
+
+      "ai_reservation_invalid_state"
+    );
+
+    const settled =
+      next.settleUsage(event());
+
+    assert.equal(
+      settled.ok,
+      true,
+      settled.reason
+    );
+
+    assert.equal(
+      read(next).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      read(next).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 07 — ACTUAL USAGE OVERAGE
+ */
+
+test(
+  "R2.8C5A records verified usage even above reservation",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    reserveAndDispatch(l);
+
+    const result =
+      l.settleUsage(
+        event(1, {
+          outputTokens: 16
+        })
+      );
+
+    assert.equal(
+      result.ok,
+      true,
+      result.reason
+    );
+
+    assert.equal(
+      result.exceededReservation,
+      true
+    );
+
+    assert.equal(
+      result.actualTokens,
+      40
+    );
+
+    assert.equal(
+      result.releasedTokens,
+      0
+    );
+
+    assert.equal(
+      read(l).dailyUsedTokens,
+      40
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 08 — ACCOUNT ISOLATION
+ */
+
+test(
+  "R2.8C5A rejects foreign lifecycle and settlement operations",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    reserveAndDispatch(l);
+
+    denied(
+      l.markUncertain(
+        lifecycleInput(1, B)
+      ),
+
+      "ai_reservation_not_found"
+    );
+
+    denied(
+      l.settleUsage(
+        event(1, {
+          accountId: B
+        })
+      ),
+
+      "ai_reservation_not_found"
+    );
+
+    assert.equal(
+      l.listPendingReservations(B)
+        .reservations.length,
+
+      0
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      read(l, B).dailyUsedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 09 — INVALID TRANSITIONS
+ */
+
+test(
+  "R2.8C5A rejects settlement before dispatch and invalid input",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    assert.equal(
+      l.reserveUsage(
+        reservation()
+      ).ok,
+      true
+    );
+
+    denied(
+      l.settleUsage(event()),
+
+      "ai_reservation_invalid_state"
+    );
+
+    denied(
+      l.markUncertain(
+        lifecycleInput()
+      ),
+
+      "ai_reservation_invalid_state"
+    );
+
+    denied(
+      l.markDispatched({
+        ...lifecycleInput(),
+
+        state: "dispatched"
+      }),
+
+      "invalid_ai_lifecycle_request"
+    );
+
+    assert.equal(
+      l.markDispatched(
+        lifecycleInput()
+      ).ok,
+
+      true
+    );
+
+    denied(
+      l.settleUsage(
+        event(1, {
+          outputTokens: -1
+        })
+      ),
+
+      "invalid_ai_settlement_request"
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 10 — CLOCK AND TERMINAL HISTORY
+ */
+
+test(
+  "R2.8C5A terminal state retains clock regression protection",
+  t => {
+    const fx =
+      reservationFixture(t);
+
+    const l = fx.open();
+
+    assert.equal(
+      l.reserveUsage(
+        reservation()
+      ).ok,
+
+      true
+    );
+
+    fx.setTime(START + 1000);
+
+    assert.equal(
+      l.cancelReservation(
+        lifecycleInput()
+      ).ok,
+
+      true
+    );
+
+    fx.setTime(START);
+
+    denied(
+      l.reserveUsage(
+        reservation(2)
+      ),
+
+      "ai_usage_clock_regressed"
+    );
+
+    fx.setTime(START + 1000);
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      0
+    );
+  }
+);
+
+
+/*
+ * TEST 11 — RECOVERY AFTER REOPEN
+ */
+
+test(
+  "R2.8C5A recovery lists unfinished requests without releasing them",
+  t => {
+    const fx =
+      reservationFixture(t);
+
+    const l = fx.open();
+
+    assert.equal(
+      l.reserveUsage(
+        reservation(1)
+      ).ok,
+      true
+    );
+
+    reserveAndDispatch(l, 2);
+
+    l.close();
+
+    const next = fx.open();
+
+    const recovery =
+      next.listPendingReservations(A);
+
+    assert.equal(
+      recovery.ok,
+      true
+    );
+
+    assert.deepEqual(
+      recovery.reservations.map(
+        r => r.state
+      ),
+
+      [
+        "reserved",
+        "dispatched"
+      ]
+    );
+
+    assert.equal(
+      read(next).dailyReservedTokens,
+      64
+    );
+
+    assert.equal(
+      recovery.providerDispatchAuthorized,
+      false
+    );
+
+    assert.ok(
+      Object.isFrozen(
+        recovery.reservations
+      )
+    );
+  }
+);
+
+
+/*
+ * TEST 12 — V2 SCHEMA MIGRATION
+ */
+
+test(
+  "R2.8C5A migrates v2 and preserves unfinished reservations",
+  t => {
+    const fx = fixture(t);
+
+    fx.open().close();
+
+    const db = new DatabaseSync(
+      join(
+        fx.config.directory,
+
+        "lago-ai-usage.sqlite"
+      )
+    );
+
+    try {
+      db.exec(`
+        DROP TABLE ai_usage_reservations;
+
+        CREATE TABLE ai_usage_reservations (
+          request_id TEXT PRIMARY KEY NOT NULL,
+          account_id TEXT NOT NULL,
+          reserved_at_ms INTEGER NOT NULL,
+          input_tokens INTEGER NOT NULL,
+          max_output_tokens INTEGER NOT NULL
+        ) STRICT;
+
+        CREATE INDEX
+          ai_usage_reservations_account_idx
+
+        ON ai_usage_reservations(account_id);
+
+        PRAGMA user_version = 2;
+      `);
+
+      db.prepare(`
+        INSERT INTO ai_usage_reservations
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        id(1),
+
+        A,
+
+        START,
+
+        24,
+
+        8
+      );
+
+    } finally {
+      db.close();
+    }
+
+    const next = fx.open();
+
+    assert.equal(
+      read(next).dailyReservedTokens,
+      32
+    );
+
+    const recovery =
+      next.listPendingReservations(A);
+
+    assert.equal(
+      recovery.reservations[0].state,
+
+      "reserved"
+    );
+
+    assert.equal(
+      next.markDispatched(
+        lifecycleInput()
+      ).ok,
+
+      true
+    );
+
+    assert.equal(
+      next.settleUsage(event()).ok,
+
+      true
+    );
+
+    assert.equal(
+      read(next).dailyUsedTokens,
+      32
+    );
+  }
+);
