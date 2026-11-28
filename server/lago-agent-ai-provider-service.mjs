@@ -1,6 +1,4 @@
-import {
-  isAbsolute
-} from "node:path";
+import { isAbsolute } from "node:path";
 
 import {
   createLagoAIGateway
@@ -18,22 +16,31 @@ import {
   AI_BUDGET_LIMITS
 } from "./lago-agent-ai-budget.mjs";
 
+import {
+  createLagoAIConsentStore,
+  AI_CONSENT_VERSION
+} from "./lago-agent-ai-consent-store.mjs";
+
+import {
+  createLagoAIRateLimiter,
+  AI_RATE_LIMITS
+} from "./lago-agent-ai-rate-limiter.mjs";
+
 
 /*
  * LAGO GAME
- * R2.8C6A — SECURE AI PROVIDER BOOTSTRAP
+ * R2.8C6C3B
+ * MANDATORY SECURITY COMPOSITION
  *
- * Server-only composition root.
- *
- * Explicit provider activation.
- * Environment-only credentials.
- * Mandatory generation authorization.
- * Mandatory persistent usage accounting.
- * Controlled service lifecycle.
+ * Persistent authenticated consent.
+ * Mandatory consent revision binding.
+ * Persistent rate admission.
+ * Atomic usage accounting.
+ * Strict generation authorization.
+ * Managed asynchronous shutdown.
  *
  * No public HTTP endpoint.
- * No automatic provider activation.
- * No trading authorization.
+ * No automatic trading.
  */
 
 export const AI_PROVIDER_SERVICE_VERSION = 1;
@@ -42,15 +49,13 @@ const PROVIDER_ID = "openai";
 
 
 /*
- * SAFE CONFIGURATION VALIDATION
+ * VALIDATION
  */
 
 function validAPIKey(value) {
   return (
     typeof value === "string" &&
-
-    /^[\x21-\x7E]{1,512}$/
-      .test(value)
+    /^[\x21-\x7E]{1,512}$/.test(value)
   );
 }
 
@@ -66,20 +71,38 @@ function validModel(value) {
 function validDirectory(value) {
   return (
     typeof value === "string" &&
-
     value.length > 0 &&
-
     value.trim() === value &&
-
     !value.includes("\0") &&
-
     isAbsolute(value)
   );
 }
 
+function closedConsent() {
+  return Object.freeze({
+    ok: false,
+
+    version: AI_CONSENT_VERSION,
+
+    granted: false,
+
+    revision: null,
+
+    providerDispatchAuthorized: false,
+
+    memoryAuthorized: false,
+
+    externalModelTrainingAuthorized: false,
+
+    tradingAuthorized: false,
+
+    reason: "ai_consent_store_closed"
+  });
+}
+
 
 /*
- * PRIVATE SERVICE FACTORY
+ * PRIVATE PROVIDER SERVICE
  */
 
 export function createLagoAIProviderService({
@@ -90,9 +113,24 @@ export function createLagoAIProviderService({
 
   runtimeAccess,
 
+  sessionStore,
+
+  /*
+   * Legacy callbacks and external
+   * security overrides are forbidden.
+   */
+
   getProcessingConsent,
 
+  getProcessingConsentRevision,
+
+  rateLimiter: externalRateLimiter,
+
+  usageLedger: externalUsageLedger,
+
   limits = AI_BUDGET_LIMITS,
+
+  rateLimits = AI_RATE_LIMITS,
 
   now = () => Date.now(),
 
@@ -112,9 +150,7 @@ export function createLagoAIProviderService({
 
 
   /*
-   * Explicit activation only.
-   *
-   * Missing flag means disabled.
+   * EXPLICIT ACTIVATION
    */
 
   const activation =
@@ -122,9 +158,7 @@ export function createLagoAIProviderService({
 
   if (
     activation === undefined ||
-
     activation === "" ||
-
     activation === "0"
   ) {
     return null;
@@ -138,8 +172,7 @@ export function createLagoAIProviderService({
 
 
   /*
-   * Validate prerequisites before
-   * opening databases or adapters.
+   * MANDATORY TRUSTED DEPENDENCIES
    */
 
   if (
@@ -152,17 +185,30 @@ export function createLagoAIProviderService({
   }
 
   if (
-    typeof getProcessingConsent !==
+    typeof sessionStore?.restoreSession !==
       "function"
   ) {
     throw new Error(
-      "ai_processing_consent_required"
+      "ai_consent_session_store_required"
+    );
+  }
+
+  if (
+    getProcessingConsent !== undefined ||
+
+    getProcessingConsentRevision !== undefined ||
+
+    externalRateLimiter !== undefined ||
+
+    externalUsageLedger !== undefined
+  ) {
+    throw new Error(
+      "ai_security_override_forbidden"
     );
   }
 
   if (
     typeof now !== "function" ||
-
     typeof fetchImpl !== "function"
   ) {
     throw new Error(
@@ -178,9 +224,7 @@ export function createLagoAIProviderService({
 
 
   /*
-   * SERVER ENVIRONMENT
-   *
-   * Never return or log credentials.
+   * PRIVATE ENVIRONMENT
    */
 
   const apiKey =
@@ -212,15 +256,23 @@ export function createLagoAIProviderService({
 
 
   /*
-   * MANAGED SERVICE LIFECYCLE
-   *
-   * Services are closed in
-   * reverse initialization order.
+   * MANAGED LIFECYCLE
    */
 
   const managedServices = [];
 
+  const pendingOperations = new Set();
+
   let closed = false;
+
+  let closing = null;
+
+  let consentStore = null;
+
+  let gateway = null;
+
+  let adapter = null;
+
 
   function closeManagedServices() {
     let failed = false;
@@ -240,7 +292,22 @@ export function createLagoAIProviderService({
     return !failed;
   }
 
-  let gateway = null;
+
+  function track(operation) {
+    const task = Promise.resolve(
+      operation()
+    );
+
+    pendingOperations.add(task);
+
+    task.then(
+      () => pendingOperations.delete(task),
+
+      () => pendingOperations.delete(task)
+    );
+
+    return task;
+  }
 
 
   /*
@@ -250,71 +317,105 @@ export function createLagoAIProviderService({
   try {
 
     /*
-     * 1. Persistent usage ledger.
+     * 1. Persistent token accounting.
      */
 
     const usageLedger =
       createLagoAIUsageLedger({
         directory,
+        projectRoot,
+        limits,
+        now
+      });
+
+    managedServices.push(usageLedger);
+
+
+    /*
+     * 2. Persistent authenticated
+     * processing consent.
+     */
+
+    consentStore =
+      createLagoAIConsentStore({
+        directory,
 
         projectRoot,
 
-        limits,
+        sessionStore,
+
+        model,
 
         now
       });
 
-    managedServices.push(
-      usageLedger
-    );
+    managedServices.push(consentStore);
 
 
     /*
-     * 2. Strict OpenAI adapter.
-     *
-     * The authorization barrier
-     * cannot be disabled here.
+     * 3. Persistent account and global
+     * request admission.
      */
 
-    const adapter =
-      createLagoOpenAIAdapter({
-        apiKey,
+    const rateLimiter =
+      createLagoAIRateLimiter({
+        directory,
 
-        model,
+        projectRoot,
 
-        enabled: true,
+        limits: rateLimits,
 
-        requireGenerationAuthorization:
-          true,
-
-        fetchImpl
+        now
       });
 
-    managedServices.push(
-      adapter
-    );
+    managedServices.push(rateLimiter);
 
 
     /*
-     * 3. Authorized AI gateway.
+     * 4. Strict OpenAI adapter.
+     */
+
+    adapter = createLagoOpenAIAdapter({
+      apiKey,
+
+      model,
+
+      enabled: true,
+
+      requireGenerationAuthorization:
+        true,
+
+      fetchImpl
+    });
+
+    managedServices.push(adapter);
+
+
+    /*
+     * 5. Fully protected AI gateway.
      *
-     * Mandatory account entitlement.
-     * Mandatory processing consent.
-     * Mandatory usage reservation.
+     * Security callbacks originate
+     * exclusively from internal stores.
      */
 
     gateway = createLagoAIGateway({
       runtimeAccess,
 
-      getProcessingConsent,
+      getProcessingConsent:
+        consentStore.getProcessingConsent,
+
+      getProcessingConsentRevision:
+        consentStore.getProcessingConsentRevision,
+
+      rateLimiter,
+
+      usageLedger,
 
       providerId: PROVIDER_ID,
 
       model,
 
       generate: adapter.generate,
-
-      usageLedger,
 
       enabled: true,
 
@@ -324,18 +425,11 @@ export function createLagoAIProviderService({
       now
     });
 
-    managedServices.push(
-      gateway
-    );
+    managedServices.push(gateway);
 
   } catch {
 
     closeManagedServices();
-
-    /*
-     * Do not propagate raw errors
-     * containing paths or credentials.
-     */
 
     throw new Error(
       "ai_provider_bootstrap_failed"
@@ -344,31 +438,96 @@ export function createLagoAIProviderService({
 
 
   /*
-   * SERVICE SHUTDOWN
+   * SAFE INFERENCE EXECUTION
    */
 
-  function close() {
+  function execute(input) {
     if (closed) {
-      return;
+      return gateway.execute(input);
     }
 
-    closed = true;
-
-    if (!closeManagedServices()) {
-      throw new Error(
-        "ai_provider_shutdown_failed"
-      );
-    }
+    return track(
+      () => gateway.execute(input)
+    );
   }
 
 
   /*
-   * SAFE SERVER INTERFACE
+   * AUTHENTICATED CONSENT MANAGEMENT
    *
-   * The raw adapter and ledger
-   * remain private.
+   * These operations do not require
+   * an active AI subscription.
+   */
+
+  function getConsentState(input) {
+    if (closed) {
+      return Promise.resolve(
+        closedConsent()
+      );
+    }
+
+    return track(
+      () => consentStore.getConsentState(
+        input
+      )
+    );
+  }
+
+
+  function setConsent(input) {
+    if (closed) {
+      return Promise.resolve(
+        closedConsent()
+      );
+    }
+
+    return track(
+      () => consentStore.setConsent(
+        input
+      )
+    );
+  }
+
+
+  /*
+   * GRACEFUL ASYNCHRONOUS SHUTDOWN
    *
-   * No direct provider invocation.
+   * Stop admission immediately.
+   * Abort active gateway and adapter calls.
+   * Wait for tracked gateway cleanup.
+   * Then close persistent databases.
+   *
+   * Uncertain reservations and unfinished
+   * concurrency claims remain persisted.
+   */
+
+  function close() {
+    if (closing !== null) {
+      return closing;
+    }
+
+    closed = true;
+
+    gateway.close();
+
+    adapter.close();
+
+    closing = Promise.allSettled(
+      [...pendingOperations]
+    ).then(() => {
+      if (!closeManagedServices()) {
+        throw new Error(
+          "ai_provider_shutdown_failed"
+        );
+      }
+    });
+
+    return closing;
+  }
+
+
+  /*
+   * SAFE INTERNAL SERVICE INTERFACE
    */
 
   return Object.freeze({
@@ -376,9 +535,11 @@ export function createLagoAIProviderService({
     version:
       AI_PROVIDER_SERVICE_VERSION,
 
-    execute(input) {
-      return gateway.execute(input);
-    },
+    execute,
+
+    getConsentState,
+
+    setConsent,
 
     close,
 
@@ -404,7 +565,28 @@ export function createLagoAIProviderService({
         rawAdapterExposed:
           false,
 
+        rawSecurityStoresExposed:
+          false,
+
         persistentUsageRequired:
+          true,
+
+        persistentConsentRequired:
+          true,
+
+        persistentRateLimiterRequired:
+          true,
+
+        consentRevisionRequired:
+          true,
+
+        securityOverridesAllowed:
+          false,
+
+        authenticatedConsentManagement:
+          true,
+
+        asynchronousShutdown:
           true,
 
         publicEndpointEnabled:
