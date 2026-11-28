@@ -744,9 +744,9 @@ test(
 
     const policy = l.getPolicy();
 
-    assert.equal(
+        assert.equal(
       policy.atomicReservationEnabled,
-      false
+      true
     );
 
     assert.equal(
@@ -768,5 +768,695 @@ test(
       l.recordUsage(event()),
       "ai_usage_ledger_closed"
     );
+  }
+);
+
+/*
+ * LAGO GAME
+ * R2.8C5 — ATOMIC RESERVATION TESTS
+ */
+
+import { DatabaseSync } from "node:sqlite";
+
+import { Worker } from "node:worker_threads";
+
+import { once } from "node:events";
+
+
+function reservation(n = 1, changes = {}) {
+  return {
+    requestId: id(n),
+
+    accountId: A,
+
+    inputTokens: 24,
+
+    maxOutputTokens: 8,
+
+    ...changes
+  };
+}
+
+const RESERVATION_LIMITS = Object.freeze({
+  dailyTokens: 64,
+
+  monthlyTokens: 128,
+
+  dailyRequests: 3,
+
+  maxInputTokens: 4096,
+
+  maxOutputTokens: 1024
+});
+
+function reservationFixture(t, changes = {}) {
+  const fx = fixture(t);
+
+  fx.config.limits = {
+    ...RESERVATION_LIMITS,
+    ...changes
+  };
+
+  return fx;
+}
+
+
+/*
+ * TEST 01 — COMPLETED + RESERVED USAGE
+ */
+
+test(
+  "R2.8C5 reserves maximum output and counts completed usage",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    assert.equal(
+      l.recordUsage(event(1)).ok,
+      true
+    );
+
+    const r =
+      l.reserveUsage(reservation(2));
+
+    assert.equal(r.ok, true, r.reason);
+
+    assert.equal(
+      r.reservationCreated,
+      true
+    );
+
+    assert.equal(r.estimatedTokens, 32);
+
+    assert.equal(
+      r.providerDispatchAuthorized,
+      false
+    );
+
+    assert.equal(
+      r.tradingAuthorized,
+      false
+    );
+
+    assert.ok(Object.isFrozen(r));
+
+    const usage = read(l);
+
+    assert.equal(
+      usage.dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.dailyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.monthlyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.dailyReservedRequests,
+      1
+    );
+
+    denied(
+      l.reserveUsage(reservation(3)),
+
+      "ai_daily_token_budget_exceeded"
+    );
+  }
+);
+
+
+/*
+ * TEST 02 — SHARED QUOTA
+ */
+
+test(
+  "R2.8C5 competing connections share one quota",
+  t => {
+    const fx = reservationFixture(t, {
+      dailyTokens: 32
+    });
+
+    const first = fx.open();
+
+    const second = fx.open();
+
+    assert.equal(
+      first.reserveUsage(
+        reservation(1)
+      ).ok,
+      true
+    );
+
+    denied(
+      second.reserveUsage(
+        reservation(2)
+      ),
+
+      "ai_daily_token_budget_exceeded"
+    );
+
+    assert.equal(
+      read(second).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 03 — RESERVATION IDEMPOTENCY
+ */
+
+test(
+  "R2.8C5 retries are idempotent after reopening",
+  t => {
+    const fx = reservationFixture(t);
+
+    const l = fx.open();
+
+    const first =
+      l.reserveUsage(reservation());
+
+    assert.equal(
+      first.ok,
+      true,
+      first.reason
+    );
+
+    l.close();
+
+    const next = fx.open();
+
+    assert.deepEqual(
+      next.reserveUsage(reservation()),
+
+      {
+        ...first,
+
+        duplicate: true,
+
+        reservationCreated: false
+      }
+    );
+
+    assert.equal(
+      read(next).dailyReservedRequests,
+      1
+    );
+  }
+);
+
+
+/*
+ * TEST 04 — ACCOUNT ISOLATION
+ */
+
+test(
+  "R2.8C5 denies cross-account and changed reservation replay",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    assert.equal(
+      l.reserveUsage(reservation()).ok,
+      true
+    );
+
+    denied(
+      l.reserveUsage(
+        reservation(1, {
+          accountId: B
+        })
+      ),
+
+      "ai_usage_request_conflict"
+    );
+
+    denied(
+      l.reserveUsage(
+        reservation(1, {
+          maxOutputTokens: 9
+        })
+      ),
+
+      "ai_usage_request_conflict"
+    );
+
+    assert.equal(
+      l.reserveUsage(
+        reservation(2, {
+          accountId: B
+        })
+      ).ok,
+      true
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      read(l, B).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 05 — CROSS-TABLE REPLAY
+ */
+
+test(
+  "R2.8C5 denies recording reserved IDs and reserving recorded IDs",
+  t => {
+    const l =
+      reservationFixture(t).open();
+
+    assert.equal(
+      l.recordUsage(event(1)).ok,
+      true
+    );
+
+    denied(
+      l.reserveUsage(reservation(1)),
+
+      "ai_usage_request_conflict"
+    );
+
+    assert.equal(
+      l.reserveUsage(reservation(2)).ok,
+      true
+    );
+
+    denied(
+      l.recordUsage(event(2)),
+
+      "ai_usage_request_reserved"
+    );
+
+    assert.equal(
+      read(l).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      read(l).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 06 — UTC ROLLOVER
+ */
+
+test(
+  "R2.8C5 carries pending reservations across UTC windows",
+  t => {
+    const fx = reservationFixture(t, {
+      dailyTokens: 32
+    });
+
+    const l = fx.open();
+
+    assert.equal(
+      l.reserveUsage(reservation()).ok,
+      true
+    );
+
+    fx.setTime(
+      Date.parse(
+        "2027-02-01T00:00:00.000Z"
+      )
+    );
+
+    const usage = read(l);
+
+    assert.equal(
+      usage.monthlyKey,
+      "2027-02"
+    );
+
+    assert.equal(
+      usage.dailyReservedTokens,
+      32
+    );
+
+    assert.equal(
+      usage.monthlyReservedTokens,
+      32
+    );
+
+    denied(
+      l.reserveUsage(reservation(2)),
+
+      "ai_daily_token_budget_exceeded"
+    );
+  }
+);
+
+
+/*
+ * TEST 07 — REQUEST AND MONTHLY LIMITS
+ */
+
+test(
+  "R2.8C5 enforces daily request and monthly quota",
+  t => {
+    const l = reservationFixture(t, {
+      dailyRequests: 1
+    }).open();
+
+    assert.equal(
+      l.reserveUsage(reservation()).ok,
+      true
+    );
+
+    denied(
+      l.reserveUsage(reservation(2)),
+
+      "ai_daily_request_quota_exceeded"
+    );
+
+    const fx = reservationFixture(t, {
+      dailyTokens: 64,
+
+      monthlyTokens: 64
+    });
+
+    const m = fx.open();
+
+    assert.equal(
+      m.recordUsage(
+        event(1, {
+          inputTokens: 48,
+
+          outputTokens: 0
+        })
+      ).ok,
+      true
+    );
+
+    fx.setTime(
+      Date.parse(
+        "2027-01-31T00:00:00.000Z"
+      )
+    );
+
+    denied(
+      m.reserveUsage(reservation(2)),
+
+      "ai_monthly_token_budget_exceeded"
+    );
+  }
+);
+
+
+/*
+ * TEST 08 — MALFORMED INPUT AND CLOCK
+ */
+
+test(
+  "R2.8C5 rejects invalid input and regressed clock",
+  t => {
+    const fx = reservationFixture(t);
+
+    const l = fx.open();
+
+    for (const value of [
+      null,
+
+      {},
+
+      reservation(1, {
+        inputTokens: 0
+      }),
+
+      reservation(1, {
+        maxOutputTokens: 1025
+      }),
+
+      reservation(1, {
+        accountId: "bad"
+      }),
+
+      reservation(1, {
+        usage: {}
+      })
+    ]) {
+      denied(
+        l.reserveUsage(value),
+
+        "invalid_ai_reservation_request"
+      );
+    }
+
+    assert.equal(
+      l.reserveUsage(reservation()).ok,
+      true
+    );
+
+    fx.setTime(START - 1);
+
+    denied(
+      l.reserveUsage(reservation(2)),
+
+      "ai_usage_clock_regressed"
+    );
+
+    fx.setTime(NaN);
+
+    denied(
+      l.reserveUsage(reservation(2)),
+
+      "invalid_ai_usage_clock"
+    );
+
+    l.close();
+
+    denied(
+      l.reserveUsage(reservation(2)),
+
+      "ai_usage_ledger_closed"
+    );
+  }
+);
+
+
+/*
+ * TEST 09 — DATABASE MIGRATION
+ */
+
+test(
+  "R2.8C5 migrates schema v1 without deleting usage",
+  t => {
+    const fx = fixture(t);
+
+    const first = fx.open();
+
+    assert.equal(
+      first.recordUsage(event()).ok,
+      true
+    );
+
+    first.close();
+
+    const db = new DatabaseSync(
+      join(
+        fx.config.directory,
+
+        "lago-ai-usage.sqlite"
+      )
+    );
+
+    try {
+      db.exec(`
+        DROP TABLE ai_usage_reservations;
+
+        PRAGMA user_version = 1;
+      `);
+
+    } finally {
+      db.close();
+    }
+
+    const next = fx.open();
+
+    assert.equal(
+      read(next).dailyUsedTokens,
+      32
+    );
+
+    assert.equal(
+      next.reserveUsage(
+        reservation(2)
+      ).ok,
+      true
+    );
+
+    assert.equal(
+      read(next).dailyReservedTokens,
+      32
+    );
+  }
+);
+
+
+/*
+ * TEST 10 — REAL CONCURRENT WORKERS
+ */
+
+test(
+  "R2.8C5 two workers cannot reserve the same remaining quota",
+
+  { timeout: 15000 },
+
+  async t => {
+    const fx = fixture(t);
+
+    fx.open().close();
+
+    const workers = [1, 2].map(
+      n => new Worker(`
+
+        const {
+          parentPort,
+          workerData
+        } = require("node:worker_threads");
+
+        (async () => {
+          const {
+            createLagoAIUsageLedger
+
+          } = await import(workerData.url);
+
+          const ledger =
+            createLagoAIUsageLedger({
+              ...workerData.config,
+
+              now: () => workerData.now
+            });
+
+          parentPort.once("message", () => {
+            try {
+              parentPort.postMessage(
+                ledger.reserveUsage(
+                  workerData.request
+                )
+              );
+
+            } finally {
+              ledger.close();
+            }
+          });
+
+          parentPort.postMessage("ready");
+
+        })().catch(error => {
+          throw error;
+        });
+
+      `, {
+        eval: true,
+
+        workerData: {
+          url: new URL(
+            "./lago-agent-ai-usage-ledger.mjs",
+
+            import.meta.url
+          ).href,
+
+          config: {
+            directory:
+              fx.config.directory,
+
+            projectRoot:
+              fx.config.projectRoot,
+
+            limits: {
+              ...RESERVATION_LIMITS,
+
+              dailyTokens: 32
+            }
+          },
+
+          now: START,
+
+          request: reservation(n)
+        }
+      })
+    );
+
+    try {
+      const ready = await Promise.all(
+        workers.map(
+          w => once(w, "message")
+        )
+      );
+
+      assert.deepEqual(
+        ready,
+
+        [["ready"], ["ready"]]
+      );
+
+      const responses = Promise.all(
+        workers.map(
+          w => once(w, "message")
+        )
+      );
+
+      for (const w of workers) {
+        w.postMessage("go");
+      }
+
+      const results =
+        (await responses)
+          .map(([result]) => result);
+
+      assert.equal(
+        results.filter(
+          r => r.ok
+        ).length,
+
+        1
+      );
+
+      assert.equal(
+        results.filter(
+          r => r.reservationCreated
+        ).length,
+
+        1
+      );
+
+      denied(
+        results.find(r => !r.ok),
+
+        "ai_daily_token_budget_exceeded"
+      );
+
+      assert.equal(
+        read(fx.open()).dailyReservedTokens,
+
+        32
+      );
+
+    } finally {
+      await Promise.all(
+        workers.map(
+          w => w.terminate()
+        )
+      );
+    }
   }
 );
